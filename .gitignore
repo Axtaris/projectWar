@@ -1,0 +1,6 @@
+# game data lives in its own repository: clone it into ./data
+data/
+__pycache__/
+*.log
+.DS_Store
+Thumbs.db
