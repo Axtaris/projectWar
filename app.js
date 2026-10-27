@@ -66,7 +66,9 @@ async function loadFaction(l) {
   if (S.fd[key]) return S.fd[key];
   const d = await getJson(l.Faction); let units = d.Units.slice();
   if (l.IsLegendsEnabled) { try { units = units.concat((await getJson(l.Faction + ' Legends')).Units) } catch { } }
-  d.all = units; d.byName = new Map(units.map(u => [u.Name, u])); return S.fd[key] = d;
+  d.all = units; d.byName = new Map(units.map(u => [u.Name, u]));
+  d.alt = altBodies(units);
+  return S.fd[key] = d;
 }
 const fdOf = l => S.fd[l.Faction + (l.IsLegendsEnabled ? '+L' : '')];
 
@@ -93,6 +95,16 @@ const effDisp = l => { const o = dispOpts(l); return o.includes(l.Disposition) ?
 const dpUsed = l => dets(l).reduce((a, d) => a + (d.Cost ?? 1), 0);
 const enhs = l => dets(l).flatMap(d => (d.Enhancements || []).map(e => ({ ...e, det: d.Name })));
 const unitOf = (l, u) => fdOf(l).byName.get(u.Id);
+/* text rules that live on the datasheet and change what the list checks (the data keeps them as plain rule text) */
+const dsText = d => [...(d?.UnitAbilities || []), ...(d?.Infos || []), { Text: d?.LeaderInfo?.Description || '' }].map(x => x.Text || '').join(' ');
+const ALT_RX = /can be attached to (?:an? |the )?(.+?)(?: unit)?, it can be attached to this unit instead/i;
+function altBodies(units) { /* lowercase led-unit name -> lowercase names of the units that accept the same leaders */
+  const names = units.map(u => lc(u.Name)), alt = new Map();
+  units.forEach(u => { const m = ALT_RX.exec(dsText(u)); if (!m) return; const x = lc(m[1]).trim(), ref = names.find(k => k === x || k.replace(/s$/, '') === x.replace(/s$/, ''));
+    if (ref) alt.set(ref, [...(alt.get(ref) || []), lc(u.Name)]) });
+  return alt;
+}
+const joinsOther = d => /\b(can|must) join one\b/i.test(dsText(d));   /* Servitors, Cryptothralls, Loyal Protector...: they join the unit, they are not a Leader or Support */
 const models = u => u.UnitCompositionRef.reduce((a, c) => a + c.ModelCount, 0);
 const affects = (e, d) => { const k = kws(d); return (e.AffectedUnits || []).some(n => lc(n) === lc(d.Name)) || ((e.AffectedUnitsByKeyword || []).some(x => k.has(lc(x))) && !(e.AffectedUnitsExcludeKeyword || []).some(x => k.has(lc(x)))) };
 const effFor = (l, d) => l ? dets(l).flatMap(x => (x.Effects || []).filter(e => affects(e, d))) : [];
@@ -132,20 +144,21 @@ function errors(l) {
   const n = l.Units.filter(u => u.EnhancementId).length; if (n > bs.EnhancementLimit) e.push(`Too many enhancements (${n}/${bs.EnhancementLimit}).`);
   const seen = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; if (u.EnhancementId) { if (seen[u.EnhancementId]) e.push(`${tc(u.EnhancementId)} is used more than once.`); seen[u.EnhancementId] = 1; const en = enhOf(l, u); if (!en || !eligible(en, d)) e.push(`${tc(u.Id)} cannot take ${tc(u.EnhancementId)}.`) } });
   const cnt = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (d) cnt[u.Id] = (cnt[u.Id] || 0) + 1 });
-  Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) ? 1 : kws(d).has('battleline') ? bs.UnitLimit + 3 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
+  Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) || /cannot include more than one of this model/i.test(dsText(d)) ? 1 : kws(d).has('battleline') ? bs.UnitLimit + 3 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
+  l.Units.forEach(u => { const m = /army cannot contain both (.+?) and (.+?)\./i.exec(dsText(unitOf(l, u))); if (m && l.Units.some(x => lc(x.Id) === lc(m[1]).trim()) && l.Units.some(x => lc(x.Id) === lc(m[2]).trim()) && lc(u.Id) === lc(m[1]).trim()) e.push(`Your army cannot contain both ${tc(m[1])} and ${tc(m[2])}.`) });
   /* leaders may go alone; only datasheets that say "must join" (Loyal Protector, Regimental Attaché) need a bodyguard */
   l.Units.forEach(u => { const d = unitOf(l, u); if (d?.UnitAbilities?.some(x => /\bmust join\b/i.test(x.Text)) && !u.AttachedToInstanceId) e.push(`${tc(u.Id)} must be attached to a bodyguard unit.`) });
   /* attached units (core rule 19): unless stated otherwise a bodyguard unit takes one Leader unit and one Support unit.
-     Datasheets that say "up to two Leader units" (Guard battleline, Kroot) allow two; the text sits in the abilities or in the unit info. */
+     Exceptions sit on the datasheets: "up to two Leader units" (Guard battleline, Kroot) and, on the leader's own sheet, "even if one other Leader unit has already been attached" (Death Guard).
+     Units that "join" another unit (Servitors, Cryptothralls, Loyal Protector...) are not counted. */
   const isSupport = d => (d?.CoreAbilities || []).some(a => lc(a) === 'support');
-  const txtOf = d => [...(d?.UnitAbilities || []), ...(d?.Infos || [])].map(x => x.Text).join(' | ');
-  l.Units.forEach(b => { const att = l.Units.filter(x => x.AttachedToInstanceId === b.InstanceId), bd = unitOf(l, b); if (att.length < 2) return;
-    const T = txtOf(bd), sup = att.filter(x => isSupport(unitOf(l, x))), lead = att.filter(x => !isSupport(unitOf(l, x)));
-    const two = /up to two Leader units/i.test(T) && (!/Starting Strength of 20/i.test(T) || models(b) >= 20), maxLead = two ? 2 : 1;
+  l.Units.forEach(b => { const att = l.Units.filter(x => x.AttachedToInstanceId === b.InstanceId && !joinsOther(unitOf(l, x))), bd = unitOf(l, b); if (att.length < 2) return;
+    const T = dsText(bd), sup = att.filter(x => isSupport(unitOf(l, x))), lead = att.filter(x => !isSupport(unitOf(l, x)));
+    const own = /up to two Leader units/i.test(T) && (!/Starting Strength of 20/i.test(T) || models(b) >= 20), viaLeader = lead.some(x => /even if one other Leader unit has already been attached/i.test(dsText(unitOf(l, x)))), maxLead = own || viaLeader ? 2 : 1;
     if (sup.length > 1) e.push(`${tc(b.Id)} can only have one Support unit attached.`);
     if (lead.length > maxLead) e.push(`${tc(b.Id)} can only have ${maxLead === 1 ? 'one Leader unit' : 'two Leader units'} attached.`);
-    else if (two && /no more than one of those units is a Command Squad/i.test(T) && lead.filter(x => /command squad/i.test(x.Id)).length > 1) e.push(`${tc(b.Id)} can only have one Command Squad attached.`);
-    else if (two && /not duplicates/i.test(T) && new Set(lead.map(x => x.Id)).size < lead.length) e.push(`${tc(b.Id)} cannot have two copies of the same Leader attached.`) });
+    else if (own && /no more than one of those units is a Command Squad/i.test(T) && lead.filter(x => /command squad/i.test(x.Id)).length > 1) e.push(`${tc(b.Id)} can only have one Command Squad attached.`);
+    else if ((own || viaLeader) && new Set(lead.map(x => x.Id)).size < lead.length) e.push(`${tc(b.Id)} cannot have two copies of the same Leader attached.`) });
   if (l.Units.filter(u => u.IsWarlord).length > 1) e.push('Only one warlord may be selected.');
   l.Units.forEach(u => { const d = unitOf(l, u), f = flagsOf(d); if (d && f & 2 && !u.IsWarlord) e.push(`${tc(u.Id)} must be your warlord.`); if (d && f & 1 && u.IsWarlord) e.push(`${tc(u.Id)} cannot be your warlord.`); if (d && f & 4 && u.EnhancementId) e.push(`${tc(u.Id)} cannot take enhancements.`) });
   return e;
@@ -428,6 +441,7 @@ const STK = { Movement: 'M', Toughness: 'T', Save: 'SV', Wounds: 'W', Leadership
 function ledNames(l, u) {
   const d = unitOf(l, u), set = new Set((d?.LeaderInfo?.UnitNames || []).map(lc)); if (!d) return set;
   (d.AttachedUnitInfo?.LeaderAttachmentRules || []).forEach(r => (r.LedUnitNames || []).forEach(n => set.add(lc(n))));
+  const alt = fdOf(l).alt; if (alt) [...set].forEach(n => (alt.get(n) || []).forEach(a => set.add(a)));
   const add = a => a.Target === 'LedUnitNames' && (a.Values || []).forEach(n => set.add(lc(n)));
   (enhOf(l, u)?.DatasheetAdjustments || []).forEach(add);
   defsOf(d).filter(x => u.UnitCompositionRef.some(r => r.Wargear.some(w => lc(w) === lc(x.Key)))).forEach(x => (x.DatasheetAdjustments || []).forEach(add));

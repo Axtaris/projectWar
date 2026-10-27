@@ -5,6 +5,8 @@
 Bug-fix release.
 
 - **Two Leaders on Guard battleline:** Cadian Shock Troops, Death Korps of Krieg, Catachan Jungle Fighters and Tempestus Scions can have two Leader units attached again (at most one of them a Command Squad), as their datasheets say. Kroot Carnivores can too once they have 20 models, without repeating a Leader. This was caused by the one-Leader limit added in 1.1.3, which now reads the exception from the datasheet.
+- **Army-specific leader rules:** Death Guard Leaders can be attached even when another Leader is already attached; units that join another unit (Servitors, Cryptothralls, Tomb Crawlers, Aeldari support platforms, Loyal Protector) no longer count as a Leader; units that accept the same Leaders as another unit (Sanctifiers, Hastarii, Death Company Marines, Breaka Boyz, Nemesis Claw...) now accept them; Harlequin Death Jester, Shadowseer and Troupe Master are limited to one per army.
+- **Wargear options:** Sword Brethren Squad and Death Company Marines with Jump Packs now follow their datasheets (weapon limits per 4 or per 5 models, the missing Twin lightning claws, Hand flamer and Inferno pistol).
 - **Special weapons per model count:** limits written as "per 10 models" now count the whole unit, so a 20-model Cadian Shock Troops squad can take 4 special weapons instead of being stopped at 2.
 - **Ogryn Bodyguard:** checked together with the Command Squad it joins, including a Command Squad that leads a Shock Troops squad, with no false errors.
 

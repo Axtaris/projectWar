@@ -173,3 +173,47 @@ test('"per X models" weapon limits count the whole unit (Cadian Shock Troops: 2 
   assert.equal(api.optMax(g, 18, 20), 4);
   assert.equal(api.optMax(g, 9, 10), 2);
 });
+
+test('army-specific rules on datasheets: Death Guard extra Leader, joiners, alternative bodyguards, one-per-army', async () => {
+  const mkl = async (fac) => await newList(fac, 3000);
+  const make = (l) => (id, n, att = 0) => ({ ...unit(api, l, id, n), AttachedToInstanceId: att });
+  const errs = (l) => api.errors(l).filter((x) => !/warlord/.test(x)).join('\n');
+  // Death Guard: this Leader may be attached even if one other Leader is already attached (not two of the same)
+  let l = await mkl('Death Guard'), mk = make(l);
+  l.Units = [mk(1, 'PLAGUE MARINES'), mk(2, 'NOXIOUS BLIGHTBRINGER', 1), mk(3, 'FOUL BLIGHTSPAWN', 1)];
+  assert.equal(errs(l), '', 'two Death Guard Leaders');
+  l.Units.push(mk(4, 'TALLYMAN', 1));
+  assert.match(errs(l), /can only have two Leader units/);
+  // units that join another unit are not Leaders: Cryptothralls next to a Cryptek
+  l = await mkl('Necrons'); mk = make(l);
+  l.Units = [mk(1, 'IMMORTALS'), mk(2, 'TECHNOMANCER', 1), mk(3, 'CRYPTOTHRALLS', 1)];
+  assert.ok(!/can only have/.test(errs(l)), 'a joiner next to a Leader is fine');
+  // alternative bodyguards: a Canoness can lead Sanctifiers because she can lead Battle Sisters
+  l = await mkl('Adepta Sororitas'); mk = make(l);
+  const can = { ...mk(2, 'CANONESS') }, san = mk(1, 'SANCTIFIERS');
+  l.Units = [san, can]; assert.ok(api.ledNames(l, can).has('sanctifiers'), 'Canoness can lead Sanctifiers');
+  // one per army: Harlequin Shadowseer
+  l = await mkl('Aeldari'); mk = make(l);
+  l.Units = [mk(1, 'SHADOWSEER'), mk(2, 'SHADOWSEER')];
+  assert.match(errs(l), /may only be included 1 time/);
+});
+
+test('every faction: a bodyguard with one Leader and one Support attached never raises an attach error', async () => {
+  const fs = require('node:fs'), { DATA_DIR } = require('./helpers');
+  const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json') && !['DataInfo.json', 'FactionInfoData.json'].includes(f) && !f.endsWith(' Legends.json'));
+  const bad = [];
+  for (const f of files) {
+    const l = await newList(f.replace('.json', ''), 100000), fd = api.fdOf(l), sup = (d) => (d.CoreAbilities || []).some((a) => a.toLowerCase() === 'support');
+    const mk = (id, n, att = 0) => ({ ...unit(api, l, id, n), AttachedToInstanceId: att });
+    for (const body of fd.all) {
+      const probe = [mk(1, body.Name)];
+      const leaders = fd.all.filter((d) => { const u = mk(9, d.Name); l.Units = [probe[0], u]; return api.ledNames(l, u).has(body.Name.toLowerCase()) && !/\b(can|must) join one\b/i.test(JSON.stringify(d.UnitAbilities)); });
+      const lead = leaders.find((d) => !sup(d)), supp = leaders.find((d) => sup(d));
+      if (!lead || !supp) continue;
+      l.Units = [mk(1, body.Name), mk(2, lead.Name, 1), mk(3, supp.Name, 1)];
+      const e = api.errors(l).filter((x) => /can only have|cannot have two/.test(x));
+      if (e.length) bad.push(`${f}: ${body.Name} + ${lead.Name} + ${supp.Name}: ${e.join('; ')}`);
+    }
+  }
+  assert.equal(bad.length, 0, bad.slice(0, 8).join('\n'));
+});
