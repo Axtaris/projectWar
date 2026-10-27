@@ -1,0 +1,78 @@
+name: deploy
+
+# Builds the site from this repository plus the game data repository and publishes it to Cloudflare.
+# Runs on every push to main, every 6 hours (to pick up data changes), and on demand.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  SITE_URL: ${{ vars.SITE_URL || 'https://projectwar.project-ar.workers.dev' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Is there anything new to publish?
+        id: changed
+        run: |
+          DATA=$(git ls-remote https://github.com/Axtaris/projectWarData.git refs/heads/main | cut -f1)
+          LIVE=$(curl -fsS "$SITE_URL/version.txt" || echo none)
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$LIVE" = "$(git rev-parse HEAD):$DATA" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"; echo "The site is already up to date ($LIVE)."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check the Cloudflare secrets
+        id: secrets
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$ACCOUNT" ]; then
+            echo "::warning::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not set; the site will not be deployed (see DEPLOY.md)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out the game data
+        if: steps.changed.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: Axtaris/projectWarData
+          path: data
+
+      - uses: actions/setup-node@v4
+        if: steps.changed.outputs.skip != 'true'
+        with:
+          node-version: 22
+
+      - name: Run the tests (a broken data push is never deployed)
+        if: steps.changed.outputs.skip != 'true'
+        run: node --test "tests/*.test.js"
+
+      - name: Build the site
+        if: steps.changed.outputs.skip != 'true'
+        run: sh build.sh
+
+      - name: Deploy to Cloudflare
+        if: steps.changed.outputs.skip != 'true' && steps.secrets.outputs.ok == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy

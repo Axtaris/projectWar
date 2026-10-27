@@ -22,3 +22,6 @@
 
 /style.css
   Cache-Control: no-cache
+
+/version.txt
+  Cache-Control: no-cache

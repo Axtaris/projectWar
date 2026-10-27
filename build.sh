@@ -18,8 +18,11 @@ mkdir -p dist/.well-known && cp .well-known/security.txt dist/.well-known/
 # game data: a shallow checkout of the data repository, JSON files only
 git clone --quiet --depth 1 --branch "$DATA_REF" "$DATA_REPO" .data-tmp
 cp .data-tmp/*.json dist/data/
-echo "data: $(git -C .data-tmp rev-parse --short HEAD) ($(ls dist/data | wc -l) files)"
+DATA_SHA="$(git -C .data-tmp rev-parse HEAD)"
+echo "data: ${DATA_SHA%"${DATA_SHA#???????}"} ($(ls dist/data | wc -l) files)"
 rm -rf .data-tmp
+# which app commit + data commit this site was built from (the deploy workflow compares it to decide whether to redeploy)
+echo "$(git rev-parse HEAD 2>/dev/null || echo unknown):$DATA_SHA" > dist/version.txt
 
 # sanity checks: fail the build instead of publishing a broken site
 [ -f dist/data/FactionInfoData.json ] || { echo "missing FactionInfoData.json" >&2; exit 1; }

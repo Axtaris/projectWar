@@ -22,9 +22,25 @@ npx wrangler deploy
 
 The first deploy gives the site a `projectwar.<your-subdomain>.workers.dev` address.
 
-## Deploy automatically from GitHub
+## Deploy automatically (GitHub Actions)
 
-In the Cloudflare dashboard: *Workers & Pages → Create → Import a repository*, pick `projectWar`, and set the build command to `sh build.sh` and the deploy command to `npx wrangler deploy`. Every push to `main` then republishes the site.
+`.github/workflows/deploy.yml` builds and publishes the site:
+
+- on every push to `main`,
+- every 6 hours, only if the data repository or this repository has a newer commit than the one the live site was built from (the site publishes that pair in `/version.txt`),
+- on demand (*Actions → deploy → Run workflow*).
+
+It always runs the tests first, so a broken data push is never published. Until the two secrets below exist, the workflow still runs but skips the deploy step and shows a warning.
+
+One-time setup:
+
+1. In the Cloudflare dashboard: *My Profile → API Tokens → Create Token → "Edit Cloudflare Workers" template*, limited to your account. Copy the token once.
+2. In the GitHub repository: *Settings → Secrets and variables → Actions → New repository secret*:
+   - `CLOUDFLARE_API_TOKEN`: the token from step 1,
+   - `CLOUDFLARE_ACCOUNT_ID`: your account id (shown in `npx wrangler whoami`).
+3. If you attach a custom domain, add a repository *variable* `SITE_URL` with its address so the freshness check reads the right site.
+
+Never paste the token in chats or commit it. To publish right after a data change instead of waiting for the next scheduled run, use *Run workflow*.
 
 ## Custom domain
 
@@ -44,7 +60,7 @@ Do not enable Web Analytics (or any beacon) for the project: the privacy policy 
 
 ## Keeping data fresh
 
-The data lives in another repository, so a data change does not redeploy the site by itself. Run `sh build.sh && npx wrangler deploy` again, or create a deploy hook / GitHub Action in the data repository that triggers the build. Until then, any push to this repository republishes with the latest data.
+Data changes reach the site through the scheduled run above (within 6 hours) or immediately with *Run workflow*. To pin the published data to a reviewed version, set `DATA_REF` (a tag or commit of the data repository) in the build step.
 
 ## After deploying
 
