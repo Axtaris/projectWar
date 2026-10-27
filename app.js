@@ -3,7 +3,8 @@
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const lc = s => String(s || '').toLowerCase();
-const tc = s => String(s || '').toLowerCase().replace(/(^|[\s(\-"“])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Of|And)\b/g, x => x.toLowerCase());
+const tc0 = s => String(s || '').toLowerCase().replace(/(^|[\s(\-"“])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Of|And)\b/g, x => x.toLowerCase());
+const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar';
 const DATASET = 'Warhammer 40k 11th', VERSION = '1.0';
 
@@ -41,6 +42,24 @@ const SET0 = { Theme: 0, AppTextSize: 1, AppLayout: 0, HomeScreenSort: 2, Filter
 const S = { info: null, lists: store.get('pw.lists', []), set: (() => { const o = store.get('pw.set', {}); if (!o._ms) { o.EnableModifiedStatlines = true; o._ms = 1 } return { ...SET0, ...o } })(), stack: [], cur: null, hist: [], hpos: 0, open: {}, fd: {}, history: store.get('pw.history', []), roster: '', all: null };
 const saveLists = () => store.set('pw.lists', S.lists), saveSet = () => store.set('pw.set', S.set);
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (Math.random() * 16 | 0).toString(16)));
+/* Untrusted input: lists arrive from files and the clipboard. Strip markup characters from every string, bound sizes and coerce types. */
+const clean = (v, d = 0) => typeof v === 'string' ? v.replace(/[<>"\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').slice(0, 2000)
+  : typeof v === 'number' || typeof v === 'boolean' ? v
+  : v && typeof v === 'object' && d < 6 ? (Array.isArray(v) ? v.slice(0, 500).map(x => clean(x, d + 1)) : Object.fromEntries(Object.entries(v).slice(0, 100).map(([k, x]) => [clean(k), clean(x, d + 1)]))) : null;
+const clampInt = (v, lo, hi, d) => Number.isFinite(+v) ? Math.min(hi, Math.max(lo, Math.round(+v))) : d;
+function sanitizeList(raw) {
+  if (!raw || typeof raw !== 'object' || typeof raw.Faction !== 'string' || !Array.isArray(raw.Units) || !S.info.Factions.some(f => f.Name === raw.Faction)) return null;
+  const c = clean(raw);
+  c.Id = typeof c.Id === 'string' && /^[\w-]{1,64}$/.test(c.Id) ? c.Id : uid();
+  c.Name = String(c.Name ?? '').slice(0, 120); c.MaxPoints = clampInt(c.MaxPoints, 100, 100000, 2000);
+  c.Detachments = (Array.isArray(c.Detachments) ? c.Detachments : (c.Dettachment ? [c.Dettachment] : [])).filter(x => typeof x === 'string').slice(0, 20);
+  c.Disposition = typeof c.Disposition === 'string' ? c.Disposition : null; c.IsLegendsEnabled = !!c.IsLegendsEnabled;
+  c.LastModified = typeof c.LastModified === 'string' ? c.LastModified : new Date().toISOString();
+  c.Units = c.Units.slice(0, 500).filter(u => u && typeof u.Id === 'string').map((u, i) => ({ ...u, InstanceId: clampInt(u.InstanceId, 1, 1e6, i + 1), AttachedToInstanceId: clampInt(u.AttachedToInstanceId, 0, 1e6, 0),
+    Upgrades: Array.isArray(u.Upgrades) ? u.Upgrades : [], UnitCompositionRef: Array.isArray(u.UnitCompositionRef) ? u.UnitCompositionRef : [], Notes: { CustomName: String(u.Notes?.CustomName ?? ''), Text: String(u.Notes?.Text ?? '') }, IsWarlord: !!u.IsWarlord }));
+  return c;
+}
+
 const getJson = async f => JSON.parse((await (await fetch('data/' + encodeURIComponent(f) + '.json', { cache: 'no-cache' })).text()).replace(/^﻿/, ''));
 async function loadFaction(l) {
   const key = l.Faction + (l.IsLegendsEnabled ? '+L' : '');
@@ -701,11 +720,12 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => { const t = e.target; if (t.id === 'army-name') commit(); if (t.id === 'u-notes' || t.id === 'u-cname' || t.id === 'u-att') commit(); if (t.id === 'nl-pts') { syncDraft(); render() } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePops(); if (e.key === 'Enter' && e.target.id === 'army-name') e.target.blur() });
 /* the "…" button sits inside a tile button: keep tile click from firing */
-function pickFile() { const i = document.createElement('input'); i.type = 'file'; i.accept = '.json,.txt'; i.onchange = async () => { const f = i.files[0]; if (f && importList(await f.text())) render() }; i.click() }
+function pickFile() { const i = document.createElement('input'); i.type = 'file'; i.accept = '.json,.txt'; i.onchange = async () => { const f = i.files[0]; if (f && f.size < 5e6 && importList(await f.text())) render() }; i.click() }
 function importList(text) {
   try {
-    const j = JSON.parse(text.replace(/^﻿/, '')), arr = Array.isArray(j) ? j : [j]; let n = 0;
-    arr.forEach(l => { if (!l.Faction || !Array.isArray(l.Units) || !S.info.Factions.some(f => f.Name === l.Faction)) return; l.Id = S.lists.some(x => x.Id === l.Id) ? uid() : (l.Id || uid()); l.Detachments = l.Detachments || (l.Dettachment ? [l.Dettachment] : []); l.IsLegendsEnabled = !!l.IsLegendsEnabled; l.LastModified = l.LastModified || new Date().toISOString(); l.MaxPoints = l.MaxPoints || 2000; l.Units.forEach((u, i) => { u.InstanceId = u.InstanceId || i + 1; u.AttachedToInstanceId = u.AttachedToInstanceId || 0; u.Notes = u.Notes || { CustomName: '', Text: '' } }); S.lists.push(l); n++ });
+    if (typeof text !== 'string' || text.length > 5e6) return false;
+    const j = JSON.parse(text.replace(/^﻿/, '')), arr = (Array.isArray(j) ? j : [j]).slice(0, 200); let n = 0;
+    arr.forEach(raw => { const l = sanitizeList(raw); if (!l) return; l.Id = S.lists.some(x => x.Id === l.Id) ? uid() : (l.Id || uid()); l.Detachments = l.Detachments || (l.Dettachment ? [l.Dettachment] : []); l.IsLegendsEnabled = !!l.IsLegendsEnabled; l.LastModified = l.LastModified || new Date().toISOString(); l.MaxPoints = l.MaxPoints || 2000; l.Units.forEach((u, i) => { u.InstanceId = u.InstanceId || i + 1; u.AttachedToInstanceId = u.AttachedToInstanceId || 0; u.Notes = u.Notes || { CustomName: '', Text: '' } }); S.lists.push(l); n++ });
     if (n) saveLists(); return n > 0;
   } catch { return false }
 }

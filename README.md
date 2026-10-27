@@ -32,7 +32,7 @@ git clone https://github.com/Axtaris/projectWarData.git data
 python serve.py 8080        # or run start.bat on Windows
 ```
 
-Then open <http://localhost:8080>. `serve.py` is a tiny static server with caching disabled, meant for development; any static file server works.
+Then open <http://localhost:8080>. `serve.py` is a small development server: caching is disabled and it applies the security headers from `_headers`, so the Content Security Policy is tested locally. Any static file server works.
 
 ## What works
 
@@ -79,3 +79,9 @@ The application code is released into the public domain under the [Unlicense](ht
 ## Legal
 
 [Privacy Policy](legal/privacy.html), [Terms of Use](legal/terms.html) and [Cookie Notice](legal/cookies.html) (English and Spanish; written for Colombian and international law). The app sets no cookies and collects no personal data. Fill in the bracketed placeholders (`[[LEGAL NAME]]`, `[[CONTACT EMAIL]]`, `[[HOSTING PROVIDER]]`, `[[CITY]]`) in `legal/*.html` before deploying. These pages are a good-faith draft, not legal advice.
+
+## Security and deployment
+
+- Static site, no back end, no accounts, no cookies, no third-party requests. Fonts are self-hosted.
+- Strict Content Security Policy and other headers in [`_headers`](_headers); imported lists are sanitised and dynamic text is escaped. See [SECURITY.md](SECURITY.md) to report a vulnerability.
+- Deployment (Cloudflare Pages, build script and custom domain): [DEPLOY.md](DEPLOY.md).
