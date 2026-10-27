@@ -106,3 +106,12 @@ test('no 10th-edition ability names remain in the data', () => {
     }
   }
 });
+
+test('warlord eligibility follows the datasheets (Character keyword, no wrongly locked heroes)', () => {
+  const unit = (f, n) => read(f).Units.find((u) => u.Name === n);
+  const kw = (u) => u.Keywords.map((x) => x.toLowerCase());
+  assert.ok(kw(unit('Adepta Sororitas.json', 'SAINT CELESTINE')).includes('character'));
+  assert.ok(kw(unit('Chaos Space Marines.json', 'FABIUS BILE')).includes('character'));
+  assert.equal((unit('Necrons.json', 'C’TAN SHARD OF THE DECEIVER').Flags || 0) & 1, 1, 'C’tan shards cannot be the warlord');
+  assert.equal((unit('Necrons.json', 'ORIKAN THE DIVINER').Flags || 0) & 1, 0, 'Orikan can');
+});
