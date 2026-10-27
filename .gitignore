@@ -6,3 +6,5 @@ __pycache__/
 Thumbs.db
 dist/
 .data-tmp/
+.wrangler/
+node_modules/
