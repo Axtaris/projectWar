@@ -217,3 +217,25 @@ test('every faction: a bodyguard with one Leader and one Support attached never 
   }
   assert.equal(bad.length, 0, bad.slice(0, 8).join('\n'));
 });
+
+test('weapon effects: no scope means melee, name filters pick the named weapons, renamed copies leave the original alone', async () => {
+  const run = async (faction, detName, unitName, enhName) => {
+    const l = await newList(faction, 3000), fd = api.fdOf(l), d = fd.byName.get(unitName);
+    l.Detachments = [detName]; const u = unit(api, l, 1, unitName); u.EnhancementId = enhName; l.Units = [u];
+    return api.modWeapons(d, l, u, d.Weapons);
+  };
+  const by = (groups) => Object.fromEntries(groups.flatMap((g) => g.Weapons.map((w) => [w.Name + (g.IsMelee ? ' (melee)' : ' (ranged)'), w])));
+  // Sisters of Battle, Mark of Devotion: +1 Attacks to the bearer's MELEE weapons only
+  let l0 = await newList('Adepta Sororitas', 3000), dName = l0.Detachments, canoness = api.fdOf(l0).byName.get('CANONESS');
+  const det = api.fdOf(l0).Dettachments.find((x) => (x.Enhancements || []).some((e) => e.Name === 'Mark of Devotion'));
+  let g = by(await run('Adepta Sororitas', det.Name, 'CANONESS', 'Mark of Devotion')), base = by(canoness.Weapons.map((x) => ({ ...x, Weapons: x.Weapons.map((w) => ({ ...w })) })));
+  for (const [k, w] of Object.entries(g)) {
+    const b = base[k]; if (k.endsWith('(ranged)')) assert.equal(w.Attacks, b.Attacks, 'ranged weapon unchanged: ' + k);
+  }
+  assert.ok(Object.entries(g).some(([k, w]) => k.endsWith('(melee)') && w.Attacks !== base[k].Attacks), 'a melee weapon got +1 Attacks');
+  // Aeldari, Stone of Eldritch Fury: +12" to Eldritch Storm and two other named weapons only
+  const al = await newList('Aeldari', 3000), adet = api.fdOf(al).Dettachments.find((x) => (x.Enhancements || []).some((e) => e.Name === 'Stone of Eldritch Fury'));
+  const far = api.fdOf(al).all.find((d2) => d2.Weapons.some((gr) => gr.Weapons.some((w) => /eldritch storm/i.test(w.Name))));
+  const ag = by(await run('Aeldari', adet.Name, far.Name, 'Stone of Eldritch Fury')), abase = by(far.Weapons);
+  for (const [k, w] of Object.entries(ag)) { const named = /eldritch storm|destructor|singing spear/i.test(k) && /"$/.test(abase[k].Range); assert.equal(w.Range !== abase[k].Range, named, `${k}: range changes only on the named weapons`) }
+});

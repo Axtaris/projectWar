@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar';
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.2.1';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.2.2';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -487,23 +487,35 @@ const addW = (f, cur, v) => {
   if (/^\d+$/.test(c)) return String(+c + n);
   return /D\d/.test(c) ? c.replace(/(?:\+(\d+))?$/, (x, q) => '+' + ((+q || 0) + n)) : c + '+' + n;
 };
-/* weapon profile changes: numbers are highlighted, keywords are appended (enhancement first, then detachment effect) */
+/* weapon profile changes: numbers are highlighted, keywords are appended (enhancement first, then detachment effect).
+   An adjustment without WeaponScope means melee weapons (the data's convention: ranged and all-weapon effects always say so). NameFilter / ContainsNameFilter limit it to
+   the named weapons; CreateRenamedCopy leaves the original weapon alone and adds the changed weapon under a new name (Plasma Accelerator Rifle). */
 function modWeapons(d, l, u, groups) {
   const adj = u ? adjList(l, u, d).weap : []; if (!adj.length) return groups;
-  return groups.map(g => ({ ...g, Weapons: g.Weapons.map(w => {
-    const nw = { ...w, _m: {} };
+  const nm = x => lc(x).replace(/[’‘]/g, "'");
+  return groups.map(g => {
+    let ws = g.Weapons.map(w => ({ ...w, _m: {} })); const added = [];
     adj.forEach(a => {
-      if (a.WeaponScope === 'Ranged' && g.IsMelee || a.WeaponScope === 'Melee' && !g.IsMelee) return;
-      const wk = String(nw.Keywords || '').split(',').map(x => x.trim().toUpperCase()).filter(Boolean);
-      if ((a.IncludedKeywords || []).length && !a.IncludedKeywords.some(k => wk.includes(String(k).toUpperCase()))) return;
-      if ((a.ExcludedKeywords || []).some(k => wk.includes(String(k).toUpperCase()))) return;
-      const t = a.Target || (/"$/.test(a.Value) ? 'Range' : 'Keywords');
-      if (t === 'Keywords') { if (!wk.includes(String(a.Value).toUpperCase())) nw.Keywords = [...String(nw.Keywords || '').split(',').map(x => x.trim()).filter(Boolean), a.Value].join(', ') }
-      else if (a.Type === 'Add') { const nv = addW(t, nw[t], a.Value); if (nv !== nw[t]) { nw[t] = nv; nw._m[t] = true } }
-      else { nw[t] = a.Value; nw._m[t] = true }
+      const scope = a.WeaponScope || 'Melee';
+      if (scope === 'Ranged' && g.IsMelee || scope === 'Melee' && !g.IsMelee) return;
+      const named = (a.NameFilter || []).map(nm), part = (a.ContainsNameFilter || []).map(nm);
+      const pool = [...ws, ...added];
+      pool.forEach(nw => {
+        const wk = String(nw.Keywords || '').split(',').map(x => x.trim().toUpperCase()).filter(Boolean), wn = nm(nw.Name);
+        if (named.length && !named.some(f => wn === f || wn.startsWith(f + ' ') || wn.startsWith(f + ' –'))) return;
+        if (part.length && !part.some(f => wn.includes(f))) return;
+        if ((a.IncludedKeywords || []).length && !a.IncludedKeywords.some(k => wk.includes(String(k).toUpperCase()))) return;
+        if ((a.ExcludedKeywords || []).some(k => wk.includes(String(k).toUpperCase()))) return;
+        let t = nw;
+        if (a.CreateRenamedCopy) { if (added.some(x => nm(x.Name) === nm(a.CreateRenamedCopy)) || nw._copy) return; t = { ...nw, Name: a.CreateRenamedCopy, _m: {}, _copy: true }; added.push(t) }
+        const f = a.Target || (/"$/.test(a.Value) ? 'Range' : 'Keywords');
+        if (f === 'Keywords') { if (!wk.includes(String(a.Value).toUpperCase())) t.Keywords = [...String(t.Keywords || '').split(',').map(x => x.trim()).filter(Boolean), a.Value].join(', ') }
+        else if (a.Type === 'Add') { const nv = addW(f, t[f], a.Value); if (nv !== t[f]) { t[f] = nv; t._m[f] = true } }
+        else { t[f] = a.Value; t._m[f] = true }
+      });
     });
-    return nw;
-  }) }));
+    return { ...g, Weapons: [...ws, ...added] };
+  });
 }
 /* one stat block per distinct set of equipped stat-changing wargear, after detachment/enhancement/leader adjustments */
 function statVariants(d, l, u) {

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2 (27 October 2026)
+
+- **Enhancements that change the datasheet:** 121 more enhancements now apply their effect to the unit (they only had text before): extra weapon abilities such as [PRECISION] or [ANTI-INFANTRY 5+], +1 Attacks to Pistols, +1 OC, +1 Toughness, +2" Move, Feel No Pain, Scouts, Infiltrators, Stealth, Deep Strike and Fights First granted to the bearer or its unit. Conditional effects (re-rolls, auras, "once per battle") stay as text, because they do not change the printed statline.
+- **Weapon effects fixed:** an effect with no stated weapon type is now melee only, as in the data (before, effects such as Mark of Devotion also changed ranged weapons); effects limited to named weapons (Stone of Eldritch Fury, Psychic Destroyer, Bilemaw Blight) now touch only those weapons; and the Plasma Accelerator Rifle now adds a separate stronger weapon instead of changing the plasma rifle.
+
 ## 1.2.1 (27 October 2026)
 
 First package of the 1.2 line. Bug fix.
