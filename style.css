@@ -570,3 +570,9 @@ h2.mid{margin:0;font:600 32px/1.05 var(--cond);text-transform:uppercase;letter-s
 .clog p{margin:8px 0;color:var(--fg)}
 .clog code{font-family:var(--mono);background:var(--p2);padding:1px 5px;border-radius:2px;font-size:.92em}
 .clog a{color:var(--lt)}
+
+/* army rules (new list step 1 and viewer) */
+.arules{display:grid;gap:6px;margin:6px 0}
+.arule{border:1px solid var(--ln);border-left:3px solid var(--c);border-radius:3px;background:var(--p1)}
+.arule summary{cursor:pointer;padding:10px 12px;font:600 15px var(--cond);text-transform:uppercase;letter-spacing:.04em;list-style-position:inside}
+.arule .b{padding:4px 14px 12px;white-space:pre-wrap;line-height:1.5;font-size:14px}

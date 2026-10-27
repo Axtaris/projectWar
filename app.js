@@ -303,6 +303,8 @@ PAGES.faction = () => {
 document.addEventListener('input', e => { if (e.target.id === 'nl-name') { const v = e.target.value.trim(), m = $('#nl-sum'); if (m) m.textContent = v || '—'; document.querySelectorAll('[data-a=create]').forEach(c => c.classList.toggle('off', !v)); return } if (e.target.id !== 'fsearch') return; const q = e.target.value.trim().toLowerCase(); document.querySelectorAll('.fbtn').forEach(b => b.style.display = b.textContent.toLowerCase().includes(q) ? '' : 'none'); document.querySelectorAll('.fgrp').forEach(g => g.style.display = [...g.querySelectorAll('.fbtn')].some(b => b.style.display !== 'none') ? '' : 'none') });
 
 /* ---- new list ---- */
+/* army rules as native collapsibles (no script needed); shared by the new-list step and the viewer */
+const armyRules = fd => (fd.ArmyRules || []).length ? `<div class="arules"><span class="lbl">Army rules</span>${fd.ArmyRules.map(r => `<details class="arule"><summary>${tc(r.Title)}</summary><div class="b">${esc(r.Text)}</div></details>`).join('')}</div>` : '';
 PAGES.newlist = r => {
   const l = r.draft, fd = S.fd[l.Faction + (l.IsLegendsEnabled ? '+L' : '')] || S.fd[l.Faction], total = BS(l.MaxPoints).DetachmentPoints, used = dpUsed2(l, fd), custom = sizeName(l.MaxPoints) === 'Custom';
   const tags = new Set(l.Detachments.flatMap(n => fd.Dettachments.find(d => d.Name === n)?.Tags || [])), gp = Math.min(100, Math.round(used / total * 100));
@@ -318,6 +320,7 @@ PAGES.newlist = r => {
   <div class="nlf"><label class="lbl" for="nl-name">Army name</label><input class="in nlname" id="nl-name" placeholder="Enter army name" value="${esc(l.Name)}" autocomplete="off"></div>
   <div class="nlf"><span class="lbl">Max points</span><div class="sizes">${SIZES.map(size).join('')}<button class="opt ${custom ? 'on' : ''}" data-a="size" data-id="custom"><span class="mono big2">···</span><small>Custom</small></button></div>
   ${custom ? `<input class="in" id="nl-pts" type="number" min="100" step="50" value="${l.MaxPoints}" style="margin-top:8px;width:200px">` : ''}</div>
+  <div class="nlf">${armyRules(fd)}</div>
   <div class="nlf"><div class="row2"><span class="lbl">Detachments</span><span class="mono dleft">${total - used} DP remaining</span></div><div class="dgrid">${fd.Dettachments.slice().sort((a, b) => a.Name.localeCompare(b.Name)).map(det).join('')}</div></div></div>
   <aside class="nlside"><span class="lbl">Summary</span><h2 class="mid">${esc(l.Faction)}</h2><div class="fline"></div>
   <div class="kv"><span class="mu">Army</span><b id="nl-sum">${esc(l.Name.trim() || '—')}</b></div><div class="kv"><span class="mu">Points</span><span class="mono">${sizeName(l.MaxPoints).replace(' - ', ' · ')}</span></div>
@@ -542,6 +545,7 @@ PAGES.info = r => `<div class="page">${hdr(tc(r.title))}<div class="scroll"><div
 function viewerLeft(l) {
   const ds = dets(l);
   return `<div class="vinfo">Name: ${esc(l.Name)}<br>Disposition: ${l.Disposition ? tc(l.Disposition) : 'None'}</div>
+  ${armyRules(fdOf(l))}
   ${S.set.ShowDetachmentsInViewer ? `<div class="vdets">${ds.map(d => detCard(d, l, true)).join('')}${S.set.ShowStratagemsInViewer && ds.length ? exp('vs', 'Stratagems', ds.flatMap(d => d.Stratagems).map(s => stratHtml(s, s.Category + s.Name)).join(''), false) : ''}</div>` : ''}
   ${S.set.ShowCoreStratagemsInViewer ? exp('vcore', 'Core Stratagems', S.info.CoreStratagems.map(s => stratHtml(s, 'core' + s.Name)).join(''), false) : ''}
   <div style="margin-top:6px">${listHtml(l, true)}</div>`;
@@ -558,6 +562,7 @@ PAGES.viewer = () => {
   const l = S.cur, ds = dets(l);
   return `<div class="page">${compactHdr(l, 'viewer')}<div class="scroll" style="padding:4px 6px">
   <div style="background:var(--c);padding:6px 8px;border-radius:3px">Name: ${esc(l.Name)}<br>Disposition: ${l.Disposition ? tc(l.Disposition) : '—'}</div>
+  ${armyRules(fdOf(l))}
   ${S.set.ShowDetachmentsInViewer ? ds.map(d => `<div style="margin:4px 8px;border:1px solid var(--c);border-radius:4px;padding:4px">${detCard(d, l, true)}${S.set.ShowStratagemsInViewer ? exp('vs' + d.Name, 'Stratagems', d.Stratagems.map(s => stratHtml(s, d.Name + s.Name)).join(''), false) : ''}</div>`).join('') : ''}
   ${S.set.ShowCoreStratagemsInViewer ? exp('vcore', 'Core Stratagems', S.info.CoreStratagems.map(s => stratHtml(s, 'core' + s.Name)).join(''), false) : ''}
   <div style="margin-top:6px">${listHtml(l, true)}</div></div></div>`;

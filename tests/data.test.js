@@ -96,3 +96,13 @@ test('chapter-locked detachments stay with their chapter', () => {
     }
   }
 });
+
+/* only 11th-edition data is allowed: ability names that exist in the 10th edition only must not come back */
+test('no 10th-edition ability names remain in the data', () => {
+  const stale = ['Pinning Bombardment', 'Sternguard Focus', 'Close-quarters Firepower', 'Overlapping Detonations'];
+  for (const f of factionFiles) {
+    for (const u of read(f).Units) {
+      for (const a of u.UnitAbilities || []) assert.ok(!stale.includes(a.Title), `${f}: ${u.Name} still has "${a.Title}"`);
+    }
+  }
+});
