@@ -50,19 +50,26 @@ Then open <http://localhost:8080>. `serve.py` is a small development server: cac
 - **Data accuracy.** The data is built semi-automatically from community sources and has errors. Wargear options in particular are inferred and can differ from the printed datasheet.
 - **Legends and Adeptus Titanicus** datasheets have **not** been updated to 11th edition.
 - **Enhancements and detachments added in 11th** carry their text but not their machine-readable effects, so they do not change statlines or enforce restrictions.
-- No accounts, cloud sync or hosted share codes. Lists live in the browser's local storage only.
-- No Tabletop Simulator or YellowScribe export.
+- **The theme setting** offers Light, Dark and System, but only the dark theme exists.
 - The compact (narrow-screen) layout still uses an older header and has had less testing than the desktop layout.
 - There are no automated tests.
 
-## What is left to do
+## Features not available yet
 
-- Structured effects for new enhancements and detachments.
-- Updated Legends and Adeptus Titanicus data.
-- A review pass over wargear options, unit by unit.
-- Bring the compact layout up to the desktop design.
-- Automated tests for points, list validation and data loading.
-- Offline support (installable app).
+Compared with established list builders, projectWar does not yet offer:
+
+| Area | Missing |
+|---|---|
+| **Sync and sharing** | Syncing lists between devices; share links, share codes and QR codes; accounts (deliberately avoided for now, see below) |
+| **Export** | YellowScribe export; Tabletop Simulator export; several text formats; true PDF generation (it uses the browser's print dialog) |
+| **Data** | 11th edition Legends and Adeptus Titanicus; allied units; older edition data sets |
+| **App** | Light theme and accent colours; offline / installable mode; update notices and in-app release notes; interface translations (Spanish first); an accessibility audit |
+
+Until sync exists, **back up your lists** from Settings: they live only in your browser's local storage on this device.
+
+## Roadmap
+
+The planned order is in [ROADMAP.md](ROADMAP.md), in five phases: **trust** (data review, effects, tests, automatic data deployment, themes), **sharing and export**, **moving between devices**, **reach and polish**, and **data breadth**. Every item is designed for a static site with no accounts and no tracking; anything that would need a server is called out there. Suggestions and pull requests are welcome: open an issue and mention the item number.
 
 ## Contributing and feedback
 
