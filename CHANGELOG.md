@@ -2,7 +2,7 @@
 
 ## 1.1 (in development)
 
-Goal: **trust**. Data review, structured effects for new content, automated tests, automatic data deployment, a working theme setting and compact-layout parity. See [ROADMAP.md](ROADMAP.md), phase 1.
+Goal: **trust**. Data review, structured effects for new content, automated tests, automatic data deployment, a working theme setting, compact-layout parity and a donate button. See [ROADMAP.md](ROADMAP.md), phase 1.
 
 Done so far:
 

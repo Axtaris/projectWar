@@ -68,7 +68,7 @@ Until sync exists, **back up your lists** from Settings: they live only in your 
 
 ## Roadmap
 
-The planned order is in [ROADMAP.md](ROADMAP.md), in five phases: **trust** (data review, effects, tests, automatic data deployment, themes), **sharing and export**, **moving between devices**, **reach and polish**, and **data breadth**. Every item is designed for a static site with no accounts and no tracking; anything that would need a server is called out there. Suggestions and pull requests are welcome: open an issue and mention the item number.
+The planned order is in [ROADMAP.md](ROADMAP.md), in five phases: **trust** (data review, effects, tests, automatic data deployment, themes, a donate button), **sharing and export**, **moving between devices**, **reach and polish**, and **data breadth**. Every item is designed for a static site with no accounts and no tracking; anything that would need a server is called out there. Suggestions and pull requests are welcome: open an issue and mention the item number.
 
 ## Contributing and feedback
 
