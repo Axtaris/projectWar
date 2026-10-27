@@ -161,3 +161,13 @@ test('print sheet (PDF): header, units, enhancement and warlord are written', as
   const h = api.printHtml(l);
   assert.ok(h.includes('<h1>Guerra Eterna</h1>')); assert.ok(h.includes('OVERLORD') || /Overlord/i.test(h)); assert.ok(h.includes('Enhancement:')); assert.ok(h.includes('★'));
 });
+
+test('backup reminder: due after 3 days without a backup, 14 after the last one, never with no lists, and "later" snoozes it', async () => {
+  const now = 1e12; api.S.lists = [{}];
+  assert.equal(api.bkDue(now, { first: now - 1 * api.DAY }, 1), false);
+  assert.equal(api.bkDue(now, { first: now - 4 * api.DAY }, 1), true);
+  assert.equal(api.bkDue(now, { first: now - 40 * api.DAY, last: now - 5 * api.DAY }, 1), false);
+  assert.equal(api.bkDue(now, { first: now - 40 * api.DAY, last: now - 15 * api.DAY }, 1), true);
+  assert.equal(api.bkDue(now, { last: now - 15 * api.DAY, snooze: now + api.DAY }, 1), false);
+  assert.equal(api.bkDue(now, { last: now - 99 * api.DAY }, 0), false);
+});

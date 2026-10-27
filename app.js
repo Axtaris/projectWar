@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.3.5';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.1';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -42,7 +42,11 @@ const ic = (n, s = 24, st = '') => (n === 'up' || n === 'down') ? `<svg viewBox=
 const store = { get: (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v) } catch { return d } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch { } } };
 const SET0 = { Theme: 0, Accent: 0, AppTextSize: 1, AppLayout: 0, HomeScreenSort: 2, FilterEnhancements: true, FilterAbilities: true, FilterWeaponsViewerMode: true, FilterWeaponsEditMode: false, ShowDetachmentsInViewer: true, ShowStratagemsInViewer: true, ShowCoreStratagemsInViewer: false, EnableModifiedStatlines: true, ShowUnitImages: true, AutoGenerateAttachedUnitNames: true };
 const S = { info: null, lists: store.get('pw.lists', []), set: (() => { const o = store.get('pw.set', {}); if (!o._ms) { o.EnableModifiedStatlines = true; o._ms = 1 } return { ...SET0, ...o } })(), stack: [], cur: null, hist: [], hpos: 0, open: {}, fd: {}, history: store.get('pw.history', []), roster: '', all: null };
-const saveLists = () => store.set('pw.lists', S.lists), saveSet = () => store.set('pw.set', S.set);
+/* backup reminder: lists live only in this browser, so after a while the home screen offers a file backup */
+const DAY = 864e5, bk = () => store.get('pw.bk', {}), bkSave = o => store.set('pw.bk', { ...bk(), ...o });
+const bkDue = (now = Date.now(), b = bk(), n = S.lists.length) => n > 0 && now >= (b.snooze || 0) && now - (b.last || b.first || now) >= (b.last ? 14 : 3) * DAY;
+let persisted = false;
+const saveLists = () => { store.set('pw.lists', S.lists); if (S.lists.length && !bk().first) bkSave({ first: Date.now() }); if (S.lists.length && !persisted) { persisted = true; try { navigator.storage?.persist?.() } catch { } } }, saveSet = () => store.set('pw.set', S.set);
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (Math.random() * 16 | 0).toString(16)));
 /* Untrusted input: lists arrive from files and the clipboard. Strip markup characters from every string, bound sizes and coerce types. */
 const clean = (v, d = 0) => typeof v === 'string' ? v.replace(/[<>"\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').slice(0, 2000)
@@ -350,6 +354,7 @@ PAGES.home = () => {
   return `<div class="page"><div class="top2"><div class="brand">project<b>War</b></div><div style="flex:1"></div><span class="chip">Data ${esc(S.dv)}</span>
     <button class="btn ghost" data-a="search">${ic('search', 20)}Search</button><button class="btn ghost" data-a="sort">${ic('sort', 20)}Sort</button><button class="btn ghost" data-a="settings">${ic('cog', 20)}Settings</button></div>
   <div class="hbody"><div class="hmain"><span class="lbl">Army lists</span><h1 class="big">Your rosters</h1>
+    ${bkDue() ? `<div class="bkb"><span>Your lists are stored only in this browser. ${bk().last ? 'Your last backup was ' + Math.floor((Date.now() - bk().last) / DAY) + ' days ago.' : 'You have not made a backup yet.'}</span><button class="btn pri" data-a="bknow">Back up now</button><button class="btn" data-a="bklater">Later</button></div>` : ''}
     <div class="rows">${lists.length ? lists.map(row).join('') : '<div class="empty">No lists yet. Build your first one.</div>'}</div></div>
   <aside class="hside"><span class="lbl">Start</span><h2 class="mid">Build a new list</h2><p class="mu">Pick a faction, set the points limit and detachment, then add units.</p>
     <button class="btn pri" data-a="newl">New list</button><button class="btn" data-a="plusmenu">Import list</button>
@@ -676,7 +681,7 @@ PAGES.settings = () => `<div class="page">${hdr('Settings')}<div class="scroll s
   <div class="setcap">Display</div><div class="setgrp cols"><div>${TOG('FilterEnhancements', 'Enhancement filtering on', 'Enhancement filtering off')}${TOG('FilterWeaponsViewerMode', 'Viewer mode weapons filtering on', 'Viewer mode weapons filtering off')}${TOG('FilterWeaponsEditMode', 'Edit mode weapons filtering on', 'Edit mode weapons filtering off')}${TOG('ShowStratagemsInViewer', 'Show stratagems in viewer', 'Hide stratagems in viewer')}${TOG('ShowCoreStratagemsInViewer', 'Show core stratagems in viewer', 'Hide core stratagems in viewer')}</div>
   <div>${TOG('FilterAbilities', 'Ability filtering on', 'Ability filtering off')}${TOG('EnableModifiedStatlines', 'Modified stats on', 'Modified stats off')}${TOG('ShowUnitImages', 'Show unit images', 'Hide unit images')}${TOG('ShowDetachmentsInViewer', 'Show detachments in viewer', 'Hide detachments in viewer')}${TOG('AutoGenerateAttachedUnitNames', 'Attached unit name generation on', 'Attached unit name generation off')}</div></div>
   <div class="setcap">Dataset</div><div class="setgrp"><button class="drop">${DATASET}${ic('down', 22)}</button></div>
-  <div class="setcap">Data sync</div><div class="setgrp"><div>Lists are stored in this browser only. Use the buttons below to back them up or move them to another device.</div><div class="row2"><button class="btn purple" data-a="exportall">Backup all lists</button><button class="btn purple" data-a="importfile">Restore from file</button></div></div>
+  <div class="setcap">Data sync</div><div class="setgrp"><div>Lists are stored in this browser only. Use the buttons below to back them up or move them to another device. ${bk().last ? 'Last backup: ' + new Date(bk().last).toLocaleDateString() + '.' : 'No backup made yet.'}</div><div class="row2"><button class="btn purple" data-a="exportall">Backup all lists</button><button class="btn purple" data-a="importfile">Restore from file</button></div></div>
   <div class="setcap">Support</div><div class="setgrp" style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn purple" href="${DONATE}" target="_blank" rel="noopener noreferrer">Donate (PayPal)</a><a class="btn purple" href="${REPO}" target="_blank" rel="noopener">Project repository</a><a class="btn purple" href="${REPO}/issues" target="_blank" rel="noopener">Report an issue</a><a class="btn purple" href="legal/privacy.html" target="_blank" rel="noopener">Privacy</a><a class="btn purple" href="legal/terms.html" target="_blank" rel="noopener">Terms</a><a class="btn purple" href="legal/cookies.html" target="_blank" rel="noopener">Cookies</a></div></div></div>`;
 
 /* ---- search ---- */
@@ -806,6 +811,7 @@ function printHtml(l) {
     (EXP.Stratagems ? sec('Stratagems', dets(l).flatMap(d => d.Stratagems).map(s => `<p class="ab"><b>${esc(s.Name)} (${s.CPCost}CP)</b> — ${esc(s.When)} ${esc(s.Effect)}</p>`).join('')) : '') +
     (EXP['Core / Stratagems'] ? sec('Core stratagems', S.info.CoreStratagems.map(s => `<p class="ab"><b>${esc(s.Name)} (${s.CPCost}CP)</b> — ${esc(s.Effect)}</p>`).join('')) : '') + `<div class="pf">projectWar ${VERSION} · ${esc(S.dv ? 'data ' + S.dv : '')}</div>`;
 }
+const backupNow = () => { download(`projectwar-lists-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(S.lists), 'application/json'); bkSave({ last: Date.now(), snooze: 0 }) };
 const download = (name, text, type = 'text/plain') => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click() };
 
 /* =================================================== ACTIONS */
@@ -891,7 +897,9 @@ document.addEventListener('click', async e => {
     case 'stog': S.set[t.dataset.k] = !S.set[t.dataset.k]; saveSet(); return render();
     case 'sdd': { const k = t.dataset.k, opts = { Theme: ['System', 'Light', 'Dark'], Accent: ACC.map(x => x[0]), AppTextSize: ['Small', 'Medium', 'Large'], AppLayout: ['Auto', 'Desktop', 'Mobile'] }[k]; return anchorPop(t, opts.map((x, i) => `<button class="mi" data-a="dosdd" data-k="${k}" data-id="${i}">${x}</button>`).join('')) }
     case 'dosdd': S.set[t.dataset.k] = +id; saveSet(); return render();
-    case 'exportall': return download('projectwar-lists.json', JSON.stringify(S.lists), 'application/json');
+    case 'exportall': backupNow(); return render();
+    case 'bknow': backupNow(); return render();
+    case 'bklater': bkSave({ snooze: Date.now() + 7 * DAY }); return render();
     case 'etype': return anchorPop(t, ETYPES.map((x, i) => `<button class="btn" style="width:160px;margin:3px 0;justify-content:center" data-a="doetype" data-id="${i}">${x}</button>`).join(''));
     case 'doetype': EXP.type = +id; return render();
     case 'txfmt': TXT.fmt = t.dataset.f; return render();

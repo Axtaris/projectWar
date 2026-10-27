@@ -42,7 +42,7 @@ Done in 1.1: 1.1, 1.3, 1.5, 1.6. **Carried over to 1.2:** 1.2, 1.4, 1.7, 1.8, 1.
 
 | # | Feature | Why | Approach |
 |---|---|---|---|
-| 3.1 | ⬜ Backup reminder and auto-export | Browser storage can be cleared | Remind on first list and periodically; one-click export; request persistent storage from the browser |
+| 3.1 | ✅ Backup reminder and auto-export | Browser storage can be cleared | Done in 1.4.1: reminder on the home screen, dated backup file, persistent storage requested |
 | 3.2 | 🔎 Cross-device sync without accounts | Lists live on one device only | Options: sync to a user-owned file (File System Access API) or to the user's own cloud storage with a browser-only OAuth flow. Needs a privacy-policy update and a CSP change, so it is decided case by case |
 | 3.3 | 🔎 Optional accounts | Only if sync cannot be done without them | Would need a server and a database; deliberately last, and only if the free-hosting constraints allow it |
 

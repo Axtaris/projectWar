@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.1 (27 October 2026)
+
+- **Backup reminder:** your lists are stored only in this browser, so the home screen now offers a backup when you have not made one for 3 days after your first list, or for 14 days after the last one. "Back up now" downloads a dated file (`projectwar-lists-YYYY-MM-DD.json`); "Later" hides the reminder for a week. Settings shows the date of the last backup.
+- The app also asks the browser to keep its storage (so it is not cleared when the device runs low on space). Browsers decide this on their own and may ask you.
+
 ## 1.3.5 (27 October 2026)
 
 - **Better PDF:** Export → Pdf now prints an A4 sheet with a header (army, detachment, disposition, points), the datasheets in two columns without cutting a unit across pages, the enhancement with its cost (and its text when Descriptions is on), the Warlord mark, the core abilities, and a footer with the app and data version. Choose "Save as PDF" in the print window.
