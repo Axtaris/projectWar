@@ -561,3 +561,12 @@ h2.mid{margin:0;font:600 32px/1.05 var(--cond);text-transform:uppercase;letter-s
 /* phones: a sticky bar keeps the detachment budget and the Create button in reach while scrolling */
 .nlbar{display:none}
 @media (max-width:900px){.nlbar{display:flex;align-items:center;gap:12px;position:sticky;bottom:0;z-index:2;padding:10px 12px;background:var(--p1);border-top:2px solid var(--c)}.nlbar .btn{flex:1;min-height:48px}.nlbar .mono{color:var(--lt);white-space:nowrap}.nlside>.btn.pri{display:none}}
+
+/* changelog page */
+.clog{padding:24px 20px 60px;line-height:1.55}
+.clog h3{margin:28px 0 8px;font:600 26px var(--cond);text-transform:uppercase;letter-spacing:.05em;border-left:3px solid var(--c);padding-left:12px}
+.clog h3:first-child{margin-top:0}
+.clog ul{margin:0 0 8px;padding-left:22px}.clog li{margin:6px 0}
+.clog p{margin:8px 0;color:var(--fg)}
+.clog code{font-family:var(--mono);background:var(--p2);padding:1px 5px;border-radius:2px;font-size:.92em}
+.clog a{color:var(--lt)}

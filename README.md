@@ -42,6 +42,7 @@ Then open <http://localhost:8080>. `serve.py` is a small development server: cac
 - A live points bar and a list-errors check.
 - A full datasheet view for each unit (statline, invulnerable save, weapons, abilities, keywords), with modified statlines when wargear or enhancements change them.
 - Viewer mode, a rules page with detachment rules and stratagems, data search, and a history of the datasheets you opened.
+- A "What's new" page with the changelog, available from the home screen.
 - Text and print/PDF export, plus backup and restore of all lists as a file.
 - Desktop (three-pane) and compact layouts, with light, dark and system themes (Settings → Application theme).
 
@@ -61,7 +62,7 @@ Compared with established list builders, projectWar does not yet offer:
 | **Sync and sharing** | Syncing lists between devices; share links, share codes and QR codes; accounts (deliberately avoided for now, see below) |
 | **Export** | YellowScribe export; Tabletop Simulator export; several text formats; true PDF generation (it uses the browser's print dialog) |
 | **Data** | 11th edition Legends and Adeptus Titanicus; allied units; older edition data sets |
-| **App** | Accent colour choice; stratagems shown per unit on the datasheet; offline / installable mode; update notices and in-app release notes; interface translations (Spanish first); an accessibility audit |
+| **App** | Accent colour choice; stratagems shown per unit on the datasheet; offline / installable mode; update notices; interface translations (Spanish first); an accessibility audit |
 
 Until sync exists, **back up your lists** from Settings: they live only in your browser's local storage on this device.
 

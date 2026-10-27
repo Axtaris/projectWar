@@ -261,6 +261,21 @@ function openChooser(anchor, getList, apply) {
 const PAGES = {};
 
 /* ---- home ---- */
+/* Minimal, safe markdown for the changelog: headings, bullet lists, paragraphs, **bold**, `code` and links. Everything is escaped first; only https links and repository .md files become links. */
+function mdLite(src) {
+  const inline = t => esc(t).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, url) =>
+    /^https:\/\//.test(url) ? `<a href="${url}" target="_blank" rel="noopener noreferrer">${txt}</a>` : /^[\w.-]+\.md$/.test(url) ? `<a href="${REPO}/blob/main/${url}" target="_blank" rel="noopener noreferrer">${txt}</a>` : txt);
+  const out = []; let list = false; const close = () => { if (list) { out.push('</ul>'); list = false } };
+  for (const line of String(src).split(/\r?\n/)) {
+    let m;
+    if ((m = line.match(/^##\s+(.*)/))) { close(); out.push(`<h3>${inline(m[1])}</h3>`) }
+    else if (/^#\s/.test(line)) close();   // the page title is already in the header
+    else if ((m = line.match(/^-\s+(.*)/))) { if (!list) { out.push('<ul>'); list = true } out.push(`<li>${inline(m[1])}</li>`) }
+    else if (!line.trim()) close();
+    else { close(); out.push(`<p>${inline(line)}</p>`) }
+  }
+  close(); return out.join('');
+}
 PAGES.home = () => {
   const lists = S.lists.slice(), so = S.set.HomeScreenSort; lists.sort((a, b) => so === 0 ? a.Name.localeCompare(b.Name) : so === 1 ? a.Faction.localeCompare(b.Faction) || a.Name.localeCompare(b.Name) : (a.LastModified < b.LastModified ? 1 : -1));
   const row = l => { const tot = total(l), pct = Math.min(100, Math.round(tot / (l.MaxPoints || 1) * 100)), dets = (l.Detachments || []).map(tc).join(', ');
@@ -272,8 +287,10 @@ PAGES.home = () => {
   <aside class="hside"><span class="lbl">Start</span><h2 class="mid">Build a new list</h2><p class="mu">Pick a faction, set the points limit and detachment, then add units.</p>
     <button class="btn pri" data-a="newl">New list</button><button class="btn" data-a="plusmenu">Import list</button>
     <div class="hr"></div><span class="lbl">Data</span>
-    <div class="kv"><span>Dataset</span><span class="mono">${DATASET}</span></div><div class="kv"><span>Data version</span><span class="mono">${esc(S.dv)}</span></div><div class="kv"><span>App version</span><span class="mono">${VERSION}</span></div><div class="legal"><a href="legal/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="legal/terms.html" target="_blank" rel="noopener">Terms</a> · <a href="legal/cookies.html" target="_blank" rel="noopener">Cookies</a></div></aside></div></div>`;
+    <div class="kv"><span>Dataset</span><span class="mono">${DATASET}</span></div><div class="kv"><span>Data version</span><span class="mono">${esc(S.dv)}</span></div><div class="kv"><span>App version</span><span class="mono">${VERSION}</span></div><button class="btn" data-a="changelog">What\u2019s new in ${esc(VERSION)}</button><div class="legal"><a href="legal/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="legal/terms.html" target="_blank" rel="noopener">Terms</a> · <a href="legal/cookies.html" target="_blank" rel="noopener">Cookies</a></div></aside></div></div>`;
 };
+/* ---- what's new (CHANGELOG.md, published next to the app) ---- */
+PAGES.changelog = () => `<div class="page spage">${hdr('What\u2019s new')}<div class="scroll"><div class="clog">${S.cl ? mdLite(S.cl) : `<p class="empty">The changelog could not be loaded. You can read it on <a href="${REPO}/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>`}</div></div></div>`;
 /* total() needs faction data; precompute lazily */
 async function warmLists() { for (const l of S.lists) { try { await loadFaction(l) } catch { } } }
 
@@ -648,6 +665,7 @@ document.addEventListener('click', async e => {
   switch (a) {
     case 'back': return back();
     case 'tog': S.open[id] = !(S.open[id] ?? defOpen(id)); return mutateView();
+    case 'changelog': { try { const r = await fetch('CHANGELOG.md', { cache: 'no-cache' }); S.cl = r.ok ? await r.text() : null } catch { S.cl = null } return nav('changelog') }
     case 'settings': return nav('settings');
     case 'search': return nav('search', { tab: 'data', q: '' });
     case 'stab': r.tab = id; return render();

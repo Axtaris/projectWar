@@ -11,7 +11,7 @@ rm -rf dist .data-tmp
 mkdir -p dist/data
 
 # static application files (nothing else is published)
-cp index.html app.js style.css favicon.svg robots.txt _headers dist/
+cp index.html app.js style.css favicon.svg robots.txt CHANGELOG.md _headers dist/
 cp -r fonts legal dist/
 mkdir -p dist/.well-known && cp .well-known/security.txt dist/.well-known/
 

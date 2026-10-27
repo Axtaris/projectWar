@@ -6,13 +6,12 @@ Goal: **trust**. Data review, structured effects for new content, automated test
 
 Done so far:
 
-- New list: each detachment can be expanded (arrow on the left) to read its rule, restrictions, enhancements and stratagems before adding it with the + button on the right.
-- New list: expanding a detachment also shows every stratagem in full (when, target, effect, restrictions, CP cost and turn), in two columns.
-- Working theme setting: light, dark and system (follows the OS live). The legal pages follow the same choice. Checked for text contrast in both themes on every screen.
-- Compact (phone) layout parity: the editor, unit page and viewer share the desktop header language (back, name and subtitle, error badge, menu, undo/redo, points gauge, View/Edit). The new-list screen scrolls as one page with a sticky Create bar. Verified at 375 and 320 px widths: no horizontal overflow on any screen, and text contrast checked in both themes.
-- Automated tests: 87 checks on the app logic and the game data (`npm test`), plus a CI workflow.
-- Automatic deployment: a workflow builds the site from this repository and the data repository, runs the tests and publishes to Cloudflare on every push and every 6 hours when something changed; the live site publishes `/version.txt` with the commits it was built from.
-- Data fixes: two stratagems that had no text (Storm of Darkness, Masters of the Void), list items now keep their spacing, and leader lists no longer point to units that are not in the file (870 dead references removed, renamed units followed).
+- **New list:** expand any detachment to read its rule, restrictions, enhancements and every stratagem (when, target, effect, restrictions, CP cost) before adding it with the + button.
+- **Themes:** light, dark and system (Settings → Application theme). The legal pages follow your choice.
+- **Phones:** the editor, unit page and viewer now share the desktop design, and creating a list scrolls as one page with the Create button always in reach.
+- **What's new:** this page is now available from the home screen.
+- **Data fixes:** two stratagems that had no text were repaired, list items keep their spacing, and leaders no longer point to units that do not exist (870 dead references removed, renamed units followed).
+- **Behind the scenes:** automated tests for the app logic and the data, and automatic publishing of new data.
 
 ## 1.0 (27 October 2026)
 
@@ -22,5 +21,5 @@ First public version.
 - Editor and viewer, datasheets, rules and stratagems, data search and history.
 - Text and print export; backup and restore of lists as a file; lists stored in the browser.
 - New visual identity: orange brand colour with a thin line in each faction's colour.
-- Static deployment with strict security headers, sanitised list imports, self-hosted fonts, no cookies and no third-party requests.
+- Strict security: no cookies, no third-party requests, sanitised list imports.
 - Privacy policy, terms of use and cookie notice (English and Spanish).

@@ -98,3 +98,14 @@ test('importList accepts a valid list and refuses oversized or invalid input', a
   assert.equal(api.importList('not json'), false);
   assert.equal(api.importList('x'.repeat(5e6 + 1)), false);
 });
+
+test('the changelog renderer escapes HTML and only links https or repository .md files', () => {
+  const html = api.mdLite('# Changelog\n\n## 1.1 (dev)\n\n- **Bold** and `code` and [site](https://example.com) <img src=x onerror=1>\n- [bad](javascript:alert(1)) and [doc](ROADMAP.md)\n');
+  assert.match(html, /<h3>1\.1 \(dev\)<\/h3>/);
+  assert.match(html, /<li><b>Bold<\/b> and <code>code<\/code>/);
+  assert.ok(!/<img/i.test(html), 'raw HTML is escaped');
+  assert.ok(!/href="javascript/i.test(html), 'no javascript: link');
+  assert.match(html, /href="https:\/\/example\.com"[^>]*rel="noopener noreferrer"/);
+  assert.match(html, /href="https:\/\/github\.com\/Axtaris\/projectWar\/blob\/main\/ROADMAP\.md"/);
+  assert.ok(!/<h1/.test(html), 'the title line is dropped');
+});

@@ -43,7 +43,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done · 🔎 needs investigat
 | # | Feature | Why | Approach |
 |---|---|---|---|
 | 4.1 | ⬜ Offline use and installable app | Works only with a connection | Service worker caching the app and the data, with a version check |
-| 4.2 | ⬜ Update notices and in-app release notes | People do not know when data changes | Compare the data version on load; show a short "what changed" panel |
+| 4.2 | 🟨 In-app release notes (done, from the home screen); update notices pending | People do not know when data changes | Compare the data version on load; show a short "what changed" panel |
 | 4.3 | ⬜ Interface translations (Spanish first) | English only | Move strings to a dictionary; add a language setting |
 | 4.4 | ⬜ Accessibility pass | Keyboard and screen-reader support has not been audited | Audit with automated tools and manual checks; fix contrast, focus order and labels |
 | 4.5 | 🔎 Stratagems per unit (datasheet style) | On a datasheet, see which stratagems of your detachments can target that unit, as other rules references do | The data source already links stratagems, enhancements and detachment abilities to datasheets. Import those links in the converter, store them per unit, and show a "Stratagems" section on the datasheet filtered to the list's detachments (all of them when browsing without a list) |
