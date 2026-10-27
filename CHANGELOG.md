@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.6 (27 October 2026)
+
+Closes the data-review part of phase 1.
+
+- **Wargear options from the datasheets:** the options of 609 units were rebuilt from the printed datasheets (what each model can swap, how many per 5 or 10 models, which weapons are offered). Examples fixed: Intercessor Squad grenade launcher, Scout Squad sniper rifle and shotguns, Sword Brethren, Crusader Squad, Tiger Shark missiles. 273 units with unusual wording were left as they were and are listed for hand review.
+- **Accent colour:** Settings now has an accent colour (orange, blue, green, purple, red, teal).
+- **New automated check:** every wargear option must have a weapon profile or a priced definition behind it.
+
 ## 1.1.5 (27 October 2026)
 
 Bug-fix release.

@@ -115,3 +115,17 @@ test('warlord eligibility follows the datasheets (Character keyword, no wrongly 
   assert.equal((unit('Necrons.json', 'C’TAN SHARD OF THE DECEIVER').Flags || 0) & 1, 1, 'C’tan shards cannot be the warlord');
   assert.equal((unit('Necrons.json', 'ORIKAN THE DIVINER').Flags || 0) & 1, 0, 'Orikan can');
 });
+
+/* every wargear option offered by a datasheet must have a weapon profile, a priced definition or an ability behind it (the printed name may carry a count: "2 heavy bolters") */
+test('wargear options resolve to a profile', () => {
+  const lcn = (s) => String(s).toLowerCase().replace(/[’‘]/g, "'").replace(/[\u2010-\u2015]/g, '-');
+  const gap = new Set(known.optionsWithoutProfile || []), bad = [];
+  for (const f of factionFiles) for (const u of read(f).Units) {
+    const W = u.Weapons.flatMap((g) => g.Weapons.map((w) => lcn(w.Name))), defs = (u.UnitComposition.WargearDefinitions || []).map((x) => lcn(x.Key)), abil = (u.UnitAbilities || []).map((a) => lcn(a.Title.split('(')[0].trim()));
+    const hit = (n) => { n = n.replace(/^\d+ /, ''); return [W, defs, abil].some((P) => P.some((p) => p.includes(n) || n.includes(p))); };
+    for (const m of u.UnitComposition.ModelCompositions) for (const g of m.Wargear || []) for (const o of g.Options || []) for (const a of o.Options || []) {
+      if (!lcn(a).split(/ and |, /).map((x) => x.trim()).filter(Boolean).every(hit) && !gap.has(`${u.Name}: ${a}`)) bad.push(`${f}: ${u.Name}: "${a}"`);
+    }
+  }
+  assert.equal(bad.length, 0, bad.slice(0, 10).join('\n'));
+});

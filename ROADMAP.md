@@ -12,13 +12,18 @@ Status: ⬜ not started · 🟨 in progress · ✅ done · 🔎 needs investigat
 
 | # | Feature | Why | Approach |
 |---|---|---|---|
-| 1.1 | ⬜ Review of wargear options, unit by unit | Options are inferred and can differ from the printed datasheet | Compare every unit with the sources; fix the converter rules; keep a list of known exceptions in the converter's `fixes.py` |
+| 1.1 | ✅ Wargear options rebuilt from the printed datasheets (609 units rebuilt, 291 already correct); 273 units with unusual wording are listed in the converter's `informes/equipo-pendiente.md` for hand review | Options were inferred and differed from the printed datasheet | `tools/wh_options.py` reads each datasheet's option sentences and rebuilds the options, and leaves a unit untouched when anything is unclear |
 | 1.2 | ⬜ Structured effects for new enhancements and detachments | They only have text, so they do not modify statlines or enforce restrictions | Add the effect model to the data (stat adjustments, requirements) and extend the converter |
 | 1.3 | ✅ Automated tests and CI | Points, list validation and data loading are untested | Plain Node tests for the pure functions plus a data-integrity check; run on every push |
 | 1.4 | 🟨 Automatic data deployment (workflow written; needs two repository secrets) | Data changes do not redeploy the site by themselves | A workflow in the data repository that triggers the site build |
-| 1.5 | 🟨 Theme setting (light, dark, system) done; accent colour choice pending | The setting exists but only the dark theme is implemented | CSS variables are already used; add a light palette and honour `prefers-color-scheme` |
+| 1.5 | ✅ Theme setting (light, dark, system) and accent colour choice (Settings → Accent colour) | The setting exists but only the dark theme is implemented | CSS variables are already used; add a light palette and honour `prefers-color-scheme` |
 | 1.6 | ✅ Compact (narrow-screen) layout parity | The unit page and viewer on small screens use an older design | Apply the desktop header and surfaces; test on phone widths |
-| 1.7 | 🔎 Donate button | A way for people to support the project voluntarily | A plain outbound link to a donation platform chosen by the maintainer (no embedded widgets, scripts or tracking), shown in Settings and on the home panel. Update the privacy policy and the terms (donations are voluntary, non-refundable and unlock nothing), keep the CSP unchanged, and pick the platform after checking availability and fees for Colombia |
+| 1.7 | 🔎 Donate button (waiting for the maintainer to choose the platform) | A way for people to support the project voluntarily | A plain outbound link to a donation platform chosen by the maintainer (no embedded widgets, scripts or tracking), shown in Settings and on the home panel. Update the privacy policy and the terms (donations are voluntary, non-refundable and unlock nothing), keep the CSP unchanged, and pick the platform after checking availability and fees for Colombia |
+| 1.8 | 🔎 Confirm points against the official Munitorum Field Manual | The MFM data and the Wahapedia export differ for 179 units (Land Raider, Razorback, Helbrute...); the MFM is used because it is newer | Check against the official PDF and record which source wins per unit |
+| 1.9 | ⬜ Chapter exclusions | Black Templars and the other chapters cannot use some Codex: Space Marines datasheets (Gladiator, Impulsor, Repulsor, Sternguard...) and those units are still in their files | Read each chapter's army rule and remove or flag the excluded datasheets, chapter by chapter |
+| 1.10 | ⬜ God choice for Daemon Prince, Soul Grinder and Furies | They pick Khorne, Tzeentch, Nurgle or Slaanesh when included; enhancements that require a god are not offered | Add a per-unit keyword choice to the list |
+| 1.11 | ⬜ Missing datasheets | Kill Team Cassius, Chaplain Cassius and Regimental Attachés are not in the data | Add them in the converter and test their rules |
+| 1.12 | ⬜ Units modelled as separate variants | Plague Marines, Rubric Marines, Troupe and similar are one model per weapon variant instead of one model with options | Teach the converter the single-model form |
 
 ## Phase 2: Sharing and export
 

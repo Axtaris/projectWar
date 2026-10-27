@@ -5,8 +5,10 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const lc = s => String(s || '').toLowerCase();
 const tc0 = s => String(s || '').toLowerCase().replace(/(^|[\s(\-"“])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Of|And)\b/g, x => x.toLowerCase());
 const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+/* accent colours: name, colour on dark, colour for text on light */
+const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar';
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.1.5';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.1.6';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -38,7 +40,7 @@ const ic = (n, s = 24, st = '') => (n === 'up' || n === 'down') ? `<svg viewBox=
 
 /* ---------- storage / state ---------- */
 const store = { get: (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v) } catch { return d } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch { } } };
-const SET0 = { Theme: 0, AppTextSize: 1, AppLayout: 0, HomeScreenSort: 2, FilterEnhancements: true, FilterAbilities: true, FilterWeaponsViewerMode: true, FilterWeaponsEditMode: false, ShowDetachmentsInViewer: true, ShowStratagemsInViewer: true, ShowCoreStratagemsInViewer: false, EnableModifiedStatlines: true, ShowUnitImages: true, AutoGenerateAttachedUnitNames: true };
+const SET0 = { Theme: 0, Accent: 0, AppTextSize: 1, AppLayout: 0, HomeScreenSort: 2, FilterEnhancements: true, FilterAbilities: true, FilterWeaponsViewerMode: true, FilterWeaponsEditMode: false, ShowDetachmentsInViewer: true, ShowStratagemsInViewer: true, ShowCoreStratagemsInViewer: false, EnableModifiedStatlines: true, ShowUnitImages: true, AutoGenerateAttachedUnitNames: true };
 const S = { info: null, lists: store.get('pw.lists', []), set: (() => { const o = store.get('pw.set', {}); if (!o._ms) { o.EnableModifiedStatlines = true; o._ms = 1 } return { ...SET0, ...o } })(), stack: [], cur: null, hist: [], hpos: 0, open: {}, fd: {}, history: store.get('pw.history', []), roster: '', all: null };
 const saveLists = () => store.set('pw.lists', S.lists), saveSet = () => store.set('pw.set', S.set);
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (Math.random() * 16 | 0).toString(16)));
@@ -76,13 +78,14 @@ const fdOf = l => S.fd[l.Faction + (l.IsLegendsEnabled ? '+L' : '')];
 function hsl(hex) { const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0; if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60 } return [h, s * 100, l * 100] }
 /* Theme: Settings.Theme is 0 = System, 1 = Light, 2 = Dark. The stylesheet follows the system by itself; explicit choices are forced with data-theme. */
 const effTheme = () => S.set.Theme === 1 ? 'light' : S.set.Theme === 2 ? 'dark' : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-const applyTheme = () => { const h = document.documentElement; if (S.set.Theme === 1) h.dataset.theme = 'light'; else if (S.set.Theme === 2) h.dataset.theme = 'dark'; else delete h.dataset.theme };
+const baseColor = () => (ACC[S.set.Accent] || ACC[0])[1];
+const applyTheme = () => { const h = document.documentElement, a = ACC[S.set.Accent] || ACC[0]; h.style.setProperty('--brand', a[1]); h.style.setProperty('--brand-ink', a[2]); if (S.set.Theme === 1) h.dataset.theme = 'light'; else if (S.set.Theme === 2) h.dataset.theme = 'dark'; else delete h.dataset.theme };
 matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (S.set.Theme === 0 && S.info) render() });
 function theme(color) {
-  const [h, s, l] = hsl(color || BASE), n = parseInt((color || BASE).slice(1), 16), dk = [n >> 16, n >> 8 & 255, n & 255].map(x => Math.round(x / 2));
+  const [h, s, l] = hsl(color || baseColor()), n = parseInt((color || baseColor()).slice(1), 16), dk = [n >> 16, n >> 8 & 255, n & 255].map(x => Math.round(x / 2));
   const st = document.documentElement.style; st.setProperty('--c', color); st.setProperty('--hi', `hsl(${h},${s}%,${Math.min(l + 10, 95)}%)`); st.setProperty('--lt', `hsl(${h},${Math.max(s, 60)}%,${effTheme() === 'light' ? 22 : 80}%)`); st.setProperty('--dk', `rgb(${dk})`);
 }
-const fColor = name => S.info.Factions.find(f => f.Name === name)?.DarkColor || BASE;
+const fColor = name => S.info.Factions.find(f => f.Name === name)?.DarkColor || baseColor();
 
 /* ---------- rules / calculations ---------- */
 const BS = max => S.info.BattleSizeDefinitions.find(b => b.PointsTotal >= max) || (max <= 500 ? { PointsTotal: 500, DetachmentPoints: 1, EnhancementLimit: 1, UnitLimit: 2 } : S.info.BattleSizeDefinitions.at(-1));
@@ -236,8 +239,8 @@ async function render() {
   applyTheme();
   closePops(); let r = here(); const app = $('#app');
   if (r.page === 'unit' && !r.ro && WIDE()) { S.sel = r.id; S.prev = null; S.stack.pop(); r = here() }
-  if (S.cur && ['editor', 'viewer', 'unit', 'rules', 'export', 'feedback'].includes(r.page)) { await loadFaction(S.cur); theme(fColor(S.cur.Faction)) } else if (r.page === 'newlist' && r.faction) theme(fColor(r.faction)); else if (r.page !== 'sheet') theme(BASE);
-  if (r.page === 'search') theme(BASE);
+  if (S.cur && ['editor', 'viewer', 'unit', 'rules', 'export', 'feedback'].includes(r.page)) { await loadFaction(S.cur); theme(fColor(S.cur.Faction)) } else if (r.page === 'newlist' && r.faction) theme(fColor(r.faction)); else if (r.page !== 'sheet') theme(baseColor());
+  if (r.page === 'search') theme(baseColor());
   if (r.page === 'sheet' && r.faction) theme(fColor(r.faction));
   /* scroll memory: every screen remembers where it was scrolled. Re-rendering the same screen (adding a unit, opening a block, a toggle...) and coming back to it with Back both restore it; opening a screen anew starts at the top. */
   const key = `${r.page}|${r.id ?? r.faction ?? ''}|${r.tab ?? ''}|${S.stack.length}`, mem = S.mem ??= {};
@@ -624,7 +627,7 @@ PAGES.rules = () => {
 const TOG = (k, on, off) => `<button class="toggle ${S.set[k] ? 'on' : ''}" data-a="stog" data-k="${k}"><i></i>${S.set[k] ? on : off}</button>`;
 const DD = (id, label, val, opts) => `<div><div style="font-size:14px;margin:0 0 3px 0">${label}</div><button class="drop" data-a="sdd" data-k="${id}">${opts[val]}${ic('down', 22)}</button></div>`;
 PAGES.settings = () => `<div class="page">${hdr('Settings')}<div class="scroll setpage">
-  <div class="setcap">Appearance</div><div class="setgrp cols" style="gap:10px">${DD('Theme', 'Application theme', S.set.Theme, ['System', 'Light', 'Dark'])}${DD('AppTextSize', 'Text size', S.set.AppTextSize, ['Small', 'Medium', 'Large'])}${DD('AppLayout', 'Layout', S.set.AppLayout, ['Auto', 'Desktop', 'Mobile'])}</div>
+  <div class="setcap">Appearance</div><div class="setgrp cols" style="gap:10px">${DD('Theme', 'Application theme', S.set.Theme, ['System', 'Light', 'Dark'])}${DD('Accent', 'Accent colour', S.set.Accent || 0, ACC.map(x => x[0]))}${DD('AppTextSize', 'Text size', S.set.AppTextSize, ['Small', 'Medium', 'Large'])}${DD('AppLayout', 'Layout', S.set.AppLayout, ['Auto', 'Desktop', 'Mobile'])}</div>
   <div class="setcap">Display</div><div class="setgrp cols"><div>${TOG('FilterEnhancements', 'Enhancement filtering on', 'Enhancement filtering off')}${TOG('FilterWeaponsViewerMode', 'Viewer mode weapons filtering on', 'Viewer mode weapons filtering off')}${TOG('FilterWeaponsEditMode', 'Edit mode weapons filtering on', 'Edit mode weapons filtering off')}${TOG('ShowStratagemsInViewer', 'Show stratagems in viewer', 'Hide stratagems in viewer')}${TOG('ShowCoreStratagemsInViewer', 'Show core stratagems in viewer', 'Hide core stratagems in viewer')}</div>
   <div>${TOG('FilterAbilities', 'Ability filtering on', 'Ability filtering off')}${TOG('EnableModifiedStatlines', 'Modified stats on', 'Modified stats off')}${TOG('ShowUnitImages', 'Show unit images', 'Hide unit images')}${TOG('ShowDetachmentsInViewer', 'Show detachments in viewer', 'Hide detachments in viewer')}${TOG('AutoGenerateAttachedUnitNames', 'Attached unit name generation on', 'Attached unit name generation off')}</div></div>
   <div class="setcap">Dataset</div><div class="setgrp"><button class="drop">${DATASET}${ic('down', 22)}</button></div>
@@ -654,7 +657,7 @@ async function runSearch(q) {
 let RES = [];
 function openResult(x) {
   S.history = [x, ...S.history.filter(h => !(h.name === x.name && h.t === x.t && h.faction === x.faction))].slice(0, 40).map(h => ({ t: h.t, name: h.name, faction: h.faction })); store.set('pw.history', S.history);
-  const f = S.info.Factions.find(f => f.Name === x.faction); theme(f?.DarkColor || BASE);
+  const f = S.info.Factions.find(f => f.Name === x.faction); theme(f?.DarkColor || baseColor());
   if (x.t === 'unit') nav('sheet', { d: x.ref || x.d.Units.find(u => u.Name === x.name), faction: x.faction });
   else loadAll(x);
 }
@@ -776,7 +779,7 @@ document.addEventListener('click', async e => {
     case 'disp': { const disp = dispOpts(l).length ? dispOpts(l) : [...new Set(fdOf(l).Dettachments.flatMap(d => d.ForceDispositions || []))]; return anchorPop(t, disp.map(x => `<button class="mi" data-a="dodisp" data-id="${esc(x)}">${tc(x)}</button>`).join('')) }
     case 'dodisp': closePops(); return mutate(() => { l.Disposition = id });
     case 'stog': S.set[t.dataset.k] = !S.set[t.dataset.k]; saveSet(); return render();
-    case 'sdd': { const k = t.dataset.k, opts = { Theme: ['System', 'Light', 'Dark'], AppTextSize: ['Small', 'Medium', 'Large'], AppLayout: ['Auto', 'Desktop', 'Mobile'] }[k]; return anchorPop(t, opts.map((x, i) => `<button class="mi" data-a="dosdd" data-k="${k}" data-id="${i}">${x}</button>`).join('')) }
+    case 'sdd': { const k = t.dataset.k, opts = { Theme: ['System', 'Light', 'Dark'], Accent: ACC.map(x => x[0]), AppTextSize: ['Small', 'Medium', 'Large'], AppLayout: ['Auto', 'Desktop', 'Mobile'] }[k]; return anchorPop(t, opts.map((x, i) => `<button class="mi" data-a="dosdd" data-k="${k}" data-id="${i}">${x}</button>`).join('')) }
     case 'dosdd': S.set[t.dataset.k] = +id; saveSet(); return render();
     case 'exportall': return download('projectwar-lists.json', JSON.stringify(S.lists), 'application/json');
     case 'etype': return anchorPop(t, ETYPES.map((x, i) => `<button class="btn" style="width:160px;margin:3px 0;justify-content:center" data-a="doetype" data-id="${i}">${x}</button>`).join(''));

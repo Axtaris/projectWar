@@ -1,5 +1,17 @@
 {
-  "pointsWithoutCost": ["Imperial Knights.json: SIR HEKHTUR"],
-  "leaders": [],
-  "notConverted": ["Imperial Agents Allies.json", "Adeptus Titanicus.json"]
+ "pointsWithoutCost": [
+  "Imperial Knights.json: SIR HEKHTUR"
+ ],
+ "leaders": [],
+ "notConverted": [
+  "Imperial Agents Allies.json",
+  "Adeptus Titanicus.json"
+ ],
+ "optionsWithoutProfile": [
+  "TEMPESTUS AQUILONS: 2 hot-shot laspistols",
+  "ASTRAEUS: 2 plasma eradicators",
+  "KROOT WAR SHAPER: prey hook",
+  "TIGER SHARK: 2 cyclic ion blasters",
+  "AX-1-0 TIGER SHARK: 2 cyclic ion blasters"
+ ]
 }
