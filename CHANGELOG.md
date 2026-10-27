@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.2 (27 October 2026)
+
+- **YellowScribe export:** Export → Yellow Scribe downloads your list as a `.rosz` roster file built in your browser: the statlines, the weapons of each model, the abilities (with the enhancement and the Warlord mark) and the keywords of every unit. Upload it at yellowscribe.link and paste the code into the Yellowscribe mod in Tabletop Simulator. The structure follows what the open-source YellowScribe parser reads for 11th edition rosters; it has not yet been tried on the live service.
+
 ## 1.4.1 (27 October 2026)
 
 - **Backup reminder:** your lists are stored only in this browser, so the home screen now offers a backup when you have not made one for 3 days after your first list, or for 14 days after the last one. "Back up now" downloads a dated file (`projectwar-lists-YYYY-MM-DD.json`); "Later" hides the reminder for a week. Settings shows the date of the last backup.

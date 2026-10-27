@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.1';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.2';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -228,8 +228,8 @@ const optLabel = (d, a) => cap1(a) + (defCost(d, a) ? ` (${defCost(d, a)} points
 const wgCost = (d, u) => d ? u.UnitCompositionRef.reduce((s, r) => s + r.ModelCount * r.Wargear.reduce((t, w) => t + defCost(d, w), 0), 0) : 0;
 const normT = t => lc(t).replace(/[’‘]/g, "'");
 function wargearItems(u) { return u.UnitCompositionRef.flatMap(r => r.Wargear.map(lc)) }
-function visibleWeapons(d, u, viewer) {
-  const on = viewer ? S.set.FilterWeaponsViewerMode : S.set.FilterWeaponsEditMode; if (!on || !u) return d.Weapons;
+function visibleWeapons(d, u, viewer, force) {
+  const on = viewer ? S.set.FilterWeaponsViewerMode : S.set.FilterWeaponsEditMode; if ((!on && !force) || !u) return d.Weapons;
   const all = wargearItems(u), granted = defsOf(d).filter(x => all.includes(lc(x.Key))).flatMap(x => (x.GrantsWeapons || []).map(lc));
   const hit = (w, items) => items.some(i => lc(w.Name).includes(i) || i.includes(lc(w.Name)) || i.split(/ and |, /).some(p => p && (lc(w.Name).includes(p.replace(/^\d+ /, '')) || p.replace(/^\d+ /, '').includes(lc(w.Name)))));
   const match = w => hit(w, [...all, ...granted]) || w.NeverFilter;
@@ -750,6 +750,10 @@ async function openShare(hash) {
   history.replaceState(history.state, '', location.pathname + location.search);
   modal(`Shared list “${esc(l.Name || 'Army')}”`, `<p>${esc(l.Faction)}: ${l.Units.length} unit${l.Units.length === 1 ? '' : 's'}, ${esc(String(l.MaxPoints))} points. Saving it adds a copy to your lists; nothing in your other lists changes.</p>`, 'Save to my lists', async () => { l.LastModified = new Date().toISOString(); S.lists.push(l); saveLists(); closePops(); await openList(l.Id, 'editor') });
 }
+const ysOpts = () => `<div class="expwrap"><div style="flex:1;min-width:280px;max-width:640px"><div class="cap" style="margin:0 0 3px 5px">YellowScribe (Tabletop Simulator)</div><div class="expgrp" style="line-height:1.5">
+  <p style="margin:0 0 8px">Download your list as a <b>.rosz</b> roster file with the statlines, weapons for each model, abilities and keywords of every unit.</p>
+  <ol style="margin:0 0 8px 18px;padding:0"><li>Click <b>Download .rosz</b>.</li><li>Open <b>yellowscribe.link</b> and upload the file there.</li><li>Copy the code it gives you into the Yellowscribe mod in Tabletop Simulator.</li></ol>
+  <p style="margin:0;color:var(--dim)">projectWar sends nothing anywhere: the file is built in your browser, and uploading it to YellowScribe is up to you.</p></div></div></div>`;
 const linkOpts = () => { const l = S.cur, key = l.Id + l.LastModified + JSON.stringify(l.Units).length;
   if (S.link?.key !== key) { if (!S.linkBusy) { S.linkBusy = true; shareLink(l).then(url => { S.link = { key, url }; S.linkBusy = false; if (S.stack.at(-1).page === 'export' && EXP.type === 2) render() }, () => { S.link = { key, url: '' }; S.linkBusy = false }) } return '<div class="empty" style="padding:20px 5px">Building the link…</div>' }
   const u = S.link.url, qr = u.length < 2900 ? qrSvg(u) : '';
@@ -758,9 +762,9 @@ const linkOpts = () => { const l = S.cur, key = l.Id + l.LastModified + JSON.str
   <div>${qr ? `<div class="cap" style="margin:0 0 3px 5px">QR code</div><div class="qrbox">${qr}</div>` : '<div class="empty" style="padding:20px 5px">This list is too long for a QR code; use the link.</div>'}</div></div>`;
 };
 PAGES.export = () => `<div class="page spage">${hdr('Export')}<div class="scroll" style="padding:0 10px 70px"><div class="cap" style="margin:10px 0 3px 5px">Export type</div><button class="btn" style="width:160px;height:38px;gap:0;padding:0 8px 0 4px" data-a="etype"><span style="flex:1;text-align:center">${ETYPES[EXP.type]}</span>${ic('down', 22)}</button>
-  ${EXP.type > 2 ? `<div class="empty" style="padding:20px 5px">${['', '', '', 'YellowScribe is an external service; export to Text or PDF and import it there.'][EXP.type]}</div>` : EXP.type === 2 ? linkOpts() : EXP.type === 1 ? txtOpts() : `<div class="expwrap"><div><div class="cap" style="margin:0 0 3px 5px">Datasheet content to include</div><div class="expgrp" style="min-width:467px"><div class="expgrid">${['Descriptions', 'Statlines', 'Weapons', 'Weapon count', 'Abilities', 'Keywords', 'Army rules', 'Stratagems', 'Core Stratagems', 'Notes'].map(k => CK(k === 'Core Stratagems' ? 'Core / Stratagems' : k, k)).join('')}</div></div></div>
+  ${EXP.type === 3 ? ysOpts() : EXP.type === 2 ? linkOpts() : EXP.type === 1 ? txtOpts() : `<div class="expwrap"><div><div class="cap" style="margin:0 0 3px 5px">Datasheet content to include</div><div class="expgrp" style="min-width:467px"><div class="expgrid">${['Descriptions', 'Statlines', 'Weapons', 'Weapon count', 'Abilities', 'Keywords', 'Army rules', 'Stratagems', 'Core Stratagems', 'Notes'].map(k => CK(k === 'Core Stratagems' ? 'Core / Stratagems' : k, k)).join('')}</div></div></div>
   ${EXP.type === 0 ? `<div><div class="cap" style="margin:0 0 3px 5px">PDF options</div><div class="expgrp" style="min-width:468px">${['Include category headers', 'Filter weapons', 'Filter abilities', 'Statline modification', 'Force new page per datasheet'].map(k => CK(k)).join('')}</div></div>` : ''}</div>`}
-  </div>${EXP.type === 2 ? `<button class="btn purple" style="position:fixed;right:180px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="lkshare">Share…</button>` : ''}${EXP.type === 1 ? `<button class="btn purple" style="position:fixed;right:180px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="txcopy">Copy text</button>` : ''}<button class="btn ${EXP.type > 2 ? 'off' : ''}" style="position:fixed;right:10px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="doexport">${EXP.type === 2 ? 'Copy link' : EXP.type === 1 ? 'Download .txt' : 'Export'}</button></div>`;
+  </div>${EXP.type === 2 ? `<button class="btn purple" style="position:fixed;right:180px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="lkshare">Share…</button>` : ''}${EXP.type === 1 ? `<button class="btn purple" style="position:fixed;right:180px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="txcopy">Copy text</button>` : ''}<button class="btn" style="position:fixed;right:10px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="doexport">${EXP.type === 3 ? 'Download .rosz' : EXP.type === 2 ? 'Copy link' : EXP.type === 1 ? 'Download .txt' : 'Export'}</button></div>`;
 /* ---- text export: several formats, a live preview, download and copy ---- */
 const TXT_FMT = ['GW', 'Tournament', 'Short', 'Simple'];
 let TXT = { fmt: 'GW', gear: true, header: true, player: false, team: false, pname: '', tname: '' };
@@ -812,6 +816,33 @@ function printHtml(l) {
     (EXP['Core / Stratagems'] ? sec('Core stratagems', S.info.CoreStratagems.map(s => `<p class="ab"><b>${esc(s.Name)} (${s.CPCost}CP)</b> — ${esc(s.Effect)}</p>`).join('')) : '') + `<div class="pf">projectWar ${VERSION} · ${esc(S.dv ? 'data ' + S.dv : '')}</div>`;
 }
 const backupNow = () => { download(`projectwar-lists-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(S.lists), 'application/json'); bkSave({ last: Date.now(), snooze: 0 }) };
+/* ---- YellowScribe: a BattleScribe-style roster (.rosz = that XML in a zip) built from our own data, with the 11th edition system id it reads ---- */
+const xe = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c])).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
+function ysRoster(l) {
+  const fd = fdOf(l), ch = (n, v) => `<characteristic name="${n}">${xe(v)}</characteristic>`, prof = (name, type, cs) => `<profile name="${xe(name)}" typeName="${type}"><characteristics>${cs.map(([n, v]) => ch(n, v)).join('')}</characteristics></profile>`;
+  const unit = u => {
+    const d = unitOf(l, u), en = enhOf(l, u), rows = u.UnitCompositionRef, one = models(u) === 1, sl = d.StatLines;
+    const stat = (name, i) => { const x = sl[Math.min(i, sl.length - 1)] || {}; return prof(name, 'Unit', [['M', x.Movement], ['T', x.Toughness], ['SV', x.Save], ['W', x.Wounds], ['LD', x.Leadership], ['OC', x.OC]]) };
+    const weapons = r => visibleWeapons(d, { ...u, UnitCompositionRef: [r] }, true, true).flatMap(g => g.Weapons.map(w => prof(w.Name, g.IsMelee ? 'Melee Weapons' : 'Ranged Weapons', [['Range', g.IsMelee ? 'Melee' : w.Range], ['A', w.Attacks], [g.IsMelee ? 'WS' : 'BS', w.ToHit], ['S', w.Strength], ['AP', w.AP], ['D', w.Damage], ['Keywords', w.Keywords || '-']]))).join('');
+    const abil = [...d.UnitAbilities.map(a => [a.Title, a.Text]), ...(en ? [['Enhancement: ' + tc0(en.Name), en.Description || '']] : []), ...(u.IsWarlord ? [['Warlord', 'This model is your Warlord.']] : [])].map(([t, x]) => prof(t, 'Abilities', [['Description', x]])).join('');
+    const model = (r, i) => `<selection id="${uid()}" name="${xe(tc0(r.ModelName))}" number="${r.ModelCount}" type="model"><profiles>${stat(tc0(r.ModelName), i)}${weapons(r)}</profiles></selection>`;
+    const cats = [...(d.FactionKeywords || []).map(k => 'Faction: ' + tc0(k)), ...d.Keywords.map(tc0)].map(k => `<category id="${uid()}" name="${xe(k)}"/>`).join('');
+    const head = `<selection id="${uid()}" name="${xe(tc0(u.Id))}" number="1" type="${one ? 'model' : 'unit'}"`;
+    return one ? `${head}><profiles>${stat(tc0(u.Id), 0)}${weapons(rows[0])}${abil}</profiles><categories>${cats}</categories></selection>`
+      : `${head}><profiles>${abil}</profiles><selections>${rows.map(model).join('')}</selections><categories>${cats}</categories></selection>`;
+  };
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<roster id="${uid()}" name="${xe(l.Name || 'Army')}" battleScribeVersion="2.03" gameSystemId="sys-352e-adc2-7639-d610" gameSystemName="Warhammer 40,000 11th Edition" xmlns="http://www.battlescribe.net/schema/rosterSchema"><costs><cost name="pts" typeId="points" value="${total(l)}"/></costs><forces><force id="${uid()}" name="${xe(l.Faction)}" catalogueName="${xe(l.Faction)}"><selections>${l.Units.filter(u => unitOf(l, u)).map(unit).join('')}</selections></force></forces></roster>`;
+}
+/* a zip with one stored (uncompressed) entry */
+function zipOne(name, text) {
+  const data = new TextEncoder().encode(text), nm = new TextEncoder().encode(name), crc = (() => { let c, t = [], r = 0xffffffff; for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c } for (const b of data) r = t[(r ^ b) & 255] ^ (r >>> 8); return (r ^ 0xffffffff) >>> 0 })();
+  const out = new Uint8Array(30 + nm.length + data.length + 46 + nm.length + 22), v = new DataView(out.buffer); let o = 0;
+  const w = (n, x) => { n === 2 ? v.setUint16(o, x, true) : v.setUint32(o, x, true); o += n }, bytes = b => { out.set(b, o); o += b.length };
+  w(4, 0x04034b50); w(2, 20); w(2, 0x0800); w(2, 0); w(2, 0); w(2, 0x21); w(4, crc); w(4, data.length); w(4, data.length); w(2, nm.length); w(2, 0); bytes(nm); bytes(data);
+  const cd = o; w(4, 0x02014b50); w(2, 20); w(2, 20); w(2, 0x0800); w(2, 0); w(2, 0); w(2, 0x21); w(4, crc); w(4, data.length); w(4, data.length); w(2, nm.length); w(2, 0); w(2, 0); w(2, 0); w(2, 0); w(4, 0); w(4, 0); bytes(nm);
+  w(4, 0x06054b50); w(2, 0); w(2, 0); w(2, 1); w(2, 1); w(4, 46 + nm.length); w(4, cd); w(2, 0);
+  return out;
+}
 const download = (name, text, type = 'text/plain') => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click() };
 
 /* =================================================== ACTIONS */
@@ -907,7 +938,7 @@ document.addEventListener('click', async e => {
     case 'txcopy': { let ok = true; try { await navigator.clipboard.writeText(listText(l)) } catch { ok = false } t.textContent = ok ? 'Copied' : 'Copy failed'; return setTimeout(() => { t.textContent = 'Copy text' }, 1500) }
     case 'ck': EXP[t.dataset.k] = !EXP[t.dataset.k]; return render();
     case 'lkshare': { if (S.link?.url && navigator.share) try { await navigator.share({ title: l.Name || 'Army', url: S.link.url }) } catch { } return }
-    case 'doexport': { if (EXP.type > 2) return; if (EXP.type === 2) { if (!S.link?.url) return; let ok = true; try { await navigator.clipboard.writeText(S.link.url) } catch { ok = false } t.textContent = ok ? 'Copied' : 'Copy failed'; return setTimeout(() => { t.textContent = 'Copy link' }, 1500) } if (EXP.type === 1) return download((l.Name || 'army') + '.txt', listText(l)); const pr = $('#printroot'); pr.innerHTML = printHtml(l); setTimeout(() => print(), 50); return }
+    case 'doexport': { if (EXP.type === 3) return download((l.Name || 'army') + '.rosz', zipOne('roster.ros', ysRoster(l)), 'application/zip'); if (EXP.type === 2) { if (!S.link?.url) return; let ok = true; try { await navigator.clipboard.writeText(S.link.url) } catch { ok = false } t.textContent = ok ? 'Copied' : 'Copy failed'; return setTimeout(() => { t.textContent = 'Copy link' }, 1500) } if (EXP.type === 1) return download((l.Name || 'army') + '.txt', listText(l)); const pr = $('#printroot'); pr.innerHTML = printHtml(l); setTimeout(() => print(), 50); return }
   }
 });
 function mutateView() { S.keepScroll = true; render() }

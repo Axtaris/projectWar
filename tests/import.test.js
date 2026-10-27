@@ -171,3 +171,21 @@ test('backup reminder: due after 3 days without a backup, 14 after the last one,
   assert.equal(api.bkDue(now, { last: now - 15 * api.DAY, snooze: now + api.DAY }, 1), false);
   assert.equal(api.bkDue(now, { last: now - 99 * api.DAY }, 0), false);
 });
+
+test('YellowScribe export: a zip with one roster whose structure is what its parser reads', async () => {
+  fresh(); const l = (await api.importExternal(require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', 'astra-militarum-text.txt'), 'utf8'))).list; api.S.cur = l;
+  const xml = api.ysRoster(l), zip = api.zipOne('roster.ros', xml);
+  assert.equal(await api.unzipRos(zip.buffer), xml);
+  const data = Buffer.from(xml); assert.equal(Buffer.from(zip.buffer).readUInt32LE(14), require('node:zlib').crc32(data));   // stored CRC32 is right
+  const root = api.parseXml(xml); assert.equal(root.attrs.gameSystemId, 'sys-352e-adc2-7639-d610');
+  const kids = (n, t) => n.children.filter(c => c.tag === t), sels = kids(kids(kids(kids(root, 'forces')[0], 'force')[0], 'selections')[0], 'selection');
+  assert.equal(sels.length, 18);
+  sels.forEach(s => {
+    assert.ok(['unit', 'model'].includes(s.attrs.type)); assert.ok(kids(s, 'categories')[0].children.some(c => /^Faction: /.test(c.attrs.name)));
+    const profs = n => (kids(n, 'profiles')[0]?.children || []);
+    const models = s.attrs.type === 'model' ? [s] : kids(kids(s, 'selections')[0], 'selection');
+    models.forEach(m => { assert.ok(profs(m).some(p => p.attrs.typeName === 'Unit')); profs(m).filter(p => /Weapons$/.test(p.attrs.typeName)).forEach(w => assert.ok(['Range', 'A', 'S', 'AP', 'D', 'Keywords'].every(c => kids(kids(w, 'characteristics')[0], 'characteristic').some(x => x.attrs.name === c)))) });
+  });
+  const leman = sels.find(s => s.attrs.name === 'Leman Russ Battle Tank'); assert.ok(leman);
+  assert.ok(kids(leman, 'profiles')[0].children.some(p => p.attrs.name === 'Leman Russ battle cannon' && p.attrs.typeName === 'Ranged Weapons'));
+});
