@@ -75,3 +75,7 @@ projectWar is an unofficial fan project. It is not affiliated with, endorsed by 
 ## License
 
 The application code is released into the public domain under the [Unlicense](https://unlicense.org) (see `LICENSE`). Use it for anything.
+
+## Legal
+
+[Privacy Policy](legal/privacy.html), [Terms of Use](legal/terms.html) and [Cookie Notice](legal/cookies.html) (English and Spanish; written for Colombian and international law). The app sets no cookies and collects no personal data. Fill in the bracketed placeholders (`[[LEGAL NAME]]`, `[[CONTACT EMAIL]]`, `[[HOSTING PROVIDER]]`, `[[CITY]]`) in `legal/*.html` before deploying. These pages are a good-faith draft, not legal advice.
