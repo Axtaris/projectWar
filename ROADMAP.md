@@ -2,13 +2,15 @@
 
 This is the ordered list of what projectWar still lacks compared with established Warhammer 40,000 list builders, and the order in which we plan to build it. It is a plan, not a promise: priorities can change, and anything can be picked up earlier by a contributor.
 
-**Releases.** Version 1.1 delivers phase 1, 1.2 phase 2, 1.3 phase 3, 1.4 phase 4 and 1.5 phase 5. The current version is in [CHANGELOG.md](CHANGELOG.md).
+**Releases.** Version 1.1 delivered the data-trust part of phase 1 (closed 27 October 2026). Version 1.2 takes what phase 1 left open (items marked below as carried over to 1.2) and then phase 2; 1.3 is phase 3, 1.4 phase 4 and 1.5 phase 5. The current version is in [CHANGELOG.md](CHANGELOG.md).
 
 **How items are ordered.** First what makes the data and the app trustworthy, then what lets people share and move their lists, then reach and polish. Everything is designed to keep the project's rules: **no accounts, no tracking, no back end** (a static site), so every feature below has a client-side approach, and any feature that would need a server is marked as such.
 
 Status: ⬜ not started · 🟨 in progress · ✅ done · 🔎 needs investigation first
 
 ## Phase 1: Trust (data and quality)
+
+Done in 1.1: 1.1, 1.3, 1.5, 1.6. **Carried over to 1.2:** 1.2, 1.4, 1.7, 1.8, 1.9, 1.10, 1.11, 1.12.
 
 | # | Feature | Why | Approach |
 |---|---|---|---|

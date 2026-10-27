@@ -50,11 +50,14 @@ Bug-fix release. Versions are numbered major.minor.fix: the last number is only 
 - **Edition data:** abilities and stat lines left over from the 10th edition were replaced with the 11th-edition values (Space Wolves and the shared Space Marine roster first, then every faction: about 800 corrections).
 - **Behind the scenes:** new automated checks for 10th-edition leftovers, Warlord eligibility, tiered prices and the sizes of every unit in every faction.
 
-## 1.1 (in development)
+## 1.1 (27 October 2026)
 
-Goal: **trust**. Data review, structured effects for new content, automated tests, automatic data deployment, a working theme setting, compact-layout parity and a donate button. See [ROADMAP.md](ROADMAP.md), phase 1.
+Goal: **trust**. Data review, automated tests, a working theme setting, compact-layout parity and clear changelog access. See [ROADMAP.md](ROADMAP.md), phase 1.
 
-Done so far:
+Carried over to 1.2: structured effects for new enhancements and detachments, the donate button, the points check against the official Munitorum Field Manual, chapter exclusions, the god choice for Daemon Princes, missing datasheets, and the automatic deployment secrets.
+
+What 1.1 delivers (fixes made after release are listed above, under 1.1.1 to 1.1.6):
+
 
 - **New list:** expand any detachment to read its rule, restrictions, enhancements and every stratagem (when, target, effect, restrictions, CP cost) before adding it with the + button.
 - **Themes:** light, dark and system (Settings → Application theme). The legal pages follow your choice.
