@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.6 (27 October 2026)
+
+- **Detachment rules that grant an ability:** Recon Element (Stealth to Astra Militarum units except Titanic), Shadowmark Talon (Stealth to Adeptus Astartes units) and Emissaries Imperatus (Fights First to Adeptus Custodes units) now show the ability on the datasheets of the units they affect. The other detachment rules are conditional (re-rolls, triggers, "while", battle rounds), so they stay as text.
+
 ## 1.2.5 (27 October 2026)
 
 - **Soul Grinder is back:** the Chaos Daemons Soul Grinder had been lost in the conversion and could not be added to a list. It is restored with its 11th-edition statline and abilities, its price by copy (180 / 195) and the choice of Mark (Khorne, Tzeentch, Nurgle, Slaanesh) that adds its extra weapon.
@@ -25,9 +29,11 @@ First package of the 1.2 line. Bug fix.
 
 - **Browser Back and Forward:** the browser's Back and Forward buttons now move between the app's screens instead of leaving the app. Opening a list, a rules page or a unit adds a history entry; Back returns to the previous screen with the same open list and the same scroll position, and Forward returns to the screen you came from. Back from the first screen still leaves the app, as usual. The on-screen Back button follows the same history.
 
-## 1.2 (in development)
+## 1.2 (27 October 2026)
 
-Carried over from 1.1: structured effects for new enhancements and detachments, the donate button, the points check against the official Munitorum Field Manual, chapter exclusions, the god choice for Daemon Princes, missing datasheets, units modelled as separate variants, and the automatic deployment secrets. Then phase 2 (sharing and export). See [ROADMAP.md](ROADMAP.md).
+Closes what 1.1 left open in the data: enhancements and detachment rules that change the datasheet, the options and Marks the conversion had dropped, the Soul Grinder, the checks against the Munitorum Field Manual, and a round of bug fixes found by players (Back and Forward of the browser, attached units, leaders and Support, Guard battleline, per-model weapon limits). Fixes made along the way are listed above, under 1.2.1 to 1.2.6.
+
+Still waiting for the maintainer: the donate button (PayPal link), the two repository secrets that let GitHub deploy the site by itself, and the check of the points against the official Munitorum Field Manual PDF. Sharing and export (phase 2) are next. See [ROADMAP.md](ROADMAP.md).
 
 ## 1.1.6 (27 October 2026)
 

@@ -266,3 +266,18 @@ test('an attached unit is one group, even when a joined unit sits on a leader (K
   l.Units = l.Units.slice(0, 4); l.Units[2].AttachedToInstanceId = 0;   // the Ogryn alone, the rest still attached
   assert.equal((api.listHtml(l, true).match(/class="ucard/g) || []).length, 4);
 });
+
+test('force disposition: detachments with two dispositions let you pick; a choice that stops being valid falls back', async () => {
+  const l = await newList('Space Marines', 3000), fd = api.fdOf(l), two = fd.Dettachments.find((d) => (d.ForceDispositions || []).length > 1), one = fd.Dettachments.find((d) => (d.ForceDispositions || []).length === 1 && !two.ForceDispositions.includes(d.ForceDispositions[0]));
+  l.Detachments = [two.Name];
+  assert.equal(JSON.stringify([...api.dispOpts(l)]), JSON.stringify(two.ForceDispositions), 'every disposition of the detachment is offered');
+  l.Disposition = two.ForceDispositions[1]; assert.equal(api.effDisp(l), two.ForceDispositions[1], 'the chosen one is kept');
+  l.Detachments = one ? [one.Name] : []; assert.equal(api.effDisp(l), one ? one.ForceDispositions[0] : null, 'an invalid choice falls back to what the detachments allow');
+  l.Detachments = [two.Name, ...(one ? [one.Name] : [])]; assert.ok(api.dispOpts(l).length >= 2, 'two detachments add their dispositions');
+});
+
+test('army rules render as collapsibles on the new-list step and the viewer', async () => {
+  const l = await newList('Necrons', 2000); l.Name = 'T'; l.Units = [];
+  api.S.cur = l; const nl = api.PAGES.newlist({ draft: l, faction: 'Necrons' }), v = api.PAGES.viewer();
+  for (const html of [nl, v]) assert.match(html, /<details class="arule"><summary>/, 'the army rules are in the page');
+});
