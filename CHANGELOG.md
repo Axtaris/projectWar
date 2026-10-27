@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.3 (27 October 2026)
+
+Bug-fix release.
+
+- **Enhancements for plain units:** 105 enhancements that Wahapedia marks as upgrades (for example Furious Assault, Gunnery Honours, Auric Eagle, Sharp Eyes) could not be selected on ordinary units, only read. They can now.
+- **Leaders and Support:** following the core rule (a bodyguard unit takes one Leader unit and one Support unit, unless its datasheet says otherwise), the list now reports an error when a unit has more than that attached. Attaching stays optional, as the rule says "can".
+
 ## 1.1.2 (27 October 2026)
 
 Bug-fix release.

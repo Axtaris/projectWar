@@ -6,7 +6,7 @@ const lc = s => String(s || '').toLowerCase();
 const tc0 = s => String(s || '').toLowerCase().replace(/(^|[\s(\-"“])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Of|And)\b/g, x => x.toLowerCase());
 const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar';
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.1.2';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.1.3';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -135,6 +135,11 @@ function errors(l) {
   Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) ? 1 : kws(d).has('battleline') ? bs.UnitLimit + 3 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
   /* leaders may go alone; only datasheets that say "must join" (Loyal Protector, Regimental Attaché) need a bodyguard */
   l.Units.forEach(u => { const d = unitOf(l, u); if (d?.UnitAbilities?.some(x => /\bmust join\b/i.test(x.Text)) && !u.AttachedToInstanceId) e.push(`${tc(u.Id)} must be attached to a bodyguard unit.`) });
+  /* attached units (core rule 19): unless stated otherwise a bodyguard unit takes one Leader unit and one Support unit; a datasheet can allow two Leaders */
+  const isSupport = d => (d?.CoreAbilities || []).some(a => lc(a) === 'support');
+  l.Units.forEach(b => { const att = l.Units.filter(x => x.AttachedToInstanceId === b.InstanceId), bd = unitOf(l, b); if (att.length < 2) return;
+    const sup = att.filter(x => isSupport(unitOf(l, x))).length, lead = att.length - sup, maxLead = bd?.UnitAbilities?.some(x => /attach up to two Leader/i.test(x.Text)) ? 2 : 1;
+    if (sup > 1) e.push(`${tc(b.Id)} can only have one Support unit attached.`); if (lead > maxLead) e.push(`${tc(b.Id)} can only have ${maxLead === 1 ? 'one Leader unit' : 'two Leader units'} attached.`) });
   if (l.Units.filter(u => u.IsWarlord).length > 1) e.push('Only one warlord may be selected.');
   l.Units.forEach(u => { const d = unitOf(l, u), f = flagsOf(d); if (d && f & 2 && !u.IsWarlord) e.push(`${tc(u.Id)} must be your warlord.`); if (d && f & 1 && u.IsWarlord) e.push(`${tc(u.Id)} cannot be your warlord.`); if (d && f & 4 && u.EnhancementId) e.push(`${tc(u.Id)} cannot take enhancements.`) });
   return e;

@@ -140,3 +140,14 @@ test('every unit of every faction can be built at each size it is priced for (ri
   }
   assert.deepEqual(bad, []);
 });
+
+test('a bodyguard unit takes one Leader unit and one Support unit', async () => {
+  const l = await newList('Space Marines', 3000), has = (re) => re.test(api.errors(l).join('\n'));
+  const body = unit(api, l, 1, 'INTERCESSOR SQUAD'), mk = (id, n) => ({ ...unit(api, l, id, n), AttachedToInstanceId: 1 });
+  l.Units = [body, mk(2, 'CAPTAIN'), mk(3, 'LIEUTENANT')];
+  assert.ok(!has(/can only have/), 'one Leader plus one Support is fine');
+  l.Units = [body, mk(2, 'CAPTAIN'), mk(3, 'CHAPLAIN')];
+  assert.ok(has(/can only have one Leader unit/), 'two Leaders are not');
+  l.Units = [body, mk(2, 'LIEUTENANT'), mk(3, 'APOTHECARY BIOLOGIS')];
+  assert.ok(has(/can only have one Support unit/), 'two Supports are not');
+});
