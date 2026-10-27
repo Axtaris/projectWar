@@ -501,3 +501,21 @@ h2.mid{margin:0;font:600 32px/1.05 var(--cond);text-transform:uppercase;letter-s
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 .legal{margin-top:auto;font-size:13px;color:var(--dim)}.legal a{color:var(--dim)}.legal a:hover{color:var(--fg)}
+
+/* detachment cell in the new-list screen: arrow (details) | name | DP | add */
+.dcell{background:var(--p1);border:1px solid var(--ln);border-radius:3px;min-width:0}
+.dcell.open{grid-column:1/-1}
+.dcell.on{background:var(--p2);border-color:var(--c);box-shadow:inset 3px 0 0 var(--c)}
+.dcell.dis .dhead{opacity:.55}.dcell.dis .dadd{cursor:default}
+.dhead{display:flex;align-items:center;gap:6px;min-height:68px;padding:6px 8px 6px 4px}
+.dchev,.dadd{width:44px;height:44px;flex:none;display:grid;place-items:center;border-radius:3px;color:var(--dim)}
+.dchev:hover,.dadd:hover{background:#ffffff10;color:var(--fg)}
+.dadd{border:1px solid var(--ln);color:var(--fg)}.dcell.on .dadd{background:var(--c);border-color:var(--c);color:#fff}
+.dcell.dis .dadd:hover{background:transparent;color:var(--dim)}
+.dcell .dn{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left;padding:0 4px;height:auto}
+.dcell .dn b{font:600 17px var(--cond);text-transform:uppercase;letter-spacing:.05em}.dcell .dn small{font-size:12px;color:var(--dim)}
+.dbody{border-top:1px solid var(--ln);padding:12px 16px 16px 54px;font-size:14px;line-height:1.5}
+.dbody h5{margin:12px 0 4px;font:600 12px var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--lt)}.dbody h5:first-child{margin-top:0}
+.dbody p{margin:0;white-space:pre-line}.dbody ul{margin:0;padding-left:18px}.dbody li{margin:4px 0}
+.dbody ul.two{columns:2;column-gap:28px}
+@media (max-width:700px){.dbody{padding-left:16px}.dbody ul.two{columns:1}}

@@ -4,6 +4,10 @@
 
 Goal: **trust**. Data review, structured effects for new content, automated tests, automatic data deployment, a working theme setting and compact-layout parity. See [ROADMAP.md](ROADMAP.md), phase 1.
 
+Done so far:
+
+- New list: each detachment can be expanded (arrow on the left) to read its rule, restrictions, enhancements and stratagems before adding it with the + button on the right.
+
 ## 1.0 (27 October 2026)
 
 First public version.
