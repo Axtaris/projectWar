@@ -124,3 +124,19 @@ test('only the copy that reaches a higher tier costs more (Ironstrider Ballistar
   l.Units = [1, 2, 3].map((i) => unit(api, l, i, 'IRONSTRIDER BALLISTARII', 1));
   assert.deepEqual(l.Units.map((u) => api.unitCost(l, u)), [80, 80, 95]);
 });
+
+test('every unit of every faction can be built at each size it is priced for (right model count, right price)', async () => {
+  const fs = require('node:fs'), { DATA_DIR } = require('./helpers');
+  const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json') && !['DataInfo.json', 'FactionInfoData.json'].includes(f) && !f.endsWith(' Legends.json'));
+  const bad = [];
+  for (const f of files) {
+    const l = await newList(f.replace('.json', ''), 100000);
+    for (const d of api.fdOf(l).all) {
+      for (const p of d.Points) {
+        const u = unit(api, l, 1, d.Name, p.ModelCount);
+        if (api.models(u) !== p.ModelCount) bad.push(`${f}: ${d.Name} built with ${api.models(u)} models, priced for ${p.ModelCount}`);
+      }
+    }
+  }
+  assert.deepEqual(bad, []);
+});
