@@ -109,3 +109,12 @@ test('the changelog renderer escapes HTML and only links https or repository .md
   assert.match(html, /href="https:\/\/github\.com\/Axtaris\/projectWar\/blob\/main\/ROADMAP\.md"/);
   assert.ok(!/<h1/.test(html), 'the title line is dropped');
 });
+
+test('leaders may be taken alone; only "must join" datasheets need a bodyguard', async () => {
+  const l = await newList('Tyranids', 3000);
+  l.Units = [unit(api, l, 1, 'THE SWARMLORD')];
+  assert.ok(!/must be attached/.test(api.errors(l).join('\n')), 'the Swarmlord can go alone');
+  const am = await newList('Astra Militarum', 3000);
+  am.Units = [unit(api, am, 1, 'OGRYN BODYGUARD')];
+  assert.match(api.errors(am).join('\n'), /must be attached to a bodyguard/);
+});

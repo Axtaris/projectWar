@@ -130,7 +130,8 @@ function errors(l) {
   const seen = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; if (u.EnhancementId) { if (seen[u.EnhancementId]) e.push(`${tc(u.EnhancementId)} is used more than once.`); seen[u.EnhancementId] = 1; const en = enhOf(l, u); if (!en || !eligible(en, d)) e.push(`${tc(u.Id)} cannot take ${tc(u.EnhancementId)}.`) } });
   const cnt = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (d) cnt[u.Id] = (cnt[u.Id] || 0) + 1 });
   Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) ? 1 : kws(d).has('battleline') ? bs.UnitLimit + 3 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
-  l.Units.forEach(u => { const d = unitOf(l, u); if (ledNames(l, u).size && !u.AttachedToInstanceId) e.push(`${tc(u.Id)} must be attached to a bodyguard unit.`) });
+  /* leaders may go alone; only datasheets that say "must join" (Loyal Protector, Regimental Attaché) need a bodyguard */
+  l.Units.forEach(u => { const d = unitOf(l, u); if (d?.UnitAbilities?.some(x => /\bmust join\b/i.test(x.Text)) && !u.AttachedToInstanceId) e.push(`${tc(u.Id)} must be attached to a bodyguard unit.`) });
   if (l.Units.filter(u => u.IsWarlord).length > 1) e.push('Only one warlord may be selected.');
   l.Units.forEach(u => { const d = unitOf(l, u), f = flagsOf(d); if (d && f & 2 && !u.IsWarlord) e.push(`${tc(u.Id)} must be your warlord.`); if (d && f & 1 && u.IsWarlord) e.push(`${tc(u.Id)} cannot be your warlord.`); if (d && f & 4 && u.EnhancementId) e.push(`${tc(u.Id)} cannot take enhancements.`) });
   return e;
