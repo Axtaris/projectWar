@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.4 (27 October 2026)
+
+Bug-fix release.
+
+- **Scroll position:** every screen now remembers where you were. Adding a unit, opening a block, changing an option or any other change no longer throws you back to the top, and going Back returns you to where you were on the previous screen. Opening a screen anew still starts at the top.
+
 ## 1.1.3 (27 October 2026)
 
 Bug-fix release.

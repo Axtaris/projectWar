@@ -6,7 +6,7 @@ const lc = s => String(s || '').toLowerCase();
 const tc0 = s => String(s || '').toLowerCase().replace(/(^|[\s(\-"“])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Of|And)\b/g, x => x.toLowerCase());
 const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar';
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.1.3';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.1.4';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -219,10 +219,17 @@ async function render() {
   if (S.cur && ['editor', 'viewer', 'unit', 'rules', 'export', 'feedback'].includes(r.page)) { await loadFaction(S.cur); theme(fColor(S.cur.Faction)) } else if (r.page === 'newlist' && r.faction) theme(fColor(r.faction)); else if (r.page !== 'sheet') theme(BASE);
   if (r.page === 'search') theme(BASE);
   if (r.page === 'sheet' && r.faction) theme(fColor(r.faction));
-  const sc = [...document.querySelectorAll('.scroll,.col,.ucol')].map(e => e.scrollTop); app.innerHTML = (PAGES[r.page] || PAGES.home)(r); if (S.keepScroll) { document.querySelectorAll('.scroll,.col,.ucol').forEach((e, i) => { if (sc[i] && !(S.newU && e.classList.contains('ucol'))) e.scrollTop = sc[i] }); S.keepScroll = S.newU = false } const f = FOCUS; FOCUS = null; if (f) { const el = $(f); el && el.focus() }
+  /* scroll memory: every screen remembers where it was scrolled. Re-rendering the same screen (adding a unit, opening a block, a toggle...) and coming back to it with Back both restore it; opening a screen anew starts at the top. */
+  const key = `${r.page}|${r.id ?? r.faction ?? ''}|${r.tab ?? ''}|${S.stack.length}`, mem = S.mem ??= {};
+  if (S.lastKey) mem[S.lastKey] = { y: scrollY, s: [...document.querySelectorAll(SCROLLERS)].map(e => e.scrollTop) };
+  if ((S.stack.length > (S.lastLen || 0) && key !== S.lastKey) || S.resetScroll) delete mem[key];
+  app.innerHTML = (PAGES[r.page] || PAGES.home)(r);
+  const m = mem[key]; if (m) { document.querySelectorAll(SCROLLERS).forEach((e, i) => { if (m.s[i] && !(S.newU && e.classList.contains('ucol'))) e.scrollTop = m.s[i] }); if (m.y) scrollTo(0, m.y) }
+  S.lastKey = key; S.lastLen = S.stack.length; S.keepScroll = S.newU = S.resetScroll = false; const f = FOCUS; FOCUS = null; if (f) { const el = $(f); el && el.focus() }
   document.documentElement.style.fontSize = ['13px', '15px', '17px'][S.set.AppTextSize] || '15px';
 }
 let FOCUS = null;
+const SCROLLERS = '.scroll,.col,.ucol,.nlmain,.nlbody,.upane,.nlside,#roster';
 
 /* ---------- popups ---------- */
 let pops = [];
@@ -783,7 +790,7 @@ function importList(text) {
 }
 
 let wasWide = null;
-addEventListener('resize', () => { const w = WIDE(); if (wasWide !== null && w !== wasWide && S.info) { S.keepScroll = false; render() } wasWide = w });
+addEventListener('resize', () => { const w = WIDE(); if (wasWide !== null && w !== wasWide && S.info) { S.resetScroll = true; render() } wasWide = w });
 wasWide = WIDE();
 
 /* ---------- boot ---------- */
