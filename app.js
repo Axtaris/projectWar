@@ -723,9 +723,9 @@ let EXP = { ...EXP0 };
 const CK = (k, label) => `<button class="chkrow ${EXP[k] ? 'on' : ''}" data-a="ck" data-k="${esc(k)}"><i></i><span>${label || k}</span></button>`;
 const ETYPES = ['Pdf', 'Text', 'TTS', 'Yellow Scribe'];
 PAGES.export = () => `<div class="page spage">${hdr('Export')}<div class="scroll" style="padding:0 10px 70px"><div class="cap" style="margin:10px 0 3px 5px">Export type</div><button class="btn" style="width:160px;height:38px;gap:0;padding:0 8px 0 4px" data-a="etype"><span style="flex:1;text-align:center">${ETYPES[EXP.type]}</span>${ic('down', 22)}</button>
-  ${EXP.type > 1 ? `<div class="empty" style="padding:20px 5px">${['', '', 'Tabletop Simulator export writes to the Steam Workshop folder, which a web page cannot access.', 'YellowScribe is an external service; export to Text or PDF and import it there.'][EXP.type]}</div>` : `<div class="expwrap"><div><div class="cap" style="margin:0 0 3px 5px">Datasheet content to include</div><div class="expgrp" style="min-width:467px"><div class="expgrid">${['Descriptions', 'Statlines', 'Weapons', 'Weapon count', 'Abilities', 'Keywords', 'Army rules', 'Stratagems', 'Core Stratagems', 'Notes'].map(k => CK(k === 'Core Stratagems' ? 'Core / Stratagems' : k, k)).join('')}</div></div></div>
+  ${EXP.type > 1 ? `<div class="empty" style="padding:20px 5px">${['', '', 'Tabletop Simulator export writes to the Steam Workshop folder, which a web page cannot access.', 'YellowScribe is an external service; export to Text or PDF and import it there.'][EXP.type]}</div>` : EXP.type === 1 ? txtOpts() : `<div class="expwrap"><div><div class="cap" style="margin:0 0 3px 5px">Datasheet content to include</div><div class="expgrp" style="min-width:467px"><div class="expgrid">${['Descriptions', 'Statlines', 'Weapons', 'Weapon count', 'Abilities', 'Keywords', 'Army rules', 'Stratagems', 'Core Stratagems', 'Notes'].map(k => CK(k === 'Core Stratagems' ? 'Core / Stratagems' : k, k)).join('')}</div></div></div>
   ${EXP.type === 0 ? `<div><div class="cap" style="margin:0 0 3px 5px">PDF options</div><div class="expgrp" style="min-width:468px">${['Include category headers', 'Filter weapons', 'Filter abilities', 'Statline modification', 'Force new page per datasheet'].map(k => CK(k)).join('')}</div></div>` : ''}</div>`}
-  </div><button class="btn ${EXP.type > 1 ? 'off' : ''}" style="position:fixed;right:10px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="doexport">Export</button></div>`;
+  </div>${EXP.type === 1 ? `<button class="btn purple" style="position:fixed;right:180px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="txcopy">Copy text</button>` : ''}<button class="btn ${EXP.type > 1 ? 'off' : ''}" style="position:fixed;right:10px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="doexport">${EXP.type === 1 ? 'Download .txt' : 'Export'}</button></div>`;
 /* ---- text export: several formats, a live preview, download and copy ---- */
 const TXT_FMT = ['GW', 'Tournament', 'Short', 'Simple'];
 let TXT = { fmt: 'GW', gear: true, header: true, player: false, team: false, pname: '', tname: '' };
@@ -755,18 +755,12 @@ function listText(l, f = TXT.fmt, o = TXT) {
   return out.join('\n').replace(/\n{3,}/g, '\n\n').replace(/\n+$/, '') + '\n\nCreated with projectWar ' + VERSION;
 }
 const TXT_CK = [['gear', 'Wargear'], ['header', 'Header']], TXT_SH = [['player', 'Player name'], ['team', 'Team name']];
-function textModal(l) {
-  closePops(); const sc = document.createElement('div'); sc.className = 'scrim'; sc.style.background = '#000a';
-  const p = document.createElement('div'); p.className = 'popup txtx'; document.body.append(sc, p); pops.push(sc, p);
-  const draw = () => {
-    const txt = listText(l), ck = ([k, t]) => `<button class="chkrow ${TXT[k] ? 'on' : ''}" data-t="${k}"><i></i><span>${t}</span></button>`;
-    p.innerHTML = `<div class="txh"><b>Text export</b><button class="mi" data-t="close" aria-label="Close">${ic('close', 22)}</button></div><div class="txb"><div class="txside"><div class="cap">Export format</div>${TXT_FMT.map(f => `<button class="txfmt ${TXT.fmt === f ? 'on' : ''}" data-t="fmt" data-f="${f}">${f}</button>`).join('')}<div class="cap">Content</div>${TXT_CK.map(ck).join('')}<div class="cap">Sharing</div>${TXT_SH.map(ck).join('')}${TXT.player ? `<input class="in sm" data-t="pname" placeholder="Player name" value="${esc(TXT.pname)}">` : ''}${TXT.team ? `<input class="in sm" data-t="tname" placeholder="Team name" value="${esc(TXT.tname)}">` : ''}</div><div class="txmain"><pre class="txpre">${esc(txt)}</pre><div class="txf"><span>${txt.length} characters</span><button class="btn" data-t="dl">Download .txt</button><button class="btn on" data-t="cp">Copy to clipboard</button></div></div></div>`;
-  };
-  p.onclick = async e => { const b = e.target.closest('[data-t]'); if (!b) return; const t = b.dataset.t;
-    if (t === 'close') return closePops(); if (t === 'fmt') TXT.fmt = b.dataset.f; else if (t === 'dl') return download((l.Name || 'army') + '.txt', listText(l)); else if (t === 'cp') { let ok = true; try { await navigator.clipboard.writeText(listText(l)) } catch { ok = false } b.textContent = ok ? 'Copied' : 'Copy failed'; return setTimeout(() => { b.textContent = 'Copy to clipboard' }, 1500) } else if (TXT_CK.concat(TXT_SH).some(x => x[0] === t)) TXT[t] = !TXT[t]; else return; draw() };
-  p.oninput = e => { const t = e.target.dataset.t; if (t !== 'pname' && t !== 'tname') return; TXT[t] = e.target.value; p.querySelector('.txpre').textContent = listText(l); p.querySelector('.txf span').textContent = listText(l).length + ' characters' };
-  draw();
-}
+const txtCk = ([k, t]) => `<button class="chkrow ${TXT[k] ? 'on' : ''}" data-a="txck" data-k="${k}"><i></i><span>${t}</span></button>`;
+const txtOpts = (t = listText(S.cur)) => `<div class="expwrap"><div><div class="cap" style="margin:0 0 3px 5px">Text format</div><div class="expgrp" style="min-width:230px">${TXT_FMT.map(f => `<button class="txfmt ${TXT.fmt === f ? 'on' : ''}" data-a="txfmt" data-f="${f}">${f}</button>`).join('')}</div>
+  <div class="cap" style="margin:14px 0 3px 5px">Content</div><div class="expgrp" style="min-width:230px">${TXT_CK.map(txtCk).join('')}</div>
+  <div class="cap" style="margin:14px 0 3px 5px">Sharing</div><div class="expgrp" style="min-width:230px">${TXT_SH.map(txtCk).join('')}${TXT.player ? `<input class="in sm" data-t="pname" placeholder="Player name" value="${esc(TXT.pname)}">` : ''}${TXT.team ? `<input class="in sm" data-t="tname" placeholder="Team name" value="${esc(TXT.tname)}">` : ''}</div></div>
+  <div class="txmain"><div class="cap" style="margin:0 0 3px 5px">Preview <span id="txcount">· ${t.length} characters</span></div><pre class="txpre" id="txpre">${esc(t)}</pre></div></div>`;
+const txtPreview = () => { const l = S.cur, e = $('#txpre'); if (!l || !e) return; const t = listText(l); e.textContent = t; $('#txcount').textContent = `· ${t.length} characters` };
 function printHtml(l) {
   const fd = fdOf(l), rows = u => { const d = unitOf(l, u), en = enhOf(l, u); return `<div class="u" style="${EXP['Force new page per datasheet'] ? 'break-after:page' : ''}"><b>${u.IsWarlord ? '★ ' : ''}${tc(u.Id)}${models(u) > 1 ? ' (' + models(u) + ' models)' : ''} — ${unitCost(l, u)} pts${en ? ' — ' + tc(en.Name) : ''}</b>
     ${EXP.Statlines ? d.StatLines.map(s => `<table><tr><th>M</th><th>T</th><th>SV</th><th>W</th><th>LD</th><th>OC</th></tr><tr><td>${esc(s.Movement)}</td><td>${esc(s.Toughness)}</td><td>${esc(s.Save)}</td><td>${esc(s.Wounds)}</td><td>${esc(s.Leadership)}</td><td>${esc(s.OC)}</td></tr></table>`).join('') : ''}
@@ -866,13 +860,17 @@ document.addEventListener('click', async e => {
     case 'exportall': return download('projectwar-lists.json', JSON.stringify(S.lists), 'application/json');
     case 'etype': return anchorPop(t, ETYPES.map((x, i) => `<button class="btn" style="width:160px;margin:3px 0;justify-content:center" data-a="doetype" data-id="${i}">${x}</button>`).join(''));
     case 'doetype': EXP.type = +id; return render();
+    case 'txfmt': TXT.fmt = t.dataset.f; return render();
+    case 'txck': TXT[t.dataset.k] = !TXT[t.dataset.k]; return render();
+    case 'txcopy': { let ok = true; try { await navigator.clipboard.writeText(listText(l)) } catch { ok = false } t.textContent = ok ? 'Copied' : 'Copy failed'; return setTimeout(() => { t.textContent = 'Copy text' }, 1500) }
     case 'ck': EXP[t.dataset.k] = !EXP[t.dataset.k]; return render();
-    case 'doexport': { if (EXP.type > 1) return; if (EXP.type === 1) return textModal(l); const pr = $('#printroot'); pr.innerHTML = printHtml(l); setTimeout(() => print(), 50); return }
+    case 'doexport': { if (EXP.type > 1) return; if (EXP.type === 1) return download((l.Name || 'army') + '.txt', listText(l)); const pr = $('#printroot'); pr.innerHTML = printHtml(l); setTimeout(() => print(), 50); return }
   }
 });
 function mutateView() { S.keepScroll = true; render() }
 function syncDraft() { const r = here(); if (r.page !== 'newlist') return; const n = $('#nl-name'); if (n) r.draft.Name = n.value; const p = $('#nl-pts'); if (p) r.draft.MaxPoints = Math.max(100, +p.value || 2000) }
 document.addEventListener('input', e => {
+  { const k = e.target.dataset?.t; if (k === 'pname' || k === 'tname') { TXT[k] = e.target.value; txtPreview() } }
   const t = e.target, l = S.cur;
   if (t.id === 'rsearch') { S.roster = t.value; $('#roster').innerHTML = rosterHtml(l) }
   else if (t.id === 'gsearch') { const r = here(); r.q = t.value; clearTimeout(runSearch.t); runSearch.t = setTimeout(() => runSearch(t.value), 200) }

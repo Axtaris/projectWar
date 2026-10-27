@@ -2,7 +2,7 @@
 
 ## 1.3.3 (27 October 2026)
 
-- **Text export dialog:** Export → Text now opens a dialog with a live preview. Four formats: GW (the official-app layout, which imports back into projectWar and New Recruit), Tournament (header block with Warlord, enhancements and numbered units), Short and Simple. You can leave out the wargear or the header, add a player and a team name, then download a .txt or copy to the clipboard.
+- **Text export:** choosing Text on the Export page now shows its options and a live preview on the same page. Four formats: GW (the official-app layout, which imports back into projectWar and New Recruit), Tournament (header block with Warlord, enhancements and numbered units), Short and Simple. You can leave out the wargear or the header, add a player and a team name, then download a .txt or copy the text.
 
 ## 1.3.2 (27 October 2026)
 
