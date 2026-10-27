@@ -61,7 +61,7 @@ Compared with established list builders, projectWar does not yet offer:
 | **Sync and sharing** | Syncing lists between devices; share links, share codes and QR codes; accounts (deliberately avoided for now, see below) |
 | **Export** | YellowScribe export; Tabletop Simulator export; several text formats; true PDF generation (it uses the browser's print dialog) |
 | **Data** | 11th edition Legends and Adeptus Titanicus; allied units; older edition data sets |
-| **App** | Accent colour choice; offline / installable mode; update notices and in-app release notes; interface translations (Spanish first); an accessibility audit |
+| **App** | Accent colour choice; stratagems shown per unit on the datasheet; offline / installable mode; update notices and in-app release notes; interface translations (Spanish first); an accessibility audit |
 
 Until sync exists, **back up your lists** from Settings: they live only in your browser's local storage on this device.
 
@@ -90,3 +90,15 @@ The application code is released into the public domain under the [Unlicense](ht
 - Static site, no back end, no accounts, no cookies, no third-party requests. Fonts are self-hosted.
 - Strict Content Security Policy and other headers in [`_headers`](_headers); imported lists are sanitised and dynamic text is escaped. See [SECURITY.md](SECURITY.md) to report a vulnerability.
 - Deployment (Cloudflare Workers Static Assets, build script and custom domain): [DEPLOY.md](DEPLOY.md).
+
+## Development and tests
+
+```bash
+git clone https://github.com/Axtaris/projectWarData.git data
+npm test            # or: node --test "tests/*.test.js"  (Node 20 or newer, no dependencies)
+```
+
+- `tests/logic.test.js` loads `app.js` in a Node `vm` with a stubbed DOM and checks the pure logic: escaping, battle sizes, unit prices and copy tiers, list validation, import sanitising.
+- `tests/data.test.js` checks the game data: every unit has points and a composition, detachments and stratagems are complete, leaders only name units that exist, and every Space Marine chapter fields the shared roster.
+- `tests/known-data-gaps.json` lists the few data debts that are known and tracked; any new problem fails the run.
+- A GitHub Actions workflow (`.github/workflows/test.yml`) runs the same tests on every push.

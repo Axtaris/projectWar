@@ -10,6 +10,8 @@ Done so far:
 - New list: expanding a detachment also shows every stratagem in full (when, target, effect, restrictions, CP cost and turn), in two columns.
 - Working theme setting: light, dark and system (follows the OS live). The legal pages follow the same choice. Checked for text contrast in both themes on every screen.
 - Compact (phone) layout parity: the editor, unit page and viewer share the desktop header language (back, name and subtitle, error badge, menu, undo/redo, points gauge, View/Edit). The new-list screen scrolls as one page with a sticky Create bar. Verified at 375 and 320 px widths: no horizontal overflow on any screen, and text contrast checked in both themes.
+- Automated tests: 87 checks on the app logic and the game data (`npm test`), plus a CI workflow.
+- Data fixes: two stratagems that had no text (Storm of Darkness, Masters of the Void), list items now keep their spacing, and leader lists no longer point to units that are not in the file (870 dead references removed, renamed units followed).
 
 ## 1.0 (27 October 2026)
 

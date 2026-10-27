@@ -1,0 +1,27 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [data-updated]   # the data repository can trigger a run when its data changes
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out the game data
+        uses: actions/checkout@v4
+        with:
+          repository: Axtaris/projectWarData
+          path: data
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run the tests
+        run: node --test "tests/*.test.js"

@@ -14,7 +14,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done · 🔎 needs investigat
 |---|---|---|---|
 | 1.1 | ⬜ Review of wargear options, unit by unit | Options are inferred and can differ from the printed datasheet | Compare every unit with the sources; fix the converter rules; keep a list of known exceptions in the converter's `fixes.py` |
 | 1.2 | ⬜ Structured effects for new enhancements and detachments | They only have text, so they do not modify statlines or enforce restrictions | Add the effect model to the data (stat adjustments, requirements) and extend the converter |
-| 1.3 | ⬜ Automated tests and CI | Points, list validation and data loading are untested | Plain Node tests for the pure functions plus a data-integrity check; run on every push |
+| 1.3 | 🟨 Automated tests (done) and CI (workflow written, first run pending) | Points, list validation and data loading are untested | Plain Node tests for the pure functions plus a data-integrity check; run on every push |
 | 1.4 | ⬜ Automatic data deployment | Data changes do not redeploy the site by themselves | A workflow in the data repository that triggers the site build |
 | 1.5 | 🟨 Theme setting (light, dark, system) done; accent colour choice pending | The setting exists but only the dark theme is implemented | CSS variables are already used; add a light palette and honour `prefers-color-scheme` |
 | 1.6 | ✅ Compact (narrow-screen) layout parity | The unit page and viewer on small screens use an older design | Apply the desktop header and surfaces; test on phone widths |
@@ -46,6 +46,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done · 🔎 needs investigat
 | 4.2 | ⬜ Update notices and in-app release notes | People do not know when data changes | Compare the data version on load; show a short "what changed" panel |
 | 4.3 | ⬜ Interface translations (Spanish first) | English only | Move strings to a dictionary; add a language setting |
 | 4.4 | ⬜ Accessibility pass | Keyboard and screen-reader support has not been audited | Audit with automated tools and manual checks; fix contrast, focus order and labels |
+| 4.5 | 🔎 Stratagems per unit (datasheet style) | On a datasheet, see which stratagems of your detachments can target that unit, as other rules references do | The data source already links stratagems, enhancements and detachment abilities to datasheets. Import those links in the converter, store them per unit, and show a "Stratagems" section on the datasheet filtered to the list's detachments (all of them when browsing without a list) |
 
 ## Phase 5: Data breadth
 

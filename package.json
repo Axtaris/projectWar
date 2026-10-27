@@ -1,0 +1,9 @@
+{
+  "name": "projectwar",
+  "private": true,
+  "description": "Warhammer 40,000 army list builder (static site, no build step). package.json only exists to run the tests.",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\""
+  },
+  "engines": { "node": ">=20" }
+}
