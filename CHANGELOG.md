@@ -43,7 +43,7 @@ First package of the 1.2 line. Bug fix.
 
 Closes what 1.1 left open in the data: enhancements and detachment rules that change the datasheet, the options and Marks the conversion had dropped, the Soul Grinder, the checks against the Munitorum Field Manual, and a round of bug fixes found by players (Back and Forward of the browser, attached units, leaders and Support, Guard battleline, per-model weapon limits). Fixes made along the way are listed above, under 1.2.1 to 1.2.6.
 
-Still waiting for the maintainer: the two repository secrets that let GitHub deploy the site by itself, and the check of the points against the official Munitorum Field Manual PDF. Sharing and export (phase 2) are next. See [ROADMAP.md](ROADMAP.md).
+Still waiting for the maintainer: the two repository secrets that let GitHub deploy the site by itself, and the check of the points against the official Munitorum Field Manual PDF. Sharing and export (phase 2) are version 1.3. See [ROADMAP.md](ROADMAP.md).
 
 ## 1.1.6 (27 October 2026)
 
