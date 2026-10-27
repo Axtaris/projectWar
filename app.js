@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar';
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.1.6';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.2.1';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -231,9 +231,25 @@ function jump(d) { const p = S.hpos + d; if (p < 0 || p >= S.hist.length) return
 /* ---------- router ---------- */
 const WIDE = () => S.set.AppLayout === 1 || (S.set.AppLayout === 0 && innerWidth >= 1400);
 const cu = r => (WIDE() && r.page === 'editor' && S.sel) ? S.sel : r.id;
-const nav = (page, params = {}) => { closePops(); S.stack.push({ page, ...params }); render() };
-const back = () => { closePops(); S.stack.pop(); render() };
-const goHome = () => { closePops(); S.stack = [{ page: 'home' }]; S.cur = null; render() };
+/* Browser history: every screen is a history entry, so the browser's Back and Forward move between the app's screens instead of leaving it.
+   The address never changes; each entry remembers the screen stack (and the open list) it stands for. */
+const SNAP = new Map(), LOAD = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); let HID = 0;   /* ids carry the page load, so entries from before a reload are never mistaken for new ones */
+const snapNow = () => ({ stack: S.stack.slice(), cur: S.cur });
+function histWrite(replace) {
+  const id = `${LOAD}-${++HID}`; SNAP.set(id, snapNow()); S.hid = id;
+  if (SNAP.size > 300) SNAP.delete(SNAP.keys().next().value);
+  try { history[replace ? 'replaceState' : 'pushState']({ pw: id }, '', location.href) } catch { }
+}
+const histPush = () => histWrite(false), histReplace = () => histWrite(true);
+const histSync = () => { if (S.hid) SNAP.set(S.hid, snapNow()) };   /* the live stack always is what the current entry stands for */
+addEventListener('popstate', e => {
+  const s = SNAP.get(e.state?.pw); closePops();
+  if (s) { S.stack = s.stack.slice(); S.cur = s.cur; S.hid = e.state.pw } else { S.stack = [{ page: 'home' }]; S.cur = null; histReplace() }   /* an entry from before a reload: back to the start */
+  render();
+});
+const nav = (page, params = {}) => { closePops(); const inPlace = page === 'unit' && !params.ro && WIDE(); S.stack.push({ page, ...params }); if (!inPlace) histPush(); render() };   /* on a wide screen the unit opens in the side pane: no new screen */
+const back = () => { closePops(); if (S.stack.length <= 1) return; if (S.hid && S.stack.length > 1 && history.state?.pw === S.hid) history.back(); else { S.stack.pop(); histReplace(); render() } };
+const goHome = () => { closePops(); S.stack = [{ page: 'home' }]; S.cur = null; histPush(); render() };
 const here = () => S.stack.at(-1);
 async function render() {
   applyTheme();
@@ -249,7 +265,7 @@ async function render() {
   app.innerHTML = (PAGES[r.page] || PAGES.home)(r);
   const m = mem[key]; if (m) { document.querySelectorAll(SCROLLERS).forEach((e, i) => { if (m.s[i] && !(S.newU && e.classList.contains('ucol'))) e.scrollTop = m.s[i] }); if (m.y) scrollTo(0, m.y) }
   S.lastKey = key; S.lastLen = S.stack.length; S.keepScroll = S.newU = S.resetScroll = false; const f = FOCUS; FOCUS = null; if (f) { const el = $(f); el && el.focus() }
-  document.documentElement.style.fontSize = ['13px', '15px', '17px'][S.set.AppTextSize] || '15px';
+  document.documentElement.style.fontSize = ['13px', '15px', '17px'][S.set.AppTextSize] || '15px'; histSync();
 }
 let FOCUS = null;
 const SCROLLERS = '.scroll,.col,.ucol,.nlmain,.nlbody,.upane,.nlside,#roster';
@@ -702,7 +718,7 @@ const download = (name, text, type = 'text/plain') => { const a = document.creat
 /* =================================================== ACTIONS */
 const L = () => S.cur;
 function newDraft(faction) { return { Id: uid(), Name: '', MaxPoints: 2000, Faction: faction, Disposition: null, Units: [], IsLegendsEnabled: false, LastModified: new Date().toISOString(), CreatedWithDataSetId: DATASET, Detachments: [], Dettachment: null } }
-async function openList(id, mode) { S.cur = S.lists.find(l => l.Id === id); await loadFaction(S.cur); resetHist(); S.stack = [{ page: 'home' }, { page: mode }]; render() }
+async function openList(id, mode) { S.cur = S.lists.find(l => l.Id === id); await loadFaction(S.cur); resetHist(); S.stack = [{ page: 'home' }, { page: mode }]; histPush(); render() }
 function mutate(fn) { fn(); commit(); S.keepScroll = true; render() }
 const menuHtml = viewer => `${mi('home', 'home', 'Home')}${viewer ? mi('mode', 'edit', 'Edit Mode') : mi('mode', 'eye', 'Viewer Mode')}${mi('rules', 'rules', 'Detachment Rules &amp; Stratagems')}${viewer ? mi('wf', 'filter', S.set.FilterWeaponsViewerMode ? 'Show All Weapons' : 'Filter Weapons') : mi('wf', 'filter', S.set.FilterWeaponsEditMode ? 'Show All Weapons' : 'Filter Weapons')}${mi('ms', 'tune', S.set.EnableModifiedStatlines ? 'Disable Modified Stats' : 'Enable Modified Stats')}${mi('leg', 'padd', S.cur.IsLegendsEnabled ? 'Disable Legends' : 'Enable Legends')}${mi('export', 'export', 'Export')}${mi('feedback', 'bug', 'Feedback/Bug Report')}`;
 
@@ -725,7 +741,7 @@ document.addEventListener('click', async e => {
     case 'newl': return nav('faction');
     case 'impfile': case 'importfile': return pickFile();
     case 'imptext': { const pp = $('.popup'); let ok = false; try { ok = importList(await navigator.clipboard.readText()) } catch { } if (ok) { closePops(); return render() } pp?.querySelector('.pmsg,.pcode')?.remove(); pp?.insertAdjacentHTML('beforeend', '<div class="pmsg">Failed to import.</div>'); return }
-    case 'pickfaction': { const d = newDraft(id); await loadFaction(d); S.stack.push({ page: 'newlist', draft: d, faction: id }); return render() }
+    case 'pickfaction': { const d = newDraft(id); await loadFaction(d); S.stack.push({ page: 'newlist', draft: d, faction: id }); histPush(); return render() }
     case 'sizepick': return anchorPop(t, [...SIZES.map(s => `<button class="btn" style="margin:3px;width:290px;background:${'var(--c)'}" data-a="size" data-id="${s[0]}">${s[0]} - ${s[1]}</button>`), `<button class="btn" style="margin:3px;width:290px" data-a="size" data-id="custom">Custom</button>`].join(''), 'popup');
     case 'ndisp': { const d = r.draft; syncDraft(); d.Disposition = id; return render() }
     case 'size': { const d = r.draft; syncDraft(); d.MaxPoints = id === 'custom' ? (SIZES.some(s => s[0] === d.MaxPoints) ? 1500 : d.MaxPoints) : +id; d.Detachments = []; closePops(); return render() }
@@ -734,7 +750,7 @@ document.addEventListener('click', async e => {
     case 'dtog': { const d = r.draft; syncDraft(); const fd = S.fd[d.Faction + (d.IsLegendsEnabled ? '+L' : '')] || S.fd[d.Faction], i = d.Detachments.indexOf(id);
       if (i >= 0) d.Detachments.splice(i, 1); else { const x = fd.Dettachments.find(z => z.Name === id), tg = new Set(d.Detachments.flatMap(n => fd.Dettachments.find(z => z.Name === n)?.Tags || [])); if (!x || (x.Cost ?? 1) > BS(d.MaxPoints).DetachmentPoints - dpUsed2(d, fd) || (x.Tags || []).some(t => tg.has(t))) return; d.Detachments.push(id) } return render() }
     case 'legtog': { const d = r.draft; syncDraft(); d.IsLegendsEnabled = !d.IsLegendsEnabled; await loadFaction(d); return render() }
-    case 'create': { const d = r.draft; syncDraft(); if (!d.Name.trim()) return; d.Name = d.Name.trim(); d.Disposition = effDisp(d); S.lists.push(d); saveLists(); S.cur = d; resetHist(); S.stack = [{ page: 'home' }, { page: 'editor' }]; return render() }
+    case 'create': { const d = r.draft; syncDraft(); if (!d.Name.trim()) return; d.Name = d.Name.trim(); d.Disposition = effDisp(d); S.lists.push(d); saveLists(); S.cur = d; resetHist(); S.stack = [{ page: 'home' }, { page: 'editor' }]; histReplace(); return render() }
     case 'openlist': if (e.target.closest('[data-a=cardmenu]')) return; return openList(id, 'viewer');
     case 'cardmenu': { e.stopPropagation(); return anchorPop(t, `${mi('c-edit', 'edit', 'Edit', `data-id="${id}"`)}${mi('c-del', 'trash', 'Delete', `data-id="${id}"`)}${mi('c-dup', 'copy', 'Duplicate', `data-id="${id}"`)}${mi('c-rules', 'rules', 'Detachment Rules &amp; Stratagems', `data-id="${id}"`)}`, 'popup big', 'right') }
     case 'c-edit': closePops(); return openList(t.dataset.id, 'editor');
@@ -743,7 +759,7 @@ document.addEventListener('click', async e => {
     case 'c-del': { const s = S.lists.find(x => x.Id === t.dataset.id); closePops(); return modal('Delete list', `Delete “${esc(s.Name)}”? This cannot be undone.`, 'Delete', () => { S.lists = S.lists.filter(x => x.Id !== s.Id); saveLists(); closePops(); render() }) }
     case 'menu': return anchorPop(t, menuHtml(r.page === 'viewer'), 'popup', 'right');
     case 'home': return goHome();
-    case 'mode': closePops(); S.stack = [{ page: 'home' }, { page: r.page === 'viewer' ? 'editor' : 'viewer' }]; return render();
+    case 'mode': closePops(); S.stack = [{ page: 'home' }, { page: r.page === 'viewer' ? 'editor' : 'viewer' }]; histReplace(); return render();
     case 'rules': closePops(); return nav('rules');
     case 'wf': { const k = r.page === 'viewer' || r.ro ? 'FilterWeaponsViewerMode' : 'FilterWeaponsEditMode'; S.set[k] = !S.set[k]; saveSet(); return render() }
     case 'ms': S.set.EnableModifiedStatlines = !S.set.EnableModifiedStatlines; saveSet(); return render();
@@ -820,7 +836,7 @@ wasWide = WIDE();
 /* ---------- boot ---------- */
 (async () => {
   try {
-    S.info = await getJson('FactionInfoData'); S.dv = (await getJson('DataInfo')).Version; await warmLists(); S.stack = [{ page: 'home' }];
+    S.info = await getJson('FactionInfoData'); S.dv = (await getJson('DataInfo')).Version; await warmLists(); S.stack = [{ page: 'home' }]; histReplace();
     render();
   } catch (e) { $('#app').innerHTML = `<pre style="padding:20px;white-space:pre-wrap">Could not load the data (${esc(e)}).\nOpen this page through a local server: run start.bat (or: python serve.py 8080) and visit http://localhost:8080</pre>` }
 })();

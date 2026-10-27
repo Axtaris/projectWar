@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.1 (27 October 2026)
+
+First package of the 1.2 line. Bug fix.
+
+- **Browser Back and Forward:** the browser's Back and Forward buttons now move between the app's screens instead of leaving the app. Opening a list, a rules page or a unit adds a history entry; Back returns to the previous screen with the same open list and the same scroll position, and Forward returns to the screen you came from. Back from the first screen still leaves the app, as usual. The on-screen Back button follows the same history.
+
+## 1.2 (in development)
+
+Carried over from 1.1: structured effects for new enhancements and detachments, the donate button, the points check against the official Munitorum Field Manual, chapter exclusions, the god choice for Daemon Princes, missing datasheets, units modelled as separate variants, and the automatic deployment secrets. Then phase 2 (sharing and export). See [ROADMAP.md](ROADMAP.md).
+
 ## 1.1.6 (27 October 2026)
 
 Closes the data-review part of phase 1.

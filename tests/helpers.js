@@ -14,7 +14,7 @@ const dom = () => new Proxy(function () { }, {
   apply: () => dom(), construct: () => dom(), set: () => true, deleteProperty: () => true,
 });
 
-async function loadApp() {
+async function loadApp(over = {}) {
   const src = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
   const ctx = {
     document: dom(), localStorage: { getItem: () => null, setItem() { }, removeItem() { } },
@@ -26,10 +26,10 @@ async function loadApp() {
       return { ok: true, status: 200, text: async () => fs.readFileSync(file, 'utf8') };
     },
   };
-  ctx.window = ctx;
+  Object.assign(ctx, over); ctx.window = ctx;
   vm.createContext(ctx);
-  vm.runInContext(src + '\n;globalThis.__api = { S, esc, tc, BS, sizeName, total, errors, composition, newDraft, loadFaction, fdOf, unitOf, sanitizeList, unitPts, unitCost, models, dpUsed, importList, getJson, mdLite, eligible, optMax, ledNames };', ctx);
-  const api = ctx.__api;
+  vm.runInContext(src + '\n;globalThis.__api = { S, esc, tc, BS, sizeName, total, errors, composition, newDraft, loadFaction, fdOf, unitOf, sanitizeList, unitPts, unitCost, models, dpUsed, importList, getJson, mdLite, eligible, optMax, ledNames, nav, back, goHome, SNAP };', ctx);
+  const api = ctx.__api; api.ctx = ctx;
   for (let i = 0; i < 200 && !api.S.info; i++) await new Promise((r) => setImmediate(r));   // wait for the app's own start-up to load the faction index
   if (!api.S.info) throw new Error('app did not finish loading; is DATA_DIR correct? ' + DATA_DIR);
   return api;
