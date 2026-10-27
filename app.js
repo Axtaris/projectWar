@@ -72,9 +72,13 @@ const fdOf = l => S.fd[l.Faction + (l.IsLegendsEnabled ? '+L' : '')];
 
 /* ---------- colours ---------- */
 function hsl(hex) { const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0; if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60 } return [h, s * 100, l * 100] }
+/* Theme: Settings.Theme is 0 = System, 1 = Light, 2 = Dark. The stylesheet follows the system by itself; explicit choices are forced with data-theme. */
+const effTheme = () => S.set.Theme === 1 ? 'light' : S.set.Theme === 2 ? 'dark' : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+const applyTheme = () => { const h = document.documentElement; if (S.set.Theme === 1) h.dataset.theme = 'light'; else if (S.set.Theme === 2) h.dataset.theme = 'dark'; else delete h.dataset.theme };
+matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (S.set.Theme === 0 && S.info) render() });
 function theme(color) {
   const [h, s, l] = hsl(color || BASE), n = parseInt((color || BASE).slice(1), 16), dk = [n >> 16, n >> 8 & 255, n & 255].map(x => Math.round(x / 2));
-  const st = document.documentElement.style; st.setProperty('--c', color); st.setProperty('--hi', `hsl(${h},${s}%,${Math.min(l + 10, 95)}%)`); st.setProperty('--lt', `hsl(${h},${Math.max(s, 60)}%,80%)`); st.setProperty('--dk', `rgb(${dk})`);
+  const st = document.documentElement.style; st.setProperty('--c', color); st.setProperty('--hi', `hsl(${h},${s}%,${Math.min(l + 10, 95)}%)`); st.setProperty('--lt', `hsl(${h},${Math.max(s, 60)}%,${effTheme() === 'light' ? 22 : 80}%)`); st.setProperty('--dk', `rgb(${dk})`);
 }
 const fColor = name => S.info.Factions.find(f => f.Name === name)?.DarkColor || BASE;
 
@@ -200,6 +204,7 @@ const back = () => { closePops(); S.stack.pop(); render() };
 const goHome = () => { closePops(); S.stack = [{ page: 'home' }]; S.cur = null; render() };
 const here = () => S.stack.at(-1);
 async function render() {
+  applyTheme();
   closePops(); let r = here(); const app = $('#app');
   if (r.page === 'unit' && !r.ro && WIDE()) { S.sel = r.id; S.prev = null; S.stack.pop(); r = here() }
   if (S.cur && ['editor', 'viewer', 'unit', 'rules', 'export', 'feedback'].includes(r.page)) { await loadFaction(S.cur); theme(fColor(S.cur.Faction)) } else if (r.page === 'newlist' && r.faction) theme(fColor(r.faction)); else if (r.page !== 'sheet') theme(BASE);
@@ -286,8 +291,9 @@ PAGES.newlist = r => {
   const tags = new Set(l.Detachments.flatMap(n => fd.Dettachments.find(d => d.Name === n)?.Tags || [])), gp = Math.min(100, Math.round(used / total * 100));
   const size = s => `<button class="opt ${l.MaxPoints === s[0] ? 'on' : ''}" data-a="size" data-id="${s[0]}"><span class="mono big2">${s[0]}</span><small>${s[1]}</small></button>`;
   const det = d => { const on = l.Detachments.includes(d.Name), dis = !on && ((d.Cost ?? 1) > total - used || (d.Tags || []).some(t => tags.has(t))), key = 'nlx' + d.Name, open = !!S.open[key], nm = tc(d.Name);
-    const enh = (d.Enhancements || []).map(e => `<li><b>${tc(e.Name)}</b> <span class="mono">${e.Cost ?? 0} pts</span><br>${esc(e.Description || '')}</li>`).join(''), str = (d.Stratagems || []).map(x => `<li>${tc(x.Name)} <span class="mono">${x.CPCost}CP</span></li>`).join('');
-    const body = open ? `<div class="dbody"><h5>${esc(d.Rule?.Title || 'Detachment rule')}</h5><p>${esc(d.Rule?.Text || '')}</p>${d.Rule?.Restrictions ? `<h5>Restrictions</h5><p>${esc(d.Rule.Restrictions)}</p>` : ''}${enh ? `<h5>Enhancements</h5><ul>${enh}</ul>` : ''}${str ? `<h5>Stratagems</h5><ul class="two">${str}</ul>` : ''}</div>` : '';
+    const enh = (d.Enhancements || []).map(e => `<li><b>${tc(e.Name)}</b> <span class="mono">${e.Cost ?? 0} pts</span><br>${esc(e.Description || '')}</li>`).join(''), str = (d.Stratagems || []).map(x => { const [sc] = stratColor(x), turn = { friendly: 'Your turn', opponent: 'Opponent\u2019s turn' }[x.Phase] || 'Either turn', f = (h, v) => v ? `<h6>${h}</h6><p>${esc(v)}</p>` : '';
+      return `<div class="scard" style="--sc:${sc}"><div class="sh"><b>${tc(x.Name)}</b><span class="mono cp">${x.CPCost}CP</span></div><small>${esc(x.Category || '')} \u00b7 ${turn}</small>${f('When', x.When)}${f('Target', x.Target)}${f('Effect', x.Effect)}${f('Restrictions', x.Restrictions)}</div>` }).join('');
+    const body = open ? `<div class="dbody"><h5>${esc(d.Rule?.Title || 'Detachment rule')}</h5><p>${esc(d.Rule?.Text || '')}</p>${d.Rule?.Restrictions ? `<h5>Restrictions</h5><p>${esc(d.Rule.Restrictions)}</p>` : ''}${enh ? `<h5>Enhancements</h5><ul>${enh}</ul>` : ''}${str ? `<h5>Stratagems</h5><div class="sgrid">${str}</div>` : ''}</div>` : '';
     return `<div class="dcell ${on ? 'on' : ''} ${dis ? 'dis' : ''} ${open ? 'open' : ''}"><div class="dhead"><button class="dchev" data-a="dopen" data-id="${esc(d.Name)}" aria-expanded="${open}" aria-label="${open ? 'Hide' : 'Show'} what ${esc(nm)} does">${ic(open ? 'up' : 'down', 22)}</button><button class="dn" data-a="dopen" data-id="${esc(d.Name)}" tabindex="-1"><b>${nm}</b><small>${esc((d.ForceDispositions || []).map(tc).join(' \u00b7 '))}</small></button><span class="mono dc">${d.Cost ?? 1} DP</span><button class="dadd" data-a="dtog" data-id="${esc(d.Name)}" aria-pressed="${on}" aria-label="${on ? 'Remove' : 'Add'} ${esc(nm)}"${dis ? ' aria-disabled="true"' : ''}>${on ? ic('check', 22) : ic('plus', 22)}</button></div>${body}</div>` };
   const chosen = l.Detachments.map(n => fd.Dettachments.find(d => d.Name === n)).filter(Boolean);
   return `<div class="page nlpage"><div class="top2"><button class="ibtn" data-a="back">${ic('back', 28)}</button><div class="brand">project<b>War</b></div><div style="flex:1"></div><span class="chip">Lists / New list</span><span class="chip">Data ${esc(S.dv)}</span></div>

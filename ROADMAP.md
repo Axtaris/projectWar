@@ -16,7 +16,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done · 🔎 needs investigat
 | 1.2 | ⬜ Structured effects for new enhancements and detachments | They only have text, so they do not modify statlines or enforce restrictions | Add the effect model to the data (stat adjustments, requirements) and extend the converter |
 | 1.3 | ⬜ Automated tests and CI | Points, list validation and data loading are untested | Plain Node tests for the pure functions plus a data-integrity check; run on every push |
 | 1.4 | ⬜ Automatic data deployment | Data changes do not redeploy the site by themselves | A workflow in the data repository that triggers the site build |
-| 1.5 | ⬜ Working theme setting (light, dark, system) and accent colour | The setting exists but only the dark theme is implemented | CSS variables are already used; add a light palette and honour `prefers-color-scheme` |
+| 1.5 | 🟨 Theme setting (light, dark, system) done; accent colour choice pending | The setting exists but only the dark theme is implemented | CSS variables are already used; add a light palette and honour `prefers-color-scheme` |
 | 1.6 | ⬜ Compact (narrow-screen) layout parity | The unit page and viewer on small screens use an older design | Apply the desktop header and surfaces; test on phone widths |
 
 ## Phase 2: Sharing and export

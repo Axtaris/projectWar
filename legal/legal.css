@@ -28,3 +28,10 @@ th{background:var(--p1);font-weight:600}
 code{font-family:Consolas,monospace;background:var(--p1);padding:1px 5px;border-radius:2px;font-size:.92em}
 hr.sep{border:0;border-top:1px solid var(--ln);margin:48px 0 8px}
 footer{border-top:1px solid var(--ln);padding:20px;text-align:center;color:var(--dim);font-size:14px}
+
+/* light theme: explicit choice, or the system preference when no choice was made */
+:root{color-scheme:dark}
+:root[data-theme="light"]{--bg:#F3F4F6;--p1:#FFFFFF;--ln:#CBD2DC;--fg:#14181F;--dim:#4D5766;--brand:#D9480F;color-scheme:light}
+@media (prefers-color-scheme: light){:root:not([data-theme]){--bg:#F3F4F6;--p1:#FFFFFF;--ln:#CBD2DC;--fg:#14181F;--dim:#4D5766;--brand:#D9480F;color-scheme:light}}
+:root[data-theme="light"] p,:root[data-theme="light"] li{color:#2a313c}:root[data-theme="light"] a{color:#C2410C}
+@media (prefers-color-scheme: light){:root:not([data-theme]) p,:root:not([data-theme]) li{color:#2a313c}:root:not([data-theme]) a{color:#C2410C}}

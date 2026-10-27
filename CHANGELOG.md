@@ -7,6 +7,8 @@ Goal: **trust**. Data review, structured effects for new content, automated test
 Done so far:
 
 - New list: each detachment can be expanded (arrow on the left) to read its rule, restrictions, enhancements and stratagems before adding it with the + button on the right.
+- New list: expanding a detachment also shows every stratagem in full (when, target, effect, restrictions, CP cost and turn), in two columns.
+- Working theme setting: light, dark and system (follows the OS live). The legal pages follow the same choice. Checked for text contrast in both themes on every screen.
 
 ## 1.0 (27 October 2026)
 

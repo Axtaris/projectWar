@@ -43,14 +43,13 @@ Then open <http://localhost:8080>. `serve.py` is a small development server: cac
 - A full datasheet view for each unit (statline, invulnerable save, weapons, abilities, keywords), with modified statlines when wargear or enhancements change them.
 - Viewer mode, a rules page with detachment rules and stratagems, data search, and a history of the datasheets you opened.
 - Text and print/PDF export, plus backup and restore of all lists as a file.
-- Desktop (three-pane) and compact layouts.
+- Desktop (three-pane) and compact layouts, with light, dark and system themes (Settings → Application theme).
 
 ## What does not work
 
 - **Data accuracy.** The data is built semi-automatically from community sources and has errors. Wargear options in particular are inferred and can differ from the printed datasheet.
 - **Legends and Adeptus Titanicus** datasheets have **not** been updated to 11th edition.
 - **Enhancements and detachments added in 11th** carry their text but not their machine-readable effects, so they do not change statlines or enforce restrictions.
-- **The theme setting** offers Light, Dark and System, but only the dark theme exists.
 - The compact (narrow-screen) layout still uses an older header and has had less testing than the desktop layout.
 - There are no automated tests.
 
@@ -63,7 +62,7 @@ Compared with established list builders, projectWar does not yet offer:
 | **Sync and sharing** | Syncing lists between devices; share links, share codes and QR codes; accounts (deliberately avoided for now, see below) |
 | **Export** | YellowScribe export; Tabletop Simulator export; several text formats; true PDF generation (it uses the browser's print dialog) |
 | **Data** | 11th edition Legends and Adeptus Titanicus; allied units; older edition data sets |
-| **App** | Light theme and accent colours; offline / installable mode; update notices and in-app release notes; interface translations (Spanish first); an accessibility audit |
+| **App** | Accent colour choice; offline / installable mode; update notices and in-app release notes; interface translations (Spanish first); an accessibility audit |
 
 Until sync exists, **back up your lists** from Settings: they live only in your browser's local storage on this device.
 
