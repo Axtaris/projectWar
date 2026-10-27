@@ -96,9 +96,9 @@ const effFor = (l, d) => l ? dets(l).flatMap(x => (x.Effects || []).filter(e => 
 const pointsOf = (l, d) => { const ov = effFor(l, d).flatMap(e => e.PointsOverride || []); return ov.length ? ov : d.Points };
 function baseCost(l, u) {
   const d = unitOf(l, u), n = models(u), P = d && pointsOf(l, d); if (!d || !P.length) return 0;
-  const copies = l.Units.filter(x => x.Id === u.Id).length, byN = P.filter(p => p.ModelCount === n);
+  const copies = l.Units.filter(x => x.Id === u.Id).indexOf(u) + 1, byN = P.filter(p => p.ModelCount === n);
   const ps = byN.length ? byN : P.filter(p => p.ModelCount >= n), pool = ps.length ? ps : P;
-  // NOTE: Points[].UnitCount read as "copies of this unit in the list" (inferred, not confirmed)
+  // Points[].UnitCount: the Nth copy of the unit in the list is priced at tier N (copies 1-2 stay at their price when a 3rd one costs more)
   return (pool.filter(p => (p.UnitCount || 1) <= copies).at(-1) || pool[0]).Cost ?? 0;
 }
 const enhOf = (l, u) => u.EnhancementId && enhs(l).find(e => e.Name === u.EnhancementId);

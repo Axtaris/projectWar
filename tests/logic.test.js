@@ -118,3 +118,9 @@ test('leaders may be taken alone; only "must join" datasheets need a bodyguard',
   am.Units = [unit(api, am, 1, 'OGRYN BODYGUARD')];
   assert.match(api.errors(am).join('\n'), /must be attached to a bodyguard/);
 });
+
+test('only the copy that reaches a higher tier costs more (Ironstrider Ballistarii: 80, 80, 95)', async () => {
+  const l = await newList('Adeptus Mechanicus', 3000);
+  l.Units = [1, 2, 3].map((i) => unit(api, l, i, 'IRONSTRIDER BALLISTARII', 1));
+  assert.deepEqual(l.Units.map((u) => api.unitCost(l, u)), [80, 80, 95]);
+});
