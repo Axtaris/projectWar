@@ -28,7 +28,7 @@ async function loadApp() {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  vm.runInContext(src + '\n;globalThis.__api = { S, esc, tc, BS, sizeName, total, errors, composition, newDraft, loadFaction, fdOf, unitOf, sanitizeList, unitPts, unitCost, models, dpUsed, importList, getJson, mdLite };', ctx);
+  vm.runInContext(src + '\n;globalThis.__api = { S, esc, tc, BS, sizeName, total, errors, composition, newDraft, loadFaction, fdOf, unitOf, sanitizeList, unitPts, unitCost, models, dpUsed, importList, getJson, mdLite, eligible };', ctx);
   const api = ctx.__api;
   for (let i = 0; i < 200 && !api.S.info; i++) await new Promise((r) => setImmediate(r));   // wait for the app's own start-up to load the faction index
   if (!api.S.info) throw new Error('app did not finish loading; is DATA_DIR correct? ' + DATA_DIR);

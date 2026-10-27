@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.2 (27 October 2026)
+
+Bug-fix release.
+
+- **Disposition list:** on the detachment rules screen the disposition menu offered every disposition of the faction. It now offers only the ones your chosen detachments allow, and keeps your choice while it stays valid.
+- **Enhancements:** Daemonic Incursion was missing two enhancements (Geller Breach and Spite Made Manifest). Added.
+
 ## 1.1.1 (27 October 2026)
 
 Bug-fix release. Versions are numbered major.minor.fix: the last number is only for bug fixes.
