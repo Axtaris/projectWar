@@ -87,6 +87,9 @@ const BS = max => S.info.BattleSizeDefinitions.find(b => b.PointsTotal >= max) |
 const SIZES = [[500, 'Combat Patrol'], [1000, 'Incursion'], [2000, 'Strike Force'], [3000, 'Onslaught']];
 const sizeName = p => { const x = SIZES.find(s => s[0] === p); return x ? `${p} - ${x[1]}` : 'Custom' };
 const dets = l => l.Detachments.map(n => fdOf(l).Dettachments.find(d => d.Name === n)).filter(Boolean);
+/* force dispositions the chosen detachments allow (a detachment can offer two; two detachments add theirs); the list keeps the chosen one while it stays valid */
+const dispOpts = l => [...new Set(dets(l).flatMap(d => d.ForceDispositions || []))];
+const effDisp = l => { const o = dispOpts(l); return o.includes(l.Disposition) ? l.Disposition : o[0] || null };
 const dpUsed = l => dets(l).reduce((a, d) => a + (d.Cost ?? 1), 0);
 const enhs = l => dets(l).flatMap(d => (d.Enhancements || []).map(e => ({ ...e, det: d.Name })));
 const unitOf = (l, u) => fdOf(l).byName.get(u.Id);
@@ -306,6 +309,8 @@ document.addEventListener('input', e => { if (e.target.id === 'nl-name') { const
 /* ---- new list ---- */
 /* army rules as native collapsibles (no script needed); shared by the new-list step and the viewer */
 const armyRules = fd => (fd.ArmyRules || []).length ? `<div class="arules"><span class="lbl">Army rules</span>${fd.ArmyRules.map(r => `<details class="arule"><summary>${tc(r.Title)}</summary><div class="b">${esc(r.Text)}</div></details>`).join('')}</div>` : '';
+const dispBlock = l => { const o = dispOpts(l), cur = effDisp(l); if (!o.length) return '';
+  return `<div class="nlf"><span class="lbl">Force disposition</span>${o.length > 1 ? `<small class="mu" style="display:block;margin:2px 0 8px">Your detachments allow more than one. Pick the one you will play.</small><div class="sizes" role="radiogroup" aria-label="Force disposition">${o.map(x => `<button class="opt ${x === cur ? 'on' : ''}" role="radio" aria-checked="${x === cur}" data-a="ndisp" data-id="${esc(x)}"><span class="big2">${esc(tc(x))}</span></button>`).join('')}</div>` : `<div class="chip" style="margin-top:6px">${esc(tc(cur))}</div>`}</div>` };
 PAGES.newlist = r => {
   const l = r.draft, fd = S.fd[l.Faction + (l.IsLegendsEnabled ? '+L' : '')] || S.fd[l.Faction], total = BS(l.MaxPoints).DetachmentPoints, used = dpUsed2(l, fd), custom = sizeName(l.MaxPoints) === 'Custom';
   const tags = new Set(l.Detachments.flatMap(n => fd.Dettachments.find(d => d.Name === n)?.Tags || [])), gp = Math.min(100, Math.round(used / total * 100));
@@ -322,9 +327,9 @@ PAGES.newlist = r => {
   <div class="nlf"><span class="lbl">Max points</span><div class="sizes">${SIZES.map(size).join('')}<button class="opt ${custom ? 'on' : ''}" data-a="size" data-id="custom"><span class="mono big2">···</span><small>Custom</small></button></div>
   ${custom ? `<input class="in" id="nl-pts" type="number" min="100" step="50" value="${l.MaxPoints}" style="margin-top:8px;width:200px">` : ''}</div>
   <div class="nlf">${armyRules(fd)}</div>
-  <div class="nlf"><div class="row2"><span class="lbl">Detachments</span><span class="mono dleft">${total - used} DP remaining</span></div><div class="dgrid">${fd.Dettachments.slice().sort((a, b) => a.Name.localeCompare(b.Name)).map(det).join('')}</div></div></div>
+  <div class="nlf"><div class="row2"><span class="lbl">Detachments</span><span class="mono dleft">${total - used} DP remaining</span></div><div class="dgrid">${fd.Dettachments.slice().sort((a, b) => a.Name.localeCompare(b.Name)).map(det).join('')}</div></div>${dispBlock(l)}</div>
   <aside class="nlside"><span class="lbl">Summary</span><h2 class="mid">${esc(l.Faction)}</h2><div class="fline"></div>
-  <div class="kv"><span class="mu">Army</span><b id="nl-sum">${esc(l.Name.trim() || '—')}</b></div><div class="kv"><span class="mu">Points</span><span class="mono">${sizeName(l.MaxPoints).replace(' - ', ' · ')}</span></div>
+  <div class="kv"><span class="mu">Army</span><b id="nl-sum">${esc(l.Name.trim() || '—')}</b></div><div class="kv"><span class="mu">Points</span><span class="mono">${sizeName(l.MaxPoints).replace(' - ', ' · ')}</span></div>${effDisp(l) ? `<div class="kv"><span class="mu">Disposition</span><b>${esc(tc(effDisp(l)))}</b></div>` : ''}
   <div class="dpb"><div class="kv"><span class="mu">Detachment points</span><span class="mono dleft">${used} / ${total}</span></div><div class="gauge3"><i style="width:${gp}%"></i></div></div><div class="hr"></div><span class="lbl">Selected</span>
   <div class="chosen">${chosen.length ? chosen.map(d => `<div class="crow"><b>${tc(d.Name)}</b><span class="mono dleft">${d.Cost ?? 1} DP</span></div>`).join('') : '<span class="mu">No detachment selected yet.</span>'}</div>
   <button class="toggle ${l.IsLegendsEnabled ? 'on' : ''}" data-a="legtog"><i></i>${l.IsLegendsEnabled ? 'Include Legend datasheets' : 'Exclude Legend datasheets'}</button>
@@ -378,7 +383,7 @@ const compactHdr = (l, mode) => {
 const listHdr = (l, view) => {
   const t = total(l), pct = Math.min(100, Math.round(t / l.MaxPoints * 100)), ne = errors(l).length, over = t > l.MaxPoints ? 'over' : '';
   return `<div class="top2 ehdr"><button class="btn ghost" data-a="back">Lists</button>
-  <div class="ename">${view ? `<b class="enm">${esc(l.Name)}</b>` : `<input id="army-name" value="${esc(l.Name)}" aria-label="Army name">`}<small>${esc(l.Faction)} \u00b7 ${esc((sizeName(l.MaxPoints).split(' - ')[1] || 'Custom'))}${view && l.Disposition ? ' \u00b7 ' + esc(tc(l.Disposition)) : ''}</small></div>
+  <div class="ename">${view ? `<b class="enm">${esc(l.Name)}</b>` : `<input id="army-name" value="${esc(l.Name)}" aria-label="Army name">`}<small>${esc(l.Faction)} \u00b7 ${esc((sizeName(l.MaxPoints).split(' - ')[1] || 'Custom'))}${view && effDisp(l) ? ' \u00b7 ' + esc(tc(effDisp(l))) : ''}</small></div>
   ${view ? '' : `<button class="ibtn" data-a="undo" aria-label="Undo">${ic('undo', 28)}</button><button class="ibtn" data-a="redo" aria-label="Redo">${ic('undo', 28, 'transform:scaleX(-1)')}</button>`}<div style="flex:1"></div>
   <div class="eptsb"><div class="kv"><span class="lbl">Points</span><span class="pts2 ${over}" style="width:auto">${t} / ${l.MaxPoints}</span></div><div class="gauge3 ${over}"><i style="width:${pct}%"></i></div></div>
   <button class="btn" data-a="mode">${view ? 'Edit' : 'View'}</button><button class="btn ghost" data-a="errors">Errors ${ne}</button><button class="ibtn" data-a="menu" aria-label="Menu">${ic('menu', 30)}</button></div>`;
@@ -545,7 +550,7 @@ PAGES.info = r => `<div class="page">${hdr(tc(r.title))}<div class="scroll"><div
 /* ---- viewer ---- */
 function viewerLeft(l) {
   const ds = dets(l);
-  return `<div class="vinfo">Name: ${esc(l.Name)}<br>Disposition: ${l.Disposition ? tc(l.Disposition) : 'None'}</div>
+  return `<div class="vinfo">Name: ${esc(l.Name)}<br>Disposition: ${effDisp(l) ? tc(effDisp(l)) : 'None'}</div>
   ${armyRules(fdOf(l))}
   ${S.set.ShowDetachmentsInViewer ? `<div class="vdets">${ds.map(d => detCard(d, l, true)).join('')}${S.set.ShowStratagemsInViewer && ds.length ? exp('vs', 'Stratagems', ds.flatMap(d => d.Stratagems).map(s => stratHtml(s, s.Category + s.Name)).join(''), false) : ''}</div>` : ''}
   ${S.set.ShowCoreStratagemsInViewer ? exp('vcore', 'Core Stratagems', S.info.CoreStratagems.map(s => stratHtml(s, 'core' + s.Name)).join(''), false) : ''}
@@ -562,7 +567,7 @@ PAGES.viewer = () => {
   if (WIDE()) return wideViewer();
   const l = S.cur, ds = dets(l);
   return `<div class="page">${compactHdr(l, 'viewer')}<div class="scroll" style="padding:4px 6px">
-  <div style="background:var(--c);padding:6px 8px;border-radius:3px">Name: ${esc(l.Name)}<br>Disposition: ${l.Disposition ? tc(l.Disposition) : '—'}</div>
+  <div style="background:var(--c);padding:6px 8px;border-radius:3px">Name: ${esc(l.Name)}<br>Disposition: ${effDisp(l) ? tc(effDisp(l)) : '—'}</div>
   ${armyRules(fdOf(l))}
   ${S.set.ShowDetachmentsInViewer ? ds.map(d => `<div style="margin:4px 8px;border:1px solid var(--c);border-radius:4px;padding:4px">${detCard(d, l, true)}${S.set.ShowStratagemsInViewer ? exp('vs' + d.Name, 'Stratagems', d.Stratagems.map(s => stratHtml(s, d.Name + s.Name)).join(''), false) : ''}</div>`).join('') : ''}
   ${S.set.ShowCoreStratagemsInViewer ? exp('vcore', 'Core Stratagems', S.info.CoreStratagems.map(s => stratHtml(s, 'core' + s.Name)).join(''), false) : ''}
@@ -576,7 +581,7 @@ PAGES.rules = () => {
   return `<div class="page"><div class="hdr" style="background:var(--c);min-height:50px;gap:4px"><button class="ibtn" data-a="back">${ic('back', 28)}</button><h2 style="font-weight:700;text-transform:uppercase">${esc(l.Faction)}</h2></div><div class="scroll">
   ${sec('Army Rules')}<div class="rp">${(fd.ArmyRules || []).map(r => `<div class="rule"><button class="h" data-a="tog" data-id="ar${esc(r.Title)}"><span>Army Rule: ${tc(r.Title)}</span>${ic(S.open['ar' + r.Title] ? 'up' : 'down', 20)}</button>${S.open['ar' + r.Title] ? `<div class="b">${esc(r.Text)}</div>` : ''}</div>`).join('')}</div>
   ${sec('Detachments', `Remaining DP: ${BS(l.MaxPoints).DetachmentPoints - dpUsed(l)}`)}<div class="rp"><button class="btn" style="width:300px" data-a="choose">Choose Detachments</button><div style="margin-top:12px">${ds.map(d => detCard(d, l, true)).join('')}</div></div>
-  ${sec('Disposition')}<div class="rp"><button class="btn" style="width:300px;justify-content:space-between" data-a="disp">${l.Disposition ? tc(l.Disposition) : 'Select'}${ic('down', 26)}</button></div>
+  ${sec('Disposition')}<div class="rp"><button class="btn" style="width:300px;justify-content:space-between" data-a="disp">${effDisp(l) ? tc(effDisp(l)) : 'Select'}${ic('down', 26)}</button></div>
   ${sec('Enhancements')}<div class="rp">${ec.length ? ec.map(e => `<div class="rule"><button class="h" data-a="tog" data-id="en${esc(e.Name)}"><span>${tc(e.Name)}</span>${ic(S.open['en' + e.Name] ? 'up' : 'down', 20)}</button>${S.open['en' + e.Name] ? `<div class="b">${esc(e.Description)}<br><br><b>${e.Cost || 0} points</b></div>` : ''}</div>`).join('') : '<div class="empty">Choose a detachment to see its enhancements.</div>'}</div>
   ${sec('Stratagems')}<div class="srow">${ds.flatMap(d => d.Stratagems).map(s => `<div>${stratHtml(s, 'rs' + s.Name)}</div>`).join('') || '<div class="empty">Choose a detachment to see its stratagems.</div>'}</div>
   ${sec('Core Stratagems')}<div class="srow" style="padding-bottom:20px">${S.info.CoreStratagems.map(s => `<div>${stratHtml(s, 'rc' + s.Name)}</div>`).join('')}</div></div></div>`;
@@ -641,7 +646,7 @@ PAGES.export = () => `<div class="page spage">${hdr('Export')}<div class="scroll
   ${EXP.type === 0 ? `<div><div class="cap" style="margin:0 0 3px 5px">PDF options</div><div class="expgrp" style="min-width:468px">${['Include category headers', 'Filter weapons', 'Filter abilities', 'Statline modification', 'Force new page per datasheet'].map(k => CK(k)).join('')}</div></div>` : ''}</div>`}
   </div><button class="btn ${EXP.type > 1 ? 'off' : ''}" style="position:fixed;right:10px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="doexport">Export</button></div>`;
 function listText(l) {
-  const fd = fdOf(l), out = [`${l.Name} (${total(l)}/${l.MaxPoints} points)`, `${l.Faction} - ${l.Detachments.map(tc).join(' + ')}`, l.Disposition ? tc(l.Disposition) : '', ''];
+  const fd = fdOf(l), out = [`${l.Name} (${total(l)}/${l.MaxPoints} points)`, `${l.Faction} - ${l.Detachments.map(tc).join(' + ')}`, effDisp(l) ? tc(effDisp(l)) : '', ''];
   CATS.forEach(c => { const us = l.Units.filter(u => unitOf(l, u) && catOf(unitOf(l, u)) === c); if (!us.length) return; if (EXP['Include category headers']) out.push(c.toUpperCase()); us.forEach(u => { const en = enhOf(l, u); out.push(`${tc(u.Id)}${models(u) > 1 ? ' (' + models(u) + ' models)' : ''} - ${unitCost(l, u)} pts${u.IsWarlord ? ' [Warlord]' : ''}${en ? ' [' + tc(en.Name) + ']' : ''}`); u.UnitCompositionRef.forEach(r => out.push(`  • ${r.ModelCount} ${r.ModelName}: ${wgText(unitOf(l, u), r)}`)); if (u.Notes?.Text && EXP.Notes) out.push('  Notes: ' + u.Notes.Text) }); out.push('') });
   out.push('Created with projectWar 1.0'); return out.join('\n');
 }
@@ -686,13 +691,14 @@ document.addEventListener('click', async e => {
     case 'imptext': { const pp = $('.popup'); let ok = false; try { ok = importList(await navigator.clipboard.readText()) } catch { } if (ok) { closePops(); return render() } pp?.querySelector('.pmsg,.pcode')?.remove(); pp?.insertAdjacentHTML('beforeend', '<div class="pmsg">Failed to import.</div>'); return }
     case 'pickfaction': { const d = newDraft(id); await loadFaction(d); S.stack.push({ page: 'newlist', draft: d, faction: id }); return render() }
     case 'sizepick': return anchorPop(t, [...SIZES.map(s => `<button class="btn" style="margin:3px;width:290px;background:${'var(--c)'}" data-a="size" data-id="${s[0]}">${s[0]} - ${s[1]}</button>`), `<button class="btn" style="margin:3px;width:290px" data-a="size" data-id="custom">Custom</button>`].join(''), 'popup');
+    case 'ndisp': { const d = r.draft; syncDraft(); d.Disposition = id; return render() }
     case 'size': { const d = r.draft; syncDraft(); d.MaxPoints = id === 'custom' ? (SIZES.some(s => s[0] === d.MaxPoints) ? 1500 : d.MaxPoints) : +id; d.Detachments = []; closePops(); return render() }
-    case 'choose': { const lst = r.page === 'newlist' ? r.draft : l; if (r.page === 'newlist') syncDraft(); return openChooser(t, () => lst, () => { if (r.page === 'rules') { lst.Disposition = dets(lst).flatMap(d => d.ForceDispositions || [])[0] || lst.Disposition; commit() } render() }) }
+    case 'choose': { const lst = r.page === 'newlist' ? r.draft : l; if (r.page === 'newlist') syncDraft(); return openChooser(t, () => lst, () => { if (r.page === 'rules') { lst.Disposition = effDisp(lst) || lst.Disposition; commit() } render() }) }
     case 'dopen': { syncDraft(); S.open['nlx' + id] = !S.open['nlx' + id]; return render() }
     case 'dtog': { const d = r.draft; syncDraft(); const fd = S.fd[d.Faction + (d.IsLegendsEnabled ? '+L' : '')] || S.fd[d.Faction], i = d.Detachments.indexOf(id);
       if (i >= 0) d.Detachments.splice(i, 1); else { const x = fd.Dettachments.find(z => z.Name === id), tg = new Set(d.Detachments.flatMap(n => fd.Dettachments.find(z => z.Name === n)?.Tags || [])); if (!x || (x.Cost ?? 1) > BS(d.MaxPoints).DetachmentPoints - dpUsed2(d, fd) || (x.Tags || []).some(t => tg.has(t))) return; d.Detachments.push(id) } return render() }
     case 'legtog': { const d = r.draft; syncDraft(); d.IsLegendsEnabled = !d.IsLegendsEnabled; await loadFaction(d); return render() }
-    case 'create': { const d = r.draft; syncDraft(); if (!d.Name.trim()) return; d.Name = d.Name.trim(); d.Disposition = dets(d).flatMap(x => x.ForceDispositions || [])[0] || null; S.lists.push(d); saveLists(); S.cur = d; resetHist(); S.stack = [{ page: 'home' }, { page: 'editor' }]; return render() }
+    case 'create': { const d = r.draft; syncDraft(); if (!d.Name.trim()) return; d.Name = d.Name.trim(); d.Disposition = effDisp(d); S.lists.push(d); saveLists(); S.cur = d; resetHist(); S.stack = [{ page: 'home' }, { page: 'editor' }]; return render() }
     case 'openlist': if (e.target.closest('[data-a=cardmenu]')) return; return openList(id, 'viewer');
     case 'cardmenu': { e.stopPropagation(); return anchorPop(t, `${mi('c-edit', 'edit', 'Edit', `data-id="${id}"`)}${mi('c-del', 'trash', 'Delete', `data-id="${id}"`)}${mi('c-dup', 'copy', 'Duplicate', `data-id="${id}"`)}${mi('c-rules', 'rules', 'Detachment Rules &amp; Stratagems', `data-id="${id}"`)}`, 'popup big', 'right') }
     case 'c-edit': closePops(); return openList(t.dataset.id, 'editor');
@@ -734,7 +740,7 @@ document.addEventListener('click', async e => {
       if (!ls.length) { if (body.AttchedUnitNameType === 1) { body.AttachedUnitName = null; body.AttchedUnitNameType = 0 } }
       else if (S.set.AutoGenerateAttachedUnitNames && !body.AttachedUnitName) { body.AttachedUnitName = genName(body, ls); body.AttchedUnitNameType = 1 }
     });
-    case 'disp': { const disp = [...new Set(fdOf(l).Dettachments.flatMap(d => d.ForceDispositions || []))]; return anchorPop(t, disp.map(x => `<button class="mi" data-a="dodisp" data-id="${esc(x)}">${tc(x)}</button>`).join('')) }
+    case 'disp': { const disp = dispOpts(l).length ? dispOpts(l) : [...new Set(fdOf(l).Dettachments.flatMap(d => d.ForceDispositions || []))]; return anchorPop(t, disp.map(x => `<button class="mi" data-a="dodisp" data-id="${esc(x)}">${tc(x)}</button>`).join('')) }
     case 'dodisp': closePops(); return mutate(() => { l.Disposition = id });
     case 'stog': S.set[t.dataset.k] = !S.set[t.dataset.k]; saveSet(); return render();
     case 'sdd': { const k = t.dataset.k, opts = { Theme: ['System', 'Light', 'Dark'], AppTextSize: ['Small', 'Medium', 'Large'], AppLayout: ['Auto', 'Desktop', 'Mobile'] }[k]; return anchorPop(t, opts.map((x, i) => `<button class="mi" data-a="dosdd" data-k="${k}" data-id="${i}">${x}</button>`).join('')) }
