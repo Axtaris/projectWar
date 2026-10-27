@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.5 (27 October 2026)
+
+- **Soul Grinder is back:** the Chaos Daemons Soul Grinder had been lost in the conversion and could not be added to a list. It is restored with its 11th-edition statline and abilities, its price by copy (180 / 195) and the choice of Mark (Khorne, Tzeentch, Nurgle, Slaanesh) that adds its extra weapon.
+- **Checked against the Munitorum Field Manual:** of the 958 units that are not Legends, 957 were already in the data; the Soul Grinder was the only one missing. The Furies, Giant Chaos Spawn, Spined Chaos Beast, Regimental Attachés and Kill Team Cassius are Legends, so they stay out.
+
 ## 1.2.4 (27 October 2026)
 
 - **Attached units stay in one group:** a Command Squad leading a Krieg squad, with an Ogryn Bodyguard joined to the Command Squad and a Psyker beside it, is one unit and now shows as one group (with all its points added), instead of two overlapping groups. Three such units show as three groups, not six.

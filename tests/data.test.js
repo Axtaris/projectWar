@@ -142,3 +142,11 @@ test('chapter rosters follow the army-rule exclusions', () => {
     const u = bt.Units.find((x) => x.Name === n); assert.ok(u && (u.FactionKeywords || []).includes('Black Templars'), `${n} is the Black Templars datasheet`);
   }
 });
+
+test('Soul Grinder is in the Chaos Daemons roster, priced by copy, and offers its four Marks', () => {
+  const u = read('Chaos Daemons.json').Units.find((x) => x.Name === 'SOUL GRINDER');
+  assert.ok(u, 'Soul Grinder exists');
+  assert.deepEqual(u.Points.map((p) => [p.UnitCount, p.Cost]), [[2, 180], [3, 195]]);
+  const marks = u.UnitComposition.ModelCompositions.flatMap((m) => m.Wargear[0].Options || []).flatMap((o) => o.Options);
+  for (const g of ['khorne', 'tzeentch', 'nurgle', 'slaanesh']) assert.ok(marks.includes(g), `offers ${g}`);
+});
