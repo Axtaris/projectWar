@@ -8,3 +8,8 @@ dist/
 .data-tmp/
 .wrangler/
 node_modules/
+
+# private keys never go in the repository
+.env
+.env.*
+!.env.example
