@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.3 (27 October 2026)
+
+- **Marks and detachment options are back:** the conversion had dropped options that the original data offered, so Daemon Princes of the Heretic Astartes could not choose their Mark, Pactbound Zealots units could not choose theirs, and vehicles in detachments such as Steel Hammer or Houndpack Lance could not become Characters. 117 options were restored (58 tied to a detachment, 59 plain ones such as vox-casters, banners and Marks).
+- **Enhancements follow the chosen options:** a unit that picks a Mark (Khorne, Tzeentch...) or "Steel Hammer Character" now counts that keyword when the list checks which enhancements it may take, and a unit made a Character that way can be your Warlord. Before, only the keywords printed on the datasheet were considered.
+
 ## 1.2.2 (27 October 2026)
 
 - **Enhancements that change the datasheet:** 121 more enhancements now apply their effect to the unit (they only had text before): extra weapon abilities such as [PRECISION] or [ANTI-INFANTRY 5+], +1 Attacks to Pistols, +1 OC, +1 Toughness, +2" Move, Feel No Pain, Scouts, Infiltrators, Stealth, Deep Strike and Fights First granted to the bearer or its unit. Conditional effects (re-rolls, auras, "once per battle") stay as text, because they do not change the printed statline.

@@ -239,3 +239,19 @@ test('weapon effects: no scope means melee, name filters pick the named weapons,
   const ag = by(await run('Aeldari', adet.Name, far.Name, 'Stone of Eldritch Fury')), abase = by(far.Weapons);
   for (const [k, w] of Object.entries(ag)) { const named = /eldritch storm|destructor|singing spear/i.test(k) && /"$/.test(abase[k].Range); assert.equal(w.Range !== abase[k].Range, named, `${k}: range changes only on the named weapons`) }
 });
+
+test('options chosen on a unit (a Mark, "Steel Hammer Character") count for enhancement eligibility', async () => {
+  const elig = async (faction, detName, unitName, wargear, enhName) => {
+    const l = await newList(faction, 3000), fd = api.fdOf(l), d = fd.byName.get(unitName), det = fd.Dettachments.find((x) => x.Name === detName), e = det.Enhancements.find((x) => x.Name === enhName);
+    l.Detachments = [detName]; const u = unit(api, l, 1, unitName); l.Units = [u];
+    const before = api.eligible(e, d, api.kwsU(l, u, d));
+    if (wargear) u.UnitCompositionRef[0].Wargear.push(wargear);
+    return [before, api.eligible(e, d, api.kwsU(l, u, d))];
+  };
+  assert.deepEqual(await elig('Chaos Space Marines', 'PACTBOUND ZEALOTS', 'HERETIC ASTARTES DAEMON PRINCE', 'tzeentch', 'Eye of Tzeentch'), [false, true], 'a Daemon Prince that chose Tzeentch can take Eye of Tzeentch');
+  assert.deepEqual(await elig('Chaos Space Marines', 'PACTBOUND ZEALOTS', 'HERETIC ASTARTES DAEMON PRINCE', 'khorne', 'Eye of Tzeentch'), [false, false], 'but not with another Mark');
+  assert.deepEqual(await elig('Astra Militarum', 'STEEL HAMMER', 'BANEBLADE', 'Steel Hammer Character', 'Titan Killer'), [false, true]);
+  /* the options that carry those choices are offered */
+  const l = await newList('Chaos Space Marines', 3000), dp = api.fdOf(l).byName.get('HERETIC ASTARTES DAEMON PRINCE');
+  assert.ok(dp.UnitComposition.ModelCompositions.some((m) => (m.Wargear[0].Options || []).some((o) => (o.Options || []).includes('khorne'))), 'the Daemon Prince offers its Marks');
+});

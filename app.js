@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar';
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.2.2';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.2.3';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -128,13 +128,20 @@ const nk = k => lc(k).replace(/^\|\s*[^:]*:\s*/, '');
 const kws = d => new Set([...d.Keywords, ...d.FactionKeywords, d.Name].flatMap(k => [lc(k), nk(k)]));
 const flagsOf = d => d?.Flags || 0; /* UnitFlags: 1 NotWarlord, 2 MustBeWarlord, 4 NoEnhancements, 8 MayBeWarlord */
 const isChar = d => kws(d).has('character'), isEpic = d => kws(d).has('epic hero');
-function eligible(e, d) {
-  const k = kws(d), has = x => k.has(lc(x));
+/* keywords of a unit in a list: the datasheet's plus the ones its chosen wargear options add (a Mark, "Tank Ace Character"...) */
+const kwsU = (l, u, d) => {
+  const k = kws(d); if (!u || !l) return k;
+  const all = u.UnitCompositionRef.flatMap(r => r.Wargear.map(lc));
+  defsOf(d).filter(x => all.includes(lc(x.Key))).forEach(x => (x.DatasheetAdjustments || []).filter(a => a.Target === 'Keywords' && a.Type !== 'Remove').forEach(a => (a.Values || []).forEach(v => { k.add(lc(v)); k.add(nk(v)) })));
+  return k;
+};
+function eligible(e, d, kset) {
+  const k = kset || kws(d), has = x => k.has(lc(x));
   if (!(e.RequiredKeywords || []).every(has)) return false;
   if ((e.RequiredOneOfKeywords || []).length && !e.RequiredOneOfKeywords.some(has)) return false;
   if ((e.ExcludedKeywords || []).some(has)) return false;
   if ((e.RequiredUnitNames || []).length && !e.RequiredUnitNames.some(n => lc(n) === lc(d.Name))) return false;
-  const f = e.Features || ''; return /Upgrade|IgnoreStandard/.test(f) || (isChar(d) && !isEpic(d));
+  const f = e.Features || ''; return /Upgrade|IgnoreStandard/.test(f) || (k.has('character') && !k.has('epic hero'));
 }
 const CATS = ['Epic Hero', 'Character', 'Battleline', 'Transport', 'Vehicle', 'Mounted', 'Other'];
 const catOf = d => { const k = kws(d); return CATS.slice(0, 6).find(c => k.has(lc(c))) || 'Other' };
@@ -145,7 +152,7 @@ function errors(l) {
   if (t > l.MaxPoints) e.push(`Your army list exceeds the points limit by ${t - l.MaxPoints}.`);
   if (dpUsed(l) > bs.DetachmentPoints) e.push(`Detachments use ${dpUsed(l)} DP, but only ${bs.DetachmentPoints} are available.`);
   const n = l.Units.filter(u => u.EnhancementId).length; if (n > bs.EnhancementLimit) e.push(`Too many enhancements (${n}/${bs.EnhancementLimit}).`);
-  const seen = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; if (u.EnhancementId) { if (seen[u.EnhancementId]) e.push(`${tc(u.EnhancementId)} is used more than once.`); seen[u.EnhancementId] = 1; const en = enhOf(l, u); if (!en || !eligible(en, d)) e.push(`${tc(u.Id)} cannot take ${tc(u.EnhancementId)}.`) } });
+  const seen = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; if (u.EnhancementId) { if (seen[u.EnhancementId]) e.push(`${tc(u.EnhancementId)} is used more than once.`); seen[u.EnhancementId] = 1; const en = enhOf(l, u); if (!en || !eligible(en, d, kwsU(l, u, d))) e.push(`${tc(u.Id)} cannot take ${tc(u.EnhancementId)}.`) } });
   const cnt = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (d) cnt[u.Id] = (cnt[u.Id] || 0) + 1 });
   Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) || /cannot include more than one of this model/i.test(dsText(d)) ? 1 : kws(d).has('battleline') ? bs.UnitLimit + 3 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
   l.Units.forEach(u => { const m = /army cannot contain both (.+?) and (.+?)\./i.exec(dsText(unitOf(l, u))); if (m && l.Units.some(x => lc(x.Id) === lc(m[1]).trim()) && l.Units.some(x => lc(x.Id) === lc(m[2]).trim()) && lc(u.Id) === lc(m[1]).trim()) e.push(`Your army cannot contain both ${tc(m[1])} and ${tc(m[2])}.`) });
@@ -544,7 +551,7 @@ function unitSheet(d, l, u, o) {
   // BaseInfo.Type 4 = flying base (confirmed on screen); Type 1 + "WxH" = oval base. Other types are not drawn.
   const sv = statVariants(d, l, u);
   const ring = sl.length > 1 || sv?.length > 1 ? '' : bi.Type === 4 ? '<span class="ring dash">Fly</span>' : base ? `<span class="ring ${/x/.test(base) ? 'oval' : ''}">${esc(base)}</span>` : '';
-  const ENH = u && !ro && !(flagsOf(d) & 4) ? enhs(l).filter(e => (!S.set.FilterEnhancements) || eligible(e, d)) : [];
+  const ENH = u && !ro && !(flagsOf(d) & 4) ? enhs(l).filter(e => (!S.set.FilterEnhancements) || eligible(e, d, kwsU(l, u, d))) : [];
   const tagTxt = f => f.trim().replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^Is /, '');
   const rows = ENH.length ? `<div class="sect">Enhancements</div>${ENH.map(e => `<div class="erow-w"><button class="erow ${u.EnhancementId === e.Name ? 'sel' : ''}" data-a="enh" data-id="${esc(e.Name)}"><span class="n">${tc(e.Name)}</span>${e.Features ? e.Features.split(',').filter(f => !/IgnoreStandard|FreeEnhancement/.test(f)).map(f => `<span class="tag">${esc(tagTxt(f))}</span>`).join('') : ''}<span class="tag">${free(e) ? '0' : e.Cost || 0} points</span></button><button class="ibtn" data-a="einfo" data-id="${esc(e.Name)}">${ic('info', 30)}</button></div>`).join('')}` : (ro && en ? `<div class="sect">Enhancement</div><div class="sbody"><p><b class="t">${tc(en.Name)}</b>${esc(en.Description)}</p></div>` : '');
   const [mn, mx] = rng(d), n = u ? models(u) : 0, opts = u ? optList(d) : [], oc = u ? optCounts(u, d) : {};
@@ -591,7 +598,7 @@ function unitSheet(d, l, u, o) {
   const hdr = `<div class="uhdr ${sl.length > 1 || sv?.length > 1 ? 'multi' : ''}"><h3>${tc(d.Name).toUpperCase()}</h3><div class="stats">${statsHtml}</div>
    ${inv ? `<div class="inv ${invMod ? 'mod' : ''}"><b>${esc(inv)}</b><span>INVULNERABLE SAVE</span>${invInfo ? `<small class="invi">${esc(invInfo)}</small>` : ''}</div>` : ''}
    <div class="base">${S.set.ShowUnitImages ? ic('camera', 18) : ''}${ring}</div></div>`;
-  const warl = u && (isChar(d) || flagsOf(d) & 8) && !(flagsOf(d) & 1) && (!ro || u.IsWarlord) ? `<div class="sect w">Warlord</div>${ro ? (u.IsWarlord ? `<div class="sbody"><p>This unit is your Warlord.</p></div>` : '') : `<div class="warl"><button class="in" style="background:${u.IsWarlord ? 'var(--dk)' : '#000'}" data-a="warlord">${u.IsWarlord ? '★ Warlord' : 'Select Warlord'}</button></div>`}` : '';
+  const warl = u && (kwsU(l, u, d).has('character') || flagsOf(d) & 8) && !(flagsOf(d) & 1) && (!ro || u.IsWarlord) ? `<div class="sect w">Warlord</div>${ro ? (u.IsWarlord ? `<div class="sbody"><p>This unit is your Warlord.</p></div>` : '') : `<div class="warl"><button class="in" style="background:${u.IsWarlord ? 'var(--dk)' : '#000'}" data-a="warlord">${u.IsWarlord ? '★ Warlord' : 'Select Warlord'}</button></div>`}` : '';
   const abil = (ab || sp || infoList.length || coreList.length || d.Faction) ? `<div class="sect">Abilities</div><div class="sbody">${coreList.length ? `<div class="corebox">CORE: ${esc(coreList.join(', '))}</div>` : ''}${d.Faction ? `<p><b class="t">FACTION: ${esc(d.Faction)}</b></p>` : ''}${ab}</div>` : '';
   const attx = `${att}${sp}${infos}${att2.length ? `<div class="sect">Attached leaders</div><div class="sbody"><p>${att2.map(x => tc(x.Id)).join(', ')}</p></div>` : ''}`;
   const notes = u && !ro ? `<div class="sect w">Notes</div><div class="fld2"><input class="in sm" id="u-notes" placeholder="Enter unit notes" value="${esc(u.Notes?.Text)}"></div><div class="sect w">Custom unit name</div><div class="fld2"><input class="in sm" id="u-cname" placeholder="Enter custom unit name" value="${esc(u.Notes?.CustomName)}"></div>` : (u?.Notes?.Text ? `<div class="sect w">Notes</div><div class="sbody"><p>${esc(u.Notes.Text)}</p></div>` : '');

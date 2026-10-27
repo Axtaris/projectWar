@@ -129,3 +129,16 @@ test('wargear options resolve to a profile', () => {
   }
   assert.equal(bad.length, 0, bad.slice(0, 10).join('\n'));
 });
+
+/* chapter restrictions from the army rules: the chapter files already hold the right roster */
+test('chapter rosters follow the army-rule exclusions', () => {
+  const names = (f) => new Set(read(f).Units.map((u) => u.Name));
+  const sw = names('Space Wolves.json'), dw = names('Deathwatch.json'), bt = read('Black Templars.json');
+  for (const n of ['APOTHECARY', 'DEVASTATOR SQUAD', 'TACTICAL SQUAD']) assert.ok(!sw.has(n), `Space Wolves cannot include ${n}`);
+  for (const n of ['ASSAULT SQUAD', 'ASSAULT SQUAD WITH JUMP PACKS', 'ATTACK BIKE SQUAD', 'DEVASTATOR SQUAD', 'LAND SPEEDER STORM', 'RELIC TERMINATOR SQUAD', 'SCOUT BIKE SQUAD', 'SCOUT SQUAD', 'SCOUT SNIPER SQUAD', 'TACTICAL SQUAD', 'TERMINATOR ASSAULT SQUAD', 'TERMINATOR SQUAD']) assert.ok(!dw.has(n), `Deathwatch cannot include ${n}`);
+  assert.deepEqual(bt.Units.filter((u) => u.Keywords.includes('Psyker')).map((u) => u.Name), [], 'Black Templars cannot include Psyker models');
+  /* the Black Templars versions of the Codex units carry the Black Templars keyword */
+  for (const n of ['GLADIATOR LANCER', 'GLADIATOR REAPER', 'GLADIATOR VALIANT', 'IMPULSOR', 'LAND RAIDER CRUSADER', 'REPULSOR', 'REPULSOR EXECUTIONER', 'STERNGUARD VETERAN SQUAD', 'TERMINATOR SQUAD']) {
+    const u = bt.Units.find((x) => x.Name === n); assert.ok(u && (u.FactionKeywords || []).includes('Black Templars'), `${n} is the Black Templars datasheet`);
+  }
+});
