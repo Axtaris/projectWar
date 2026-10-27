@@ -32,7 +32,7 @@ Done in 1.1: 1.1, 1.3, 1.5, 1.6. **Carried over to 1.2:** 1.2, 1.4, 1.7, 1.8, 1.
 | # | Feature | Why | Approach |
 |---|---|---|---|
 | 2.1 | ⬜ Share links and QR codes for lists | Sending a list today means exchanging a file | Encode the list in the URL fragment (compressed, never sent to a server); import by pasting the link; QR generated in the browser |
-| 2.2 | ⬜ Several text export formats | There is one text format | Add the common community formats (plain, compact, tournament-style) |
+| 2.2 | ✅ Several text export formats | There is one text format | Done in 1.3.3: GW, Tournament, Short and Simple, with preview, download and copy |
 | 2.3 | ⬜ Real PDF export | Export uses the browser's print dialog | Client-side PDF generation with the existing options (statlines, weapons, abilities, page per datasheet) |
 | 2.4 | 🔎 YellowScribe export | Lets people load an army into Tabletop Simulator | Find the list format YellowScribe accepts, and generate it from the list (no server needed if it is a text format) |
 | 2.5 | 🔎 Tabletop Simulator export | Direct export is not possible from a web page (it writes to a local folder) | Investigate a downloadable file the user drops into the game folder |
