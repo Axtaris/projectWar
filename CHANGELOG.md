@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.5 (27 October 2026)
+
+- **Better PDF:** Export → Pdf now prints an A4 sheet with a header (army, detachment, disposition, points), the datasheets in two columns without cutting a unit across pages, the enhancement with its cost (and its text when Descriptions is on), the Warlord mark, the core abilities, and a footer with the app and data version. Choose "Save as PDF" in the print window.
+- YellowScribe export checked and closed: it only reads New Recruit or BattleScribe rosters, so the route is New Recruit.
+
 ## 1.3.4 (27 October 2026)
 
 - **Share link and QR code:** Export → Share link builds a link that holds the whole list (packed into the address, nothing is stored on a server) and a QR code for it. Opening the link shows the list and offers to save a copy; it never touches your other lists. Links from other people are checked like any imported file. A 2,000-point list makes a link of about 1,700 characters.

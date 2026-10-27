@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.3.4';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.3.5';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -792,15 +792,19 @@ const txtOpts = (t = listText(S.cur)) => `<div class="expwrap"><div><div class="
   <div class="txmain"><div class="cap" style="margin:0 0 3px 5px">Preview <span id="txcount">· ${t.length} characters</span></div><pre class="txpre" id="txpre">${esc(t)}</pre></div></div>`;
 const txtPreview = () => { const l = S.cur, e = $('#txpre'); if (!l || !e) return; const t = listText(l); e.textContent = t; $('#txcount').textContent = `· ${t.length} characters` };
 function printHtml(l) {
-  const fd = fdOf(l), rows = u => { const d = unitOf(l, u), en = enhOf(l, u); return `<div class="u" style="${EXP['Force new page per datasheet'] ? 'break-after:page' : ''}"><b>${u.IsWarlord ? '★ ' : ''}${tc(u.Id)}${models(u) > 1 ? ' (' + models(u) + ' models)' : ''} — ${unitCost(l, u)} pts${en ? ' — ' + tc(en.Name) : ''}</b>
-    ${EXP.Statlines ? d.StatLines.map(s => `<table><tr><th>M</th><th>T</th><th>SV</th><th>W</th><th>LD</th><th>OC</th></tr><tr><td>${esc(s.Movement)}</td><td>${esc(s.Toughness)}</td><td>${esc(s.Save)}</td><td>${esc(s.Wounds)}</td><td>${esc(s.Leadership)}</td><td>${esc(s.OC)}</td></tr></table>`).join('') : ''}
-    ${EXP.Weapons ? visibleWeapons(d, EXP['Filter weapons'] ? u : null, true).map(g => `<table><tr><th>${esc(g.Name)}</th><th>Rng</th><th>A</th><th>${g.IsMelee ? 'WS' : 'BS'}</th><th>S</th><th>AP</th><th>D</th></tr>${g.Weapons.map(w => `<tr><td>${esc(w.Name)}${w.Keywords ? ' [' + esc(w.Keywords) + ']' : ''}</td><td>${esc(w.Range)}</td><td>${esc(w.Attacks)}</td><td>${esc(w.ToHit)}</td><td>${esc(w.Strength)}</td><td>${esc(w.AP)}</td><td>${esc(w.Damage)}</td></tr>`).join('')}</table>`).join('') : ''}
-    ${EXP.Abilities ? d.UnitAbilities.map(a => `<p><b>${esc(a.Title)}:</b> ${esc(a.Text)}</p>`).join('') : ''}${EXP.Keywords ? `<p><i>${esc(d.Keywords.join(', '))}</i></p>` : ''}${EXP.Notes && u.Notes?.Text ? `<p>Notes: ${esc(u.Notes.Text)}</p>` : ''}</div>` };
-  return `<h1>${esc(l.Name)} — ${esc(l.Faction)} — ${total(l)}/${l.MaxPoints} pts</h1><p>${l.Detachments.map(tc).join(' + ')}</p>` +
-    (EXP['Army rules'] ? (fd.ArmyRules || []).map(r => `<p><b>${esc(r.Title)}</b> ${esc(r.Text)}</p>`).join('') + dets(l).map(d => `<p><b>${esc(d.Rule.Title)}</b> ${esc(d.Rule.Text)}</p>`).join('') : '') +
-    CATS.map(c => { const us = l.Units.filter(u => unitOf(l, u) && catOf(unitOf(l, u)) === c); return us.length ? (EXP['Include category headers'] ? `<h2>${c}</h2>` : '') + us.map(rows).join('') : '' }).join('') +
-    (EXP.Stratagems ? dets(l).flatMap(d => d.Stratagems).map(s => `<p><b>${esc(s.Name)} (${s.CPCost}CP)</b> — ${esc(s.When)} ${esc(s.Effect)}</p>`).join('') : '') +
-    (EXP['Core / Stratagems'] ? S.info.CoreStratagems.map(s => `<p><b>${esc(s.Name)} (${s.CPCost}CP)</b> — ${esc(s.Effect)}</p>`).join('') : '');
+  const fd = fdOf(l), disp = effDisp(l), D = EXP.Descriptions;
+  const rows = u => { const d = unitOf(l, u), en = enhOf(l, u), n = models(u), core = (d.CoreAbilities || []).join(', ');
+    return `<div class="u" style="${EXP['Force new page per datasheet'] ? 'break-after:page' : ''}"><div class="uh"><b>${u.IsWarlord ? '★ ' : ''}${tc(u.Id)}</b><span>${n > 1 ? n + ' models · ' : ''}${unitCost(l, u)} pts</span></div>
+    ${en ? `<div class="en"><b>Enhancement: ${tc(en.Name)}</b> (+${en.Cost ?? 0} pts)${D && en.Description ? ' — ' + esc(en.Description) : ''}</div>` : ''}${u.IsWarlord ? '<div class="en"><b>Warlord</b></div>' : ''}
+    ${EXP.Statlines ? d.StatLines.map(s => `<table class="st"><tr><th>M</th><th>T</th><th>SV</th><th>W</th><th>LD</th><th>OC</th></tr><tr><td>${esc(s.Movement)}</td><td>${esc(s.Toughness)}</td><td>${esc(s.Save)}</td><td>${esc(s.Wounds)}</td><td>${esc(s.Leadership)}</td><td>${esc(s.OC)}</td></tr></table>`).join('') : ''}
+    ${EXP.Weapons ? visibleWeapons(d, EXP['Filter weapons'] ? u : null, true).map(g => `<table><tr><th class="l">${esc(g.Name)}</th><th>Rng</th><th>A</th><th>${g.IsMelee ? 'WS' : 'BS'}</th><th>S</th><th>AP</th><th>D</th></tr>${g.Weapons.map(w => `<tr><td class="l">${esc(w.Name)}${w.Keywords ? ` <i>[${esc(w.Keywords)}]</i>` : ''}</td><td>${esc(w.Range)}</td><td>${esc(w.Attacks)}</td><td>${esc(w.ToHit)}</td><td>${esc(w.Strength)}</td><td>${esc(w.AP)}</td><td>${esc(w.Damage)}</td></tr>`).join('')}</table>`).join('') : ''}
+    ${EXP.Abilities ? (core ? `<p class="ab"><b>Core:</b> ${esc(core)}</p>` : '') + d.UnitAbilities.map(a => `<p class="ab"><b>${esc(a.Title)}:</b> ${esc(a.Text)}</p>`).join('') : ''}${EXP.Keywords ? `<p class="kw">${esc(d.Keywords.join(', '))}</p>` : ''}${EXP.Notes && u.Notes?.Text ? `<p class="ab"><b>Notes:</b> ${esc(u.Notes.Text)}</p>` : ''}</div>` };
+  const sec = (t, h) => h ? `<h3>${t}</h3>${h}` : '';
+  return `<div class="ph"><h1>${esc(l.Name || 'Army')}</h1><div>${esc(l.Faction)} · ${l.Detachments.map(tc).join(' + ')}${disp ? ' · ' + tc(disp) : ''}</div><div><b>${total(l)}</b> / ${l.MaxPoints} pts · ${l.Units.length} units</div></div>` +
+    (EXP['Army rules'] ? sec('Army rules', (fd.ArmyRules || []).map(r => `<p class="ab"><b>${esc(r.Title)}</b> ${esc(r.Text)}</p>`).join('') + dets(l).map(d => `<p class="ab"><b>${esc(d.Rule.Title)}</b> ${esc(d.Rule.Text)}</p>`).join('')) : '') +
+    CATS.map(c => { const us = l.Units.filter(u => unitOf(l, u) && catOf(unitOf(l, u)) === c); return us.length ? (EXP['Include category headers'] ? `<h2>${c}</h2>` : '') + `<div class="cols">${us.map(rows).join('')}</div>` : '' }).join('') +
+    (EXP.Stratagems ? sec('Stratagems', dets(l).flatMap(d => d.Stratagems).map(s => `<p class="ab"><b>${esc(s.Name)} (${s.CPCost}CP)</b> — ${esc(s.When)} ${esc(s.Effect)}</p>`).join('')) : '') +
+    (EXP['Core / Stratagems'] ? sec('Core stratagems', S.info.CoreStratagems.map(s => `<p class="ab"><b>${esc(s.Name)} (${s.CPCost}CP)</b> — ${esc(s.Effect)}</p>`).join('')) : '') + `<div class="pf">projectWar ${VERSION} · ${esc(S.dv ? 'data ' + S.dv : '')}</div>`;
 }
 const download = (name, text, type = 'text/plain') => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click() };
 

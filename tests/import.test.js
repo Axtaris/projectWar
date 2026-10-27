@@ -155,3 +155,9 @@ test('real Astra Militarum text: enhancements listed as plain bullets and the "<
   assert.equal(JSON.stringify(cs.map(u => u.EnhancementId)), JSON.stringify(['Bombast-class Vox-array', 'Grand Strategist', 'Reactive Command']));
   assert.equal(JSON.stringify(cs.map(u => !!u.IsWarlord)), JSON.stringify([true, false, false]));
 });
+
+test('print sheet (PDF): header, units, enhancement and warlord are written', async () => {
+  fresh(); const l = (await api.importExternal(APP_STYLE)).list; api.S.cur = l; await api.loadFaction(l);
+  const h = api.printHtml(l);
+  assert.ok(h.includes('<h1>Guerra Eterna</h1>')); assert.ok(h.includes('OVERLORD') || /Overlord/i.test(h)); assert.ok(h.includes('Enhancement:')); assert.ok(h.includes('★'));
+});

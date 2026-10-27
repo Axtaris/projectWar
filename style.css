@@ -209,9 +209,20 @@ a.btn{text-decoration:none;color:inherit}
 .itext{padding:6px 20px;font-size:14px;line-height:17px}
 @media (max-width:900px){.editor{flex-direction:column;overflow:auto}.col{overflow:visible;flex:none}.form{margin-top:8px}.setgrp{margin:0 8px 16px}.srow>div{min-width:100%}}
 @media print{body{background:#fff;color:#000;overflow:visible}#app{display:none}#printroot{display:block!important}}
-#printroot{display:none;color:#000;background:#fff;padding:12px;font:13px Arial}
-#printroot h1{font-size:20px}#printroot .u{break-inside:avoid;border:1px solid #888;margin:8px 0;padding:6px}
-#printroot table{border-collapse:collapse;width:100%}#printroot td,#printroot th{border:1px solid #bbb;padding:2px 5px;font-size:12px}
+@page{size:A4;margin:11mm}
+#printroot,#printroot *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+#printroot{display:none;color:#000;background:#fff;padding:0;font:11px/1.35 Arial,Helvetica,sans-serif}
+#printroot .ph{border-bottom:3px solid #111;margin-bottom:8px;padding-bottom:4px}#printroot h1{font-size:22px;margin:0 0 2px;text-transform:uppercase;letter-spacing:.04em}
+#printroot h2{font-size:13px;margin:12px 0 5px;padding:2px 6px;background:#111;color:#fff;text-transform:uppercase;letter-spacing:.08em;break-after:avoid}
+#printroot h3{font-size:13px;margin:12px 0 4px;border-bottom:1px solid #111;text-transform:uppercase;break-after:avoid}
+#printroot .cols{column-count:2;column-gap:10px}
+#printroot .u{break-inside:avoid;border:1px solid #444;margin:0 0 8px;padding:0 0 4px;display:block}
+#printroot .uh{display:flex;justify-content:space-between;gap:6px;background:#e4e4e4;border-bottom:1px solid #444;padding:3px 6px;font-size:12px;text-transform:uppercase}
+#printroot .en{padding:2px 6px;background:#f3f3f3;border-bottom:1px solid #ccc}
+#printroot table{border-collapse:collapse;width:calc(100% - 12px);margin:4px 6px 0}#printroot td,#printroot th{border:1px solid #bbb;padding:1px 4px;font-size:10px;text-align:center}
+#printroot th{background:#f0f0f0}#printroot .l{text-align:left}#printroot table.st td,#printroot table.st th{font-size:11px}
+#printroot p{margin:0}#printroot .ab{padding:2px 6px 0;font-size:10px}#printroot .kw{padding:3px 6px 0;font-size:9px;color:#444;text-transform:uppercase}
+#printroot .pf{margin-top:12px;font-size:9px;color:#666;text-align:center}
 
 .btn.purple{min-width:140px;justify-content:center}
 .setgrp .row2{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
