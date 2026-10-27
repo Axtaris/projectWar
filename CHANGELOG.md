@@ -9,6 +9,7 @@ Done so far:
 - New list: each detachment can be expanded (arrow on the left) to read its rule, restrictions, enhancements and stratagems before adding it with the + button on the right.
 - New list: expanding a detachment also shows every stratagem in full (when, target, effect, restrictions, CP cost and turn), in two columns.
 - Working theme setting: light, dark and system (follows the OS live). The legal pages follow the same choice. Checked for text contrast in both themes on every screen.
+- Compact (phone) layout parity: the editor, unit page and viewer share the desktop header language (back, name and subtitle, error badge, menu, undo/redo, points gauge, View/Edit). The new-list screen scrolls as one page with a sticky Create bar. Verified at 375 and 320 px widths: no horizontal overflow on any screen, and text contrast checked in both themes.
 
 ## 1.0 (27 October 2026)
 

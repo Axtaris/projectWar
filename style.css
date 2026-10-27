@@ -545,3 +545,19 @@ h2.mid{margin:0;font:600 32px/1.05 var(--cond);text-transform:uppercase;letter-s
 @media (prefers-color-scheme: light){:root:not([data-theme]){--brand-ink:#D9480F}}
 .brand b{color:var(--brand-ink,var(--brand))}
 .strat .h,.strat .h b,.strat .h small{color:#fff}
+
+/* ---- compact header (phones) ---- */
+.chdr{height:auto;min-height:56px;padding:4px 8px 4px 4px;gap:4px;flex-wrap:nowrap}
+.chdr .ename{flex:1;max-width:none;min-width:0}.chdr .ename input,.chdr .ename .enm{font-size:19px}
+.errib{position:relative}.cbadge{position:absolute;right:2px;top:2px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--red);color:#fff;font:600 11px/18px var(--ui);text-align:center;font-style:normal}
+.crow{display:flex;align-items:center;gap:6px;padding:6px 8px 6px 4px;border-bottom:1px solid var(--ln)}
+.crow .eptsb{flex:1;width:auto;min-width:0}.crow .btn{min-height:44px;padding:0 14px}
+@media (max-width:380px){.crow .btn{padding:0 10px}}
+@media (max-width:900px){.searchrow{width:100%}.top2 .fsearch{flex:1;width:auto;min-width:0;max-width:none}}
+@media (max-width:420px){.top2 .brand{font-size:19px;letter-spacing:.1em}}
+.crow .gauge3{background:var(--ln)}
+@media (max-width:900px){.nlbody{display:block;overflow:auto}.nlmain{flex:none;overflow:visible}.nlside{overflow:visible}}
+
+/* phones: a sticky bar keeps the detachment budget and the Create button in reach while scrolling */
+.nlbar{display:none}
+@media (max-width:900px){.nlbar{display:flex;align-items:center;gap:12px;position:sticky;bottom:0;z-index:2;padding:10px 12px;background:var(--p1);border-top:2px solid var(--c)}.nlbar .btn{flex:1;min-height:48px}.nlbar .mono{color:var(--lt);white-space:nowrap}.nlside>.btn.pri{display:none}}

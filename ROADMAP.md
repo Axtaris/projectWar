@@ -17,7 +17,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done · 🔎 needs investigat
 | 1.3 | ⬜ Automated tests and CI | Points, list validation and data loading are untested | Plain Node tests for the pure functions plus a data-integrity check; run on every push |
 | 1.4 | ⬜ Automatic data deployment | Data changes do not redeploy the site by themselves | A workflow in the data repository that triggers the site build |
 | 1.5 | 🟨 Theme setting (light, dark, system) done; accent colour choice pending | The setting exists but only the dark theme is implemented | CSS variables are already used; add a light palette and honour `prefers-color-scheme` |
-| 1.6 | ⬜ Compact (narrow-screen) layout parity | The unit page and viewer on small screens use an older design | Apply the desktop header and surfaces; test on phone widths |
+| 1.6 | ✅ Compact (narrow-screen) layout parity | The unit page and viewer on small screens use an older design | Apply the desktop header and surfaces; test on phone widths |
 | 1.7 | 🔎 Donate button | A way for people to support the project voluntarily | A plain outbound link to a donation platform chosen by the maintainer (no embedded widgets, scripts or tracking), shown in Settings and on the home panel. Update the privacy policy and the terms (donations are voluntary, non-refundable and unlock nothing), keep the CSP unchanged, and pick the platform after checking availability and fees for Colombia |
 
 ## Phase 2: Sharing and export

@@ -50,7 +50,6 @@ Then open <http://localhost:8080>. `serve.py` is a small development server: cac
 - **Data accuracy.** The data is built semi-automatically from community sources and has errors. Wargear options in particular are inferred and can differ from the printed datasheet.
 - **Legends and Adeptus Titanicus** datasheets have **not** been updated to 11th edition.
 - **Enhancements and detachments added in 11th** carry their text but not their machine-readable effects, so they do not change statlines or enforce restrictions.
-- The compact (narrow-screen) layout still uses an older header and has had less testing than the desktop layout.
 - There are no automated tests.
 
 ## Features not available yet

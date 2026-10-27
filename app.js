@@ -283,7 +283,7 @@ PAGES.faction = () => {
   return `<div class="page"><div class="top2"><button class="ibtn" data-a="back">${ic('back', 28)}</button><div class="brand">project<b>War</b></div><div style="flex:1"></div><input class="in fsearch" id="fsearch" placeholder="Search factions" autocomplete="off"></div>
   <div class="scroll fpage"><div class="frow"><h1 class="big sm">New list</h1><span class="lbl">Choose a faction · the colour follows you into the list</span></div>${Object.keys(cats).sort((a, b) => order.indexOf(a) - order.indexOf(b)).map(c => `<div class="fgrp"><div class="gh"><span class="lbl">${esc(c)}</span><i></i></div><div class="fgrid">${cats[c].sort((a, b) => a.Name.localeCompare(b.Name)).map(f => `<button class="fbtn" style="--fc:${f.DarkColor}" data-a="pickfaction" data-id="${esc(f.Name)}">${esc(f.Name)}</button>`).join('')}</div></div>`).join('')}</div></div>`;
 };
-document.addEventListener('input', e => { if (e.target.id === 'nl-name') { const v = e.target.value.trim(), m = $('#nl-sum'); if (m) m.textContent = v || '—'; const c = $('#nl-create'); if (c) c.classList.toggle('off', !v); return } if (e.target.id !== 'fsearch') return; const q = e.target.value.trim().toLowerCase(); document.querySelectorAll('.fbtn').forEach(b => b.style.display = b.textContent.toLowerCase().includes(q) ? '' : 'none'); document.querySelectorAll('.fgrp').forEach(g => g.style.display = [...g.querySelectorAll('.fbtn')].some(b => b.style.display !== 'none') ? '' : 'none') });
+document.addEventListener('input', e => { if (e.target.id === 'nl-name') { const v = e.target.value.trim(), m = $('#nl-sum'); if (m) m.textContent = v || '—'; document.querySelectorAll('[data-a=create]').forEach(c => c.classList.toggle('off', !v)); return } if (e.target.id !== 'fsearch') return; const q = e.target.value.trim().toLowerCase(); document.querySelectorAll('.fbtn').forEach(b => b.style.display = b.textContent.toLowerCase().includes(q) ? '' : 'none'); document.querySelectorAll('.fgrp').forEach(g => g.style.display = [...g.querySelectorAll('.fbtn')].some(b => b.style.display !== 'none') ? '' : 'none') });
 
 /* ---- new list ---- */
 PAGES.newlist = r => {
@@ -307,7 +307,8 @@ PAGES.newlist = r => {
   <div class="dpb"><div class="kv"><span class="mu">Detachment points</span><span class="mono dleft">${used} / ${total}</span></div><div class="gauge3"><i style="width:${gp}%"></i></div></div><div class="hr"></div><span class="lbl">Selected</span>
   <div class="chosen">${chosen.length ? chosen.map(d => `<div class="crow"><b>${tc(d.Name)}</b><span class="mono dleft">${d.Cost ?? 1} DP</span></div>`).join('') : '<span class="mu">No detachment selected yet.</span>'}</div>
   <button class="toggle ${l.IsLegendsEnabled ? 'on' : ''}" data-a="legtog"><i></i>${l.IsLegendsEnabled ? 'Include Legend datasheets' : 'Exclude Legend datasheets'}</button>
-  <div style="flex:1"></div><button class="btn pri ${l.Name.trim() ? '' : 'off'}" id="nl-create" data-a="create">Create list</button></aside></div></div>`;
+  <div style="flex:1"></div><button class="btn pri ${l.Name.trim() ? '' : 'off'}" id="nl-create" data-a="create">Create list</button></aside>
+  <div class="nlbar"><span class="mono">${used} / ${total} DP</span><button class="btn pri ${l.Name.trim() ? '' : 'off'}" data-a="create">Create list</button></div></div></div>`;
 };
 const dpUsed2 = (l, fd) => l.Detachments.reduce((a, n) => a + (fd.Dettachments.find(d => d.Name === n)?.Cost ?? 1), 0);
 
@@ -343,6 +344,16 @@ function widePane(l) {
   const P2 = unitSheet(d, l, u || null, { ro: !u, split: true });
   return `${P2.hdr}<div class="ucols"><div class="ucol">${P2.left}</div><div class="ucol">${P2.right}</div></div><div class="ukw"><div>${P2.kwL}</div><div>${P2.kwR}</div></div>`;
 }
+/* Compact (narrow-screen) header, same language as the desktop one: back | name + subtitle | errors | menu, then undo/redo | points | View/Edit */
+const compactHdr = (l, mode) => {
+  const t = total(l), pct = Math.min(100, Math.round(t / l.MaxPoints * 100)), ne = errors(l).length, over = t > l.MaxPoints ? 'over' : '', view = mode === 'viewer', sub = esc(l.Faction) + ' \u00b7 ' + esc(sizeName(l.MaxPoints).split(' - ')[1] || 'Custom');
+  return `<div class="top2 ehdr chdr"><button class="ibtn" data-a="back" aria-label="Back">${ic('back', 28)}</button>
+  <div class="ename">${view ? `<b class="enm">${esc(l.Name)}</b>` : `<input id="army-name" value="${esc(l.Name)}" aria-label="Army name">`}<small>${sub}</small></div>
+  <button class="ibtn errib" data-a="errors" aria-label="List errors: ${ne}">${ic('warn', 26)}${ne ? `<i class="cbadge">${ne}</i>` : ''}</button><button class="ibtn" data-a="menu" aria-label="Menu">${ic('menu', 30)}</button></div>
+  <div class="crow">${view ? '' : `<button class="ibtn" data-a="undo" aria-label="Undo">${ic('undo', 26)}</button><button class="ibtn" data-a="redo" aria-label="Redo">${ic('undo', 26, 'transform:scaleX(-1)')}</button>`}
+  <div class="eptsb"><div class="kv"><span class="lbl">Points</span><span class="pts2 ${over}" style="width:auto">${t} / ${l.MaxPoints}</span></div><div class="gauge3 ${over}"><i style="width:${pct}%"></i></div></div>
+  ${mode === 'unit' ? '' : `<button class="btn" data-a="mode">${view ? 'Edit' : 'View'}</button>`}</div>`;
+};
 const listHdr = (l, view) => {
   const t = total(l), pct = Math.min(100, Math.round(t / l.MaxPoints * 100)), ne = errors(l).length, over = t > l.MaxPoints ? 'over' : '';
   return `<div class="top2 ehdr"><button class="btn ghost" data-a="back">Lists</button>
@@ -360,9 +371,7 @@ function wideEditor() {
 PAGES.editor = () => {
   if (WIDE()) return wideEditor();
   const l = S.cur, errs = errors(l);
-  return `<div class="page"><div class="topbar">${pbar(l)}<button class="ibtn" data-a="menu">${ic('menu', 34)}</button></div>
-  <div class="namebar"><button class="ibtn" data-a="undo">${ic('undo', 30)}</button><button class="ibtn" data-a="redo">${ic('undo', 30, 'transform:scaleX(-1)')}</button>
-  <div class="namebtn" id="nameb"><input id="army-name" value="${esc(l.Name)}"></div><button class="errbtn" data-a="errors"><span>List Errors</span>${ic('warn', 30)}</button></div>
+  return `<div class="page">${compactHdr(l, 'editor')}
   <div class="editor"><div class="col"><div class="searchrow"><div style="position:relative;flex:1"><input class="in sm" id="rsearch" placeholder="Search" value="${esc(S.roster)}"><button class="ibtn" style="position:absolute;right:2px;top:0" data-a="clearsearch">${ic('close', 30)}</button></div><button class="ibtn" data-a="rfilter">${ic('filter', 34)}</button></div><div id="roster">${rosterHtml(l)}</div></div>
   <div class="col" id="armycol">${listHtml(l)}</div></div></div>`;
 };
@@ -505,8 +514,7 @@ function unitSheet(d, l, u, o) {
 PAGES.unit = r => {
   const l = S.cur, u = l.Units.find(x => x.InstanceId === cu(r)); if (!u) { S.stack.pop(); return PAGES[here().page](here()) }
   const d = unitOf(l, u);
-  return `<div class="page"><div class="topbar"><button class="ibtn" data-a="back">${ic('back', 30)}</button>${pbar(l)}<button class="ibtn" data-a="menu">${ic('menu', 34)}</button></div>
-  <div class="namebar"><button class="ibtn" data-a="undo">${ic('undo', 30)}</button><button class="ibtn" data-a="redo">${ic('undo', 30, 'transform:scaleX(-1)')}</button><div class="namebtn"><input id="army-name" value="${esc(l.Name)}"></div><button class="errbtn" data-a="errors"><span>List Errors</span>${ic('warn', 30)}</button></div>
+  return `<div class="page">${compactHdr(l, 'unit')}
   <div class="scroll" id="unitscroll">${unitSheet(d, l, u, { ro: r.ro, viewer: r.ro })}</div></div>`;
 };
 /* read-only sheet without a list (search / roster preview) */
@@ -531,7 +539,7 @@ function wideViewer() {
 PAGES.viewer = () => {
   if (WIDE()) return wideViewer();
   const l = S.cur, ds = dets(l);
-  return `<div class="page"><div class="topbar">${pbar(l)}<button class="ibtn" data-a="menu">${ic('menu', 34)}</button></div><div class="scroll" style="padding:4px 6px">
+  return `<div class="page">${compactHdr(l, 'viewer')}<div class="scroll" style="padding:4px 6px">
   <div style="background:var(--c);padding:6px 8px;border-radius:3px">Name: ${esc(l.Name)}<br>Disposition: ${l.Disposition ? tc(l.Disposition) : '—'}</div>
   ${S.set.ShowDetachmentsInViewer ? ds.map(d => `<div style="margin:4px 8px;border:1px solid var(--c);border-radius:4px;padding:4px">${detCard(d, l, true)}${S.set.ShowStratagemsInViewer ? exp('vs' + d.Name, 'Stratagems', d.Stratagems.map(s => stratHtml(s, d.Name + s.Name)).join(''), false) : ''}</div>`).join('') : ''}
   ${S.set.ShowCoreStratagemsInViewer ? exp('vcore', 'Core Stratagems', S.info.CoreStratagems.map(s => stratHtml(s, 'core' + s.Name)).join(''), false) : ''}
