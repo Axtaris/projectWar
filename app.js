@@ -6,7 +6,7 @@ const lc = s => String(s || '').toLowerCase();
 const tc0 = s => String(s || '').toLowerCase().replace(/(^|[\s(\-"“])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Of|And)\b/g, x => x.toLowerCase());
 const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar';
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.1-dev';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.1.1';
 
 /* ---------- icons (Material) ---------- */
 const P = {
