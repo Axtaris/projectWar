@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.2.8';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.3.1';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -765,10 +765,11 @@ document.addEventListener('click', async e => {
     case 'hopen': return openResult(S.history[+id]);
     case 'sort': return anchorPop(t, ['Sort by name', 'Sort by faction', 'Sort by last modified'].map((x, i) => `<button class="btn purple sortb" data-a="dosort" data-id="${i}">${x}</button>`).join(''), 'popup sortp', 'right');
     case 'dosort': S.set.HomeScreenSort = +id; saveSet(); return render();
-    case 'plusmenu': return anchorPop(t, `${mi('imptext', 'clip', 'Import from copied text')}${mi('impfile', 'export', 'Import list file')}`, 'popup big plusm');
+    case 'plusmenu': return anchorPop(t, `${mi('imppaste', 'clip', 'Paste a list (New Recruit, official app)')}${mi('imptext', 'clip', 'Import from copied text')}${mi('impfile', 'export', 'Import list file')}`, 'popup big plusm');
     case 'newl': return nav('faction');
     case 'impfile': case 'importfile': return pickFile();
-    case 'imptext': { const pp = $('.popup'); let ok = false; try { ok = importList(await navigator.clipboard.readText()) } catch { } if (ok) { closePops(); return render() } pp?.querySelector('.pmsg,.pcode')?.remove(); pp?.insertAdjacentHTML('beforeend', '<div class="pmsg">Failed to import.</div>'); return }
+    case 'imppaste': { closePops(); return modal('Paste a list', '<p style="margin:0 0 8px;color:var(--dim)">Copy the list from New Recruit (share or export as text) or from the official app and paste it here. It is read in your browser and not sent anywhere.</p><textarea id="imp-ta" class="in" rows="10" style="width:100%;font-family:var(--mono);font-size:13px" aria-label="List text"></textarea>', 'Import', async p => { const txt = p.querySelector('#imp-ta').value; if (importList(txt)) { closePops(); return render() } const r = await importExternal(txt); closePops(); if (r?.list) { render(); return importReport(r) } return importReport(r || { error: 'This text does not look like a list I can read.' }) }) }
+    case 'imptext': { const pp = $('.popup'); let ok = false, txt = ''; try { txt = await navigator.clipboard.readText(); ok = importList(txt) } catch { } if (!ok && txt) { const r = await importExternal(txt); if (r?.list) { closePops(); render(); return importReport(r) } } if (ok) { closePops(); return render() } pp?.querySelector('.pmsg,.pcode')?.remove(); pp?.insertAdjacentHTML('beforeend', '<div class="pmsg">Failed to import.</div>'); return }
     case 'pickfaction': { const d = newDraft(id); await loadFaction(d); S.stack.push({ page: 'newlist', draft: d, faction: id }); histPush(); return render() }
     case 'sizepick': return anchorPop(t, [...SIZES.map(s => `<button class="btn" style="margin:3px;width:290px;background:${'var(--c)'}" data-a="size" data-id="${s[0]}">${s[0]} - ${s[1]}</button>`), `<button class="btn" style="margin:3px;width:290px" data-a="size" data-id="custom">Custom</button>`].join(''), 'popup');
     case 'ndisp': { const d = r.draft; syncDraft(); d.Disposition = id; return render() }
@@ -847,7 +848,105 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => { const t = e.target; if (t.id === 'army-name') commit(); if (t.id === 'u-notes' || t.id === 'u-cname' || t.id === 'u-att') commit(); if (t.id === 'nl-pts') { syncDraft(); render() } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePops(); if (e.key === 'Enter' && e.target.id === 'army-name') e.target.blur() });
 /* the "…" button sits inside a tile button: keep tile click from firing */
-function pickFile() { const i = document.createElement('input'); i.type = 'file'; i.accept = '.json,.txt'; i.onchange = async () => { const f = i.files[0]; if (f && f.size < 5e6 && importList(await f.text())) render() }; i.click() }
+function pickFile() { const i = document.createElement('input'); i.type = 'file'; i.accept = '.json,.txt'; i.onchange = async () => { const f = i.files[0]; if (!f || f.size > 5e6) return; const txt = await f.text(); if (importList(txt)) return render(); const r = await importExternal(txt); if (r?.list) { render(); importReport(r) } else importReport(r || { error: 'This file does not look like a list I can read.' }) }; i.click() }
+/* ---------- lists written by other builders (New Recruit, the official app): plain text, and roster JSON ----------
+   The text is matched against the datasheets of the army it names. Points are not trusted (ours apply); what cannot be matched is reported, never guessed. */
+const nrn = s => String(s).toLowerCase().replace(/[’‘`´]/g, "'").replace(/&/g, ' and ').replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+const nrs = s => nrn(s).replace(/ies$/, 'y').replace(/(?<=[a-z])s$/, '');   /* plural-insensitive key */
+const HEAD_RX = /^(?:[•·▪●○◦*+–-]\s*)?(?:(\d+)\s*[x×]\s+)?(.+?)\s*[(\[]\s*(\d{1,5})\s*(?:pts?|points?)?\s*[)\]]\s*(?::\s*(.*))?$/i;
+/* New Recruit / BattleScribe roster JSON -> the same lines the text export would have */
+function rosterJsonToText(j) {
+  const r = j?.roster || (j?.forces ? j : null); if (!r) return null;
+  const pts = o => { const c = (o.costs || []).find(x => /pts|points/i.test(x.name || '')); return c ? Math.round(+c.value) : null };
+  const out = [`${r.name || 'Imported list'} (${pts(r) ?? 0} Points)`];
+  const kids = (sel, depth, acc) => (sel.selections || []).forEach(s => { acc.push(`${'  '.repeat(depth)}• ${s.number > 1 ? s.number + 'x ' : ''}${s.name}`); kids(s, depth + 1, acc) });
+  (r.forces || []).forEach(f => {
+    out.push(f.catalogueName || f.name || '');
+    (f.selections || []).forEach(s => {
+      const p = pts(s);
+      if ((s.type === 'unit' || s.type === 'model') && p != null) { out.push(`${s.name} (${p} Points)`); kids(s, 1, out) }
+      else { out.push(`${s.name}: ${(s.selections || []).map(x => x.name).join(', ')}`); (s.selections || []).forEach(x => out.push(x.name)) }
+    });
+  });
+  return out.join('\n');
+}
+function matchUnit(fd, name, idx) {
+  const k = nrn(name); return idx.exact.get(k) || idx.sing.get(nrs(name)) || (k.length > 7 ? [...idx.exact].find(([n]) => n.startsWith(k) || k.startsWith(n))?.[1] : null) || null;
+}
+function unitIndex(fd) { const exact = new Map(), sing = new Map(); fd.all.forEach(d => { exact.set(nrn(d.Name), d); sing.set(nrs(d.Name), d) }); return { exact, sing } }
+/* the lines of a list -> units [{d, header, count, models: Map, weapons: Map, warlord, enh, attach}] and the lines that look like units but match nothing */
+function readUnits(lines, fd) {
+  const idx = unitIndex(fd), units = [], loose = []; let cur = null;
+  lines.forEach(raw => {
+    const line = raw.trim(); if (!line || /^exported with|^discord|^player/i.test(line)) return;
+    const m = HEAD_RX.exec(line);
+    if (m) {
+      const d = matchUnit(fd, m[2], idx);
+      if (d) { cur = { d, header: m[2], pts: +m[3], models: new Map(), weapons: new Map(), warlord: false, enh: null, attach: null }; units.push(cur); (m[4] || '').split(/,\s*/).filter(Boolean).forEach(x => detail(cur, x)); return }
+      if (!cur || !/^\s*[•·▪●○◦*+–-]/.test(raw)) { loose.push(m[2]); cur = null; return }   // a unit we do not know: its details must not leak into the previous unit
+    }
+    if (cur) detail(cur, line.replace(/^[•·▪●○◦*+–-]\s*/, ''));
+  });
+  function detail(u, x) {
+    x = x.trim(); if (!x) return;
+    if (/^warlord$/i.test(x)) { u.warlord = true; return }
+    let m;
+    if ((m = /^enhancements?\s*[:\-]\s*(.+)$/i.exec(x))) { u.enh = m[1].trim(); return }
+    if ((m = /^(.+?)\s*\((?:enhancement|upgrade)\)$/i.exec(x))) { u.enh = m[1].trim(); return }
+    if ((m = /^(?:attached to|leading|leads|led by|joins|bodyguard)\s*[:\-]?\s*(.+)$/i.exec(x))) { u.attach = m[1].trim(); return }
+    let n = 1; if ((m = /^(\d+)\s*[x×]\s+(.+)$/i.exec(x))) { n = +m[1]; x = m[2].trim() }
+    let tail = ''; if ((m = /^([^:]+):\s*(.+)$/.exec(x))) { x = m[1].trim(); tail = m[2] }
+    const comp = u.d.UnitComposition.ModelCompositions.find(c => nrs(c.ModelName) === nrs(x));
+    if (comp) u.models.set(comp.ModelName, (u.models.get(comp.ModelName) || 0) + n); else u.weapons.set(nrn(x), (u.weapons.get(nrn(x)) || 0) + n);
+    tail.split(/,\s*/).filter(Boolean).forEach(w => u.weapons.set(nrn(w), (u.weapons.get(nrn(w)) || 0) + 1));
+  }
+  return { units, loose };
+}
+async function importExternal(text) {
+  text = String(text || '').replace(/^﻿/, ''); if (!text.trim() || text.length > 2e5) return null;
+  let src = text; const t = text.trim();
+  if (t[0] === '{' || t[0] === '[') { try { src = rosterJsonToText(JSON.parse(t)) } catch { return null } if (!src) return null }
+  const lines = src.split(/\r?\n/).map(x => x.replace(/\*\*|__/g, '').replace(/^\s*\+{2,}\s*/, '').replace(/\s*\+{2,}\s*$/, '').trimEnd());
+  const body = nrn(src);
+  const names = S.info.Factions.map(f => f.Name).filter(n => body.includes(nrn(n))).sort((a, b) => b.length - a.length);
+  if (!names.length) return { error: 'I could not tell which army this list is for. Make sure it includes the army name (for example “Necrons” or “Space Wolves”).' };
+  let best = null;
+  for (const name of names) { const l = newDraft(name); try { await loadFaction(l) } catch { continue } const r = readUnits(lines, fdOf(l)); if (!best || r.units.length > best.r.units.length) best = { name, l, r } }
+  if (!best || !best.r.units.length) return { error: 'No unit of the list matched the datasheets of ' + (best?.name || names[0]) + '.' };
+  const { l, r } = best, fd = fdOf(l), notes = [], declared = ((/[(\[]\s*(\d{1,2}[,.]\d{3}|\d{3,5})\s*(?:pts?|points?)\s*[)\]]/i.exec(src) || [])[1] || '').replace(/[,.]/g, '');
+  const nm = (lines.find(x => x.trim()) || '').replace(/\s*[(\[]\s*\d+.*$/, '').replace(/^[+\s]+|[+\s]+$/g, '').trim();
+  l.Name = nm && nm.length < 80 && !names.some(n => nrn(n) === nrn(nm)) && !/^(army roster|roster)/i.test(nm) ? nm.slice(0, 60) : 'Imported list';
+  l.MaxPoints = declared ? (SIZES.map(s => s[0]).find(s => s >= +declared) || +declared) : 2000;
+  const dn = lines.map(x => nrn(x.replace(/^[•·▪●○◦*+–-]\s*/, '')));
+  l.Detachments = fd.Dettachments.filter(d => dn.some(x => x === nrn(d.Name) || (x.length < 90 && x.includes(nrn(d.Name))))).map(d => d.Name);
+  const cap = BS(l.MaxPoints).DetachmentPoints; let used = 0; l.Detachments = l.Detachments.filter(n => { const c = fd.Dettachments.find(d => d.Name === n)?.Cost ?? 1; if (used + c > cap) { notes.push(`The detachment ${tc(n)} was left out: it does not fit in the detachment points.`); return false } used += c; return true });
+  if (!l.Detachments.length) notes.push('No detachment was found in the text: choose one in the editor.');
+  let id = 0; const made = [];
+  r.units.forEach(e => {
+    const d = e.d, sizes = d.Points.map(p => p.ModelCount), min = Math.min(...sizes), max = Math.max(...sizes), seen = [...e.models.values()].reduce((a, b) => a + b, 0);
+    const n = seen ? Math.max(min, Math.min(max, seen)) : min;
+    const u = { InstanceId: ++id, AttachedToInstanceId: 0, Id: d.Name, EnhancementId: null, Upgrades: [], UnitCompositionRef: composition(d, n), Notes: { CustomName: '', Text: '' }, IsWarlord: e.warlord, AttachedUnitName: null, AttchedUnitNameType: 0 };
+    const counts = optCounts(u, d);
+    optList(d).forEach(g => g.o.Options.forEach(a => { const parts = a.split(/ and |, /).map(nrn), c = Math.min(...parts.map(p => e.weapons.get(p) || e.weapons.get(nrs(p)) || 0)); if (c > 0) counts[altKey(g, a)] = Math.min(c, optMax(g, n, n), n) }));
+    try { rebuildLoadouts(u, d, counts) } catch { }
+    if (e.enh) { const en = enhs(l).find(x => nrn(x.Name.replace(/\s*\((?:upgrade|aura)\)$/i, '')) === nrn(e.enh.replace(/\s*\((?:upgrade|aura)\)$/i, ''))); if (en) u.EnhancementId = en.Name; else notes.push(`The enhancement “${e.enh}” of ${tc(d.Name)} is not offered by the detachments found.`) }
+    made.push([u, e]);
+  });
+  made.forEach(([u, e]) => { if (e.attach) { const host = made.find(([x]) => nrn(x.Id) === nrn(e.attach) || nrs(x.Id) === nrs(e.attach)); if (host && host[0] !== u) u.AttachedToInstanceId = host[0].InstanceId } });
+  l.Units = made.map(([u]) => u);
+  if (!l.Units.some(u => u.IsWarlord)) notes.push('No Warlord was marked: pick one in the editor.');
+  if (l.Units.some(u => { const d = unitOf(l, u); return ledNames(l, u).size && !u.AttachedToInstanceId }) && !made.some(([u]) => u.AttachedToInstanceId)) notes.push('Leaders are not attached to their units: do it in the editor (the text does not say which unit they lead).');
+  if (declared && Math.abs(total(l) - +declared) > 0) notes.push(`The list says ${declared} points; with the points of the current Munitorum Field Manual it is ${total(l)}.`);
+  const meta = new Set([nrn(nm), ...names.map(nrn), ...fd.Dettachments.map(d => nrn(d.Name)), 'combat patrol', 'incursion', 'strike force', 'onslaught']);
+  const skipped = [...new Set(r.loose)].filter(x => !meta.has(nrn(x)) && !/^(total|detachment|battle size|force disposition|army rule)/i.test(x));
+  l.Id = uid(); l.LastModified = new Date().toISOString(); l.Disposition = effDisp(l); S.lists.push(l); saveLists();
+  return { list: l, faction: best.name, count: l.Units.length, skipped, notes };
+}
+function importReport(r) {
+  if (r.error) return modal('Import', `<p>${esc(r.error)}</p>`, null);
+  const li = a => a.length ? `<ul style="margin:6px 0 6px 18px">${a.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
+  return modal(`Imported “${esc(r.list.Name)}”`, `<p>${esc(r.faction)}: ${r.count} unit${r.count === 1 ? '' : 's'} imported, ${total(r.list)} points.</p>${r.skipped.length ? `<p><b>Not found in the datasheets, left out:</b></p>${li(r.skipped)}` : ''}${r.notes.length ? `<p><b>Check:</b></p>${li(r.notes)}` : ''}`, 'Open list', () => { closePops(); openList(r.list.Id, 'editor') });
+}
 function importList(text) {
   try {
     if (typeof text !== 'string' || text.length > 5e6) return false;

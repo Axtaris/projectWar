@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.1 (27 October 2026)
+
+First package of the 1.3 line (sharing and export).
+
+- **Import lists from New Recruit and the official app:** Import list → "Paste a list" accepts the text you copy from New Recruit (share / export as text), from the official Warhammer 40,000 app, and BattleScribe-style text or roster JSON. It finds the army, the detachments, the battle size, the units with their number of models, the Warlord, enhancements, wargear options named in the list and leaders attached with an explicit line. It uses the points of the current Munitorum Field Manual instead of the points written in the list, and shows a report of anything it could not match (units are never guessed) and what to check. Reading a file with the same formats works too, and our own backup files import as before.
+
+## 1.3 (in development)
+
+Sharing and export (phase 2 of the roadmap): import from other builders (done), share links and QR codes, more text formats, PDF, and the YellowScribe and Tabletop Simulator exports. See [ROADMAP.md](ROADMAP.md).
+
 ## 1.2.8 (27 October 2026)
 
 - **Nork Deddog:** he has the same Loyal Protector ability as the Ogryn Bodyguard, so like the Ogryn he must be joined to a Command Squad, and now he can be (before, no Command Squad accepted him). A Command Squad takes only one Loyal Protector (Ogryn or Nork, not both). The same rule now covers every unit that joins another unit (Support Weapon platforms, Servitors, Cryptothralls...): one of each kind per unit.
