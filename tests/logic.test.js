@@ -302,3 +302,15 @@ test('Nork Deddog: joins a Command Squad like the Ogryn Bodyguard, cannot be War
   l.Units = [cs, mk(2, 'NORK DEDDOG', 1), mk(3, 'OGRYN BODYGUARD', 1)]; assert.match(errs(), /only have one Loyal Protector/, 'one Loyal Protector per Command Squad');
   const sl = api.unitOf(l, mk(4, 'SLY MARBO')); assert.equal(sl.Flags & 1, 1, 'Sly Marbo cannot be your Warlord');
 });
+
+test('detachment effects apply to units that have ALL the keywords listed (Designation Force does not touch a Leman Russ)', async () => {
+  const l = await newList('Astra Militarum', 3000); l.Detachments = ['DESIGNATION FORCE']; const fd = api.fdOf(l);
+  const titles = (n) => api.effFor(l, fd.byName.get(n)).flatMap((e) => (e.AddedAbilities || []).map((a) => a.Title));
+  assert.ok(!titles('LEMAN RUSS BATTLE TANK').includes('Signal Flares'), 'a Leman Russ is not Infantry Smoke');
+  const inf = fd.all.find((d) => ['Astra Militarum', 'Infantry', 'Smoke'].every((k) => d.Keywords.concat(d.FactionKeywords).includes(k)));
+  assert.ok(inf && titles(inf.Name).includes('Signal Flares'), `an Infantry Smoke unit (${inf?.Name}) does`);
+  // Champions of Fenris: Countercharge only for Adeptus Astartes Infantry Characters
+  const sw = await newList('Space Wolves', 3000); sw.Detachments = ['CHAMPIONS OF FENRIS']; const sf = api.fdOf(sw);
+  const has = (n) => api.effFor(sw, sf.byName.get(n)).some((e) => (e.AddedAbilities || []).some((a) => a.Title === 'Countercharge'));
+  assert.equal(has('INTERCESSOR SQUAD'), false); assert.equal(has('CAPTAIN'), true);
+});

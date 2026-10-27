@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.2 (27 October 2026)
+
+- **Detachment rules reached units they do not apply to:** an effect that lists several keywords (for example Designation Force: Astra Militarum Infantry Smoke) was applied to every unit that had any one of them, so a Leman Russ Battle Tank received the Signal Flares ability. A unit must now have all the keywords. 34 detachment effects in 17 armies were affected (among them Champions of Fenris, Steel Hammer, Chorus of Condemnation, Armoured Warhost, Starshatter Arsenal and Cult of the Arkifane). The Null Maiden Vigil effect on Prosecutors also pointed to a name that no longer exists and now reaches them.
+- **New Recruit files:** checked with real exports (.json, .ros and .rosz of the same list). All three import to the same list: army, detachment, force disposition, battle size, Warlord, enhancements and models, and the total matches New Recruit to the point (1995). Import list → Import list file now accepts .ros and .rosz.
+
 ## 1.3.1 (27 October 2026)
 
 First package of the 1.3 line (sharing and export).

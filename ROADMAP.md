@@ -36,7 +36,7 @@ Done in 1.1: 1.1, 1.3, 1.5, 1.6. **Carried over to 1.2:** 1.2, 1.4, 1.7, 1.8, 1.
 | 2.3 | ⬜ Real PDF export | Export uses the browser's print dialog | Client-side PDF generation with the existing options (statlines, weapons, abilities, page per datasheet) |
 | 2.4 | 🔎 YellowScribe export | Lets people load an army into Tabletop Simulator | Find the list format YellowScribe accepts, and generate it from the list (no server needed if it is a text format) |
 | 2.5 | 🔎 Tabletop Simulator export | Direct export is not possible from a web page (it writes to a local folder) | Investigate a downloadable file the user drops into the game folder |
-| 2.6 | 🟨 Import lists from New Recruit and the official app: text, BattleScribe-style text and roster JSON done (1.3.1); `.ros` / `.rosz` files pending | People bring lists from other builders | `importExternal` reads the text, matches units against the datasheets and reports what it could not match; real exports from New Recruit are needed to tune it |
+| 2.6 | ✅ Import lists from New Recruit and the official app: text, BattleScribe-style text, roster JSON, `.ros` and `.rosz` (checked with real New Recruit exports, 1.3.1 and 1.3.2) | People bring lists from other builders | `importExternal` reads the text or the roster, matches units against the datasheets and reports what it could not match |
 
 ## Phase 3: Moving between devices
 

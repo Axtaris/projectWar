@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.3.1';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.3.2';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -109,7 +109,8 @@ function altBodies(units) { /* lowercase led-unit name -> lowercase names of the
 }
 const joinsOther = d => /\b(can|must) join one\b/i.test(dsText(d));   /* Servitors, Cryptothralls, Loyal Protector...: they join the unit, they are not a Leader or Support */
 const models = u => u.UnitCompositionRef.reduce((a, c) => a + c.ModelCount, 0);
-const affects = (e, d) => { const k = kws(d); return (e.AffectedUnits || []).some(n => lc(n) === lc(d.Name)) || ((e.AffectedUnitsByKeyword || []).some(x => k.has(lc(x))) && !(e.AffectedUnitsExcludeKeyword || []).some(x => k.has(lc(x)))) };
+/* a detachment effect lists the keywords a unit must ALL have (Astra Militarum + Infantry + Smoke); "or" cases are separate effects */
+const affects = (e, d) => { const k = kws(d); return (e.AffectedUnits || []).some(n => lc(n) === lc(d.Name)) || ((e.AffectedUnitsByKeyword || []).length > 0 && (e.AffectedUnitsByKeyword || []).every(x => k.has(lc(x))) && !(e.AffectedUnitsExcludeKeyword || []).some(x => k.has(lc(x)))) };
 const effFor = (l, d) => l ? dets(l).flatMap(x => (x.Effects || []).filter(e => affects(e, d))) : [];
 const pointsOf = (l, d) => { const ov = effFor(l, d).flatMap(e => e.PointsOverride || []); return ov.length ? ov : d.Points };
 function baseCost(l, u) {
@@ -848,7 +849,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => { const t = e.target; if (t.id === 'army-name') commit(); if (t.id === 'u-notes' || t.id === 'u-cname' || t.id === 'u-att') commit(); if (t.id === 'nl-pts') { syncDraft(); render() } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePops(); if (e.key === 'Enter' && e.target.id === 'army-name') e.target.blur() });
 /* the "…" button sits inside a tile button: keep tile click from firing */
-function pickFile() { const i = document.createElement('input'); i.type = 'file'; i.accept = '.json,.txt'; i.onchange = async () => { const f = i.files[0]; if (!f || f.size > 5e6) return; const txt = await f.text(); if (importList(txt)) return render(); const r = await importExternal(txt); if (r?.list) { render(); importReport(r) } else importReport(r || { error: 'This file does not look like a list I can read.' }) }; i.click() }
+function pickFile() { const i = document.createElement('input'); i.type = 'file'; i.accept = '.json,.txt,.ros,.rosz'; i.onchange = async () => { const f = i.files[0]; if (!f || f.size > 5e6) return; let txt; try { txt = /\.rosz$/i.test(f.name) ? await unzipRos(await f.arrayBuffer()) : await f.text() } catch { return importReport({ error: 'I could not open this file.' }) } if (importList(txt)) return render(); const r = await importExternal(txt); if (r?.list) { render(); importReport(r) } else importReport(r || { error: 'This file does not look like a list I can read.' }) }; i.click() }
 /* ---------- lists written by other builders (New Recruit, the official app): plain text, and roster JSON ----------
    The text is matched against the datasheets of the army it names. Points are not trusted (ours apply); what cannot be matched is reported, never guessed. */
 const nrn = s => String(s).toLowerCase().replace(/[’‘`´]/g, "'").replace(/&/g, ' and ').replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -859,7 +860,7 @@ function rosterJsonToText(j) {
   const r = j?.roster || (j?.forces ? j : null); if (!r) return null;
   const pts = o => { const c = (o.costs || []).find(x => /pts|points/i.test(x.name || '')); return c ? Math.round(+c.value) : null };
   const out = [`${r.name || 'Imported list'} (${pts(r) ?? 0} Points)`];
-  const kids = (sel, depth, acc) => (sel.selections || []).forEach(s => { acc.push(`${'  '.repeat(depth)}• ${s.number > 1 ? s.number + 'x ' : ''}${s.name}`); kids(s, depth + 1, acc) });
+  const kids = (sel, depth, acc) => (sel.selections || []).forEach(s => { const enh = (s.costs || []).some(c => /^enhancements?$/i.test(c.name || '') && +c.value >= 1); acc.push(`${'  '.repeat(depth)}• ${enh ? 'Enhancements: ' : ''}${s.number > 1 ? s.number + 'x ' : ''}${s.name}`); if (!enh) kids(s, depth + 1, acc) });
   (r.forces || []).forEach(f => {
     out.push(f.catalogueName || f.name || '');
     (f.selections || []).forEach(s => {
@@ -869,6 +870,45 @@ function rosterJsonToText(j) {
     });
   });
   return out.join('\n');
+}
+/* BattleScribe / New Recruit .ros (XML) and .rosz (the same, zipped): read with a small parser of our own, no DOM and no libraries */
+function parseXml(src) {
+  const ent = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }, dec = s => s.replace(/&(#x?[0-9a-fA-F]+|[a-z]+);/g, (m, e) => e[0] === '#' ? String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : +e.slice(1)) : (ent[e] ?? m));
+  const root = { tag: '#root', attrs: {}, children: [] }, stack = [root], re = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<\?[\s\S]*?\?>|<!DOCTYPE[^>]*>|<(\/?)([A-Za-z_][\w:.-]*)((?:\s+[\w:.-]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*(\/?)>/g;
+  let m, n = 0;
+  while ((m = re.exec(src))) {
+    if (++n > 400000) throw new Error('too many elements');
+    if (!m[2]) continue;
+    if (m[1]) { if (stack.length > 1) stack.pop(); continue }
+    const attrs = {}; (m[3] || '').replace(/([\w:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g, (x, k, a, b) => { attrs[k] = dec(a ?? b ?? '') });
+    const el = { tag: m[2], attrs, children: [] }; stack.at(-1).children.push(el); if (!m[4]) stack.push(el);
+  }
+  return root.children.find(c => c.tag === 'roster') || root.children[0] || null;
+}
+function xmlToRoster(x) {
+  const kids = (n, tag) => n.children.filter(c => c.tag === tag), costs = n => kids(n, 'costs').flatMap(c => kids(c, 'cost')).map(c => ({ name: c.attrs.name, value: parseFloat(c.attrs.value) || 0 }));
+  const sel = n => ({ name: n.attrs.name, number: +n.attrs.number || 1, type: n.attrs.type, costs: costs(n), selections: kids(n, 'selections').flatMap(s => kids(s, 'selection')).map(sel) });
+  return { roster: { name: x.attrs.name, costs: costs(x), forces: kids(x, 'forces').flatMap(f => kids(f, 'force')).map(f => ({ name: f.attrs.name, catalogueName: f.attrs.catalogueName, selections: kids(f, 'selections').flatMap(s => kids(s, 'selection')).map(sel) })) } };
+}
+/* the first .ros inside a .rosz: read the zip directory and inflate the entry (browsers inflate raw deflate natively) */
+async function unzipRos(buf) {
+  const b = new Uint8Array(buf), v = new DataView(b.buffer, b.byteOffset, b.byteLength); let e = -1;
+  for (let i = b.length - 22; i >= Math.max(0, b.length - 65557); i--) if (v.getUint32(i, true) === 0x06054b50) { e = i; break }
+  if (e < 0) throw new Error('not a zip file');
+  let p = v.getUint32(e + 16, true); const count = v.getUint16(e + 10, true);
+  for (let k = 0; k < count && p + 46 <= b.length; k++) {
+    const method = v.getUint16(p + 10, true), csize = v.getUint32(p + 20, true), usize = v.getUint32(p + 24, true), nl = v.getUint16(p + 28, true), xl = v.getUint16(p + 30, true), cl = v.getUint16(p + 32, true), off = v.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(b.subarray(p + 46, p + 46 + nl));
+    if (/\.ros$/i.test(name) && usize < 3e7) {
+      const lo = off + 30 + v.getUint16(off + 26, true) + v.getUint16(off + 28, true), data = b.subarray(lo, lo + csize);
+      if (method === 0) return new TextDecoder().decode(data);
+      if (method !== 8) throw new Error('unsupported zip method');
+      const ds = new DecompressionStream('deflate-raw'), w = ds.writable.getWriter(); w.write(data); w.close();
+      return new TextDecoder().decode(await new Response(ds.readable).arrayBuffer());
+    }
+    p += 46 + nl + xl + cl;
+  }
+  throw new Error('no roster inside the zip');
 }
 function matchUnit(fd, name, idx) {
   const k = nrn(name); return idx.exact.get(k) || idx.sing.get(nrs(name)) || (k.length > 7 ? [...idx.exact].find(([n]) => n.startsWith(k) || k.startsWith(n))?.[1] : null) || null;
@@ -906,6 +946,7 @@ async function importExternal(text) {
   text = String(text || '').replace(/^﻿/, ''); if (!text.trim() || text.length > 2e5) return null;
   let src = text; const t = text.trim();
   if (t[0] === '{' || t[0] === '[') { try { src = rosterJsonToText(JSON.parse(t)) } catch { return null } if (!src) return null }
+  else if (t[0] === '<') { try { const x = parseXml(t); src = x && rosterJsonToText(xmlToRoster(x)) } catch { return null } if (!src) return null }
   const lines = src.split(/\r?\n/).map(x => x.replace(/\*\*|__/g, '').replace(/^\s*\+{2,}\s*/, '').replace(/\s*\+{2,}\s*$/, '').trimEnd());
   const body = nrn(src);
   const names = S.info.Factions.map(f => f.Name).filter(n => body.includes(nrn(n))).sort((a, b) => b.length - a.length);

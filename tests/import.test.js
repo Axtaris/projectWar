@@ -107,3 +107,24 @@ Cadian Shock Troops (70 Points)
   assert.ok(r.list, r.error); const u = r.list.Units[0];
   assert.ok(u.UnitCompositionRef.some((x) => x.Wargear.some((w) => /flamer/i.test(w))), 'the flamer is on a model');
 });
+
+/* real exports from New Recruit (Warhammer 40,000 11th Edition) of the same Necrons list, in its three file formats */
+const fs = require('node:fs'), path = require('node:path'), fx = (f) => path.join(__dirname, 'fixtures', f);
+const expectNecrons = (r, api) => {
+  assert.ok(r.list, r.error); const l = r.list;
+  assert.equal(r.faction, 'Necrons'); assert.equal(l.Name, 'Nuevos Horizontes'); assert.equal(l.MaxPoints, 2000);
+  assert.equal(JSON.stringify(l.Detachments), JSON.stringify(['STARSHATTER ARSENAL'])); assert.equal(l.Disposition, 'PRIORITY ASSETS');
+  assert.equal(l.Units.length, 11); assert.equal(r.skipped.length, 0, 'every unit matched');
+  assert.equal(api.total(l), 1995, 'our points add up to the 1995 New Recruit shows');
+  assert.equal(l.Units.find((u) => u.IsWarlord).Id, 'THE SILENT KING');
+  assert.equal(l.Units.find((u) => u.Id === 'LOKHUST LORD').EnhancementId, 'Chrono-impedance Fields');
+  assert.equal(l.Units.find((u) => u.Id === 'PLASMANCER').EnhancementId, 'Miniaturised Nebuloscope');
+  assert.equal(api.models(l.Units.find((u) => u.Id === 'IMMORTALS')), 10); assert.equal(l.Units.filter((u) => u.Id === 'DOOMSDAY ARK').length, 2);
+};
+test('real New Recruit export, JSON', async () => { fresh(); expectNecrons(await api.importExternal(fs.readFileSync(fx('new-recruit-necrons.json'), 'utf8')), api) });
+test('real New Recruit export, .ros (XML)', async () => { fresh(); expectNecrons(await api.importExternal(fs.readFileSync(fx('new-recruit-necrons.ros'), 'utf8')), api) });
+test('real New Recruit export, .rosz (zipped XML)', async () => { fresh(); const xml = await api.unzipRos(fs.readFileSync(fx('new-recruit-necrons.rosz'))); expectNecrons(await api.importExternal(xml), api) });
+test('a zip without a roster, and broken XML, fail cleanly', async () => {
+  await assert.rejects(() => api.unzipRos(Buffer.from('not a zip at all, just text')));
+  fresh(); const b = await api.importExternal('<roster><forces>'); assert.ok(b === null || (b.error && !b.list), 'broken XML gives no list');
+});
