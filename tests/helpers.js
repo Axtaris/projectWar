@@ -20,7 +20,7 @@ async function loadApp(over = {}) {
     document: dom(), localStorage: { getItem: () => null, setItem() { }, removeItem() { } },
     matchMedia: () => ({ matches: false, addEventListener() { } }), crypto: { randomUUID: () => require('node:crypto').randomUUID() },
     addEventListener() { }, removeEventListener() { }, requestAnimationFrame: (f) => setTimeout(f, 0), getComputedStyle: () => dom(), navigator: {}, innerWidth: 1440, innerHeight: 900, location: { hash: '' }, console, setTimeout, clearTimeout, URL, Blob: class { },
-    TextDecoder, DecompressionStream, Response,
+    TextDecoder, TextEncoder, DecompressionStream, CompressionStream, Response, atob, btoa,
     fetch: async (url) => {
       const file = path.join(DATA_DIR, decodeURIComponent(String(url).replace(/^data\//, '')));
       if (!fs.existsSync(file)) return { ok: false, status: 404, text: async () => '' };
@@ -29,7 +29,7 @@ async function loadApp(over = {}) {
   };
   Object.assign(ctx, over); ctx.window = ctx;
   vm.createContext(ctx);
-  vm.runInContext(src + '\n;globalThis.__api = { S, esc, tc, BS, sizeName, total, errors, composition, newDraft, loadFaction, fdOf, unitOf, sanitizeList, unitPts, unitCost, models, dpUsed, importList, getJson, mdLite, eligible, optMax, ledNames, nav, back, goHome, SNAP, modWeapons, kwsU, listHtml, dispOpts, effDisp, PAGES, importExternal, readUnits, rosterJsonToText, effFor, affects, listText, TXT, parseXml, xmlToRoster, unzipRos };', ctx);
+  vm.runInContext(src + '\n;globalThis.__api = { S, esc, tc, BS, sizeName, total, errors, composition, newDraft, loadFaction, fdOf, unitOf, sanitizeList, unitPts, unitCost, models, dpUsed, importList, getJson, mdLite, eligible, optMax, ledNames, nav, back, goHome, SNAP, modWeapons, kwsU, listHtml, dispOpts, effDisp, PAGES, importExternal, readUnits, rosterJsonToText, effFor, affects, listText, TXT, shareLink, readShare, parseXml, xmlToRoster, unzipRos };', ctx);
   const api = ctx.__api; api.ctx = ctx;
   for (let i = 0; i < 200 && !api.S.info; i++) await new Promise((r) => setImmediate(r));   // wait for the app's own start-up to load the faction index
   if (!api.S.info) throw new Error('app did not finish loading; is DATA_DIR correct? ' + DATA_DIR);

@@ -138,3 +138,20 @@ test('text export: every format renders, and the GW format imports back to the s
   assert.equal(api.total(again.list), api.total(l)); assert.equal(again.list.Units.length, l.Units.length);
   assert.equal(again.list.Units.find(u => u.IsWarlord)?.Id, l.Units.find(u => u.IsWarlord)?.Id);
 });
+
+test('share link: a list packs into a link and opens as the same list; bad links are refused', async () => {
+  fresh(); const l = (await api.importExternal(APP_STYLE)).list; api.S.cur = l;
+  const url = await api.shareLink(l), back = await api.readShare(url.slice(url.indexOf('#')));
+  assert.ok(back); assert.equal(back.Name, l.Name); assert.equal(back.Faction, l.Faction); assert.equal(back.Units.length, l.Units.length);
+  assert.equal(api.total(back), api.total(l)); assert.notEqual(back.Id, l.Id);
+  assert.equal(await api.readShare('#s=@@@'), null); assert.equal(await api.readShare('#s=AAAA'), null); assert.equal(await api.readShare('#x=1'), null);
+});
+
+test('real Astra Militarum text: enhancements listed as plain bullets and the "<faction> Warlord" marker', async () => {
+  fresh(); const r = await api.importExternal(require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', 'astra-militarum-text.txt'), 'utf8'));
+  assert.ok(r.list); const l = r.list;
+  assert.equal(api.total(l), 2000); assert.equal(r.skipped.length, 0); assert.equal(l.Units.length, 18);
+  const cs = l.Units.filter(u => u.Id === 'MILITARUM TEMPESTUS COMMAND SQUAD');
+  assert.equal(JSON.stringify(cs.map(u => u.EnhancementId)), JSON.stringify(['Bombast-class Vox-array', 'Grand Strategist', 'Reactive Command']));
+  assert.equal(JSON.stringify(cs.map(u => !!u.IsWarlord)), JSON.stringify([true, false, false]));
+});

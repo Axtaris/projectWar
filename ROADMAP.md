@@ -31,11 +31,11 @@ Done in 1.1: 1.1, 1.3, 1.5, 1.6. **Carried over to 1.2:** 1.2, 1.4, 1.7, 1.8, 1.
 
 | # | Feature | Why | Approach |
 |---|---|---|---|
-| 2.1 | ⬜ Share links and QR codes for lists | Sending a list today means exchanging a file | Encode the list in the URL fragment (compressed, never sent to a server); import by pasting the link; QR generated in the browser |
+| 2.1 | ✅ Share links and QR codes for lists | Sending a list today means exchanging a file | Done in 1.3.4: the list is packed into the URL fragment (never sent to a server) and shown with a QR code; opening the link offers to save a copy |
 | 2.2 | ✅ Several text export formats | There is one text format | Done in 1.3.3: GW, Tournament, Short and Simple, with preview, download and copy |
 | 2.3 | ⬜ Real PDF export | Export uses the browser's print dialog | Client-side PDF generation with the existing options (statlines, weapons, abilities, page per datasheet) |
-| 2.4 | 🔎 YellowScribe export | Lets people load an army into Tabletop Simulator | Find the list format YellowScribe accepts, and generate it from the list (no server needed if it is a text format) |
-| 2.5 | 🔎 Tabletop Simulator export | Direct export is not possible from a web page (it writes to a local folder) | Investigate a downloadable file the user drops into the game folder |
+| 2.4 | 🔎 YellowScribe export | Lets people load an army into Tabletop Simulator through YellowScribe | Find the list format YellowScribe accepts, and generate it from the list (no server needed if it is a text format) |
+| 2.5 | ➡️ Tabletop Simulator export: moved out of the web scope; revisit if a desktop or mobile app is ever built | Writing to the Steam Workshop folder needs local file access, which a web page does not have | Reconsider with the app version |
 | 2.6 | ✅ Import lists from New Recruit and the official app: text, BattleScribe-style text, roster JSON, `.ros` and `.rosz` (checked with real New Recruit exports, 1.3.1 and 1.3.2) | People bring lists from other builders | `importExternal` reads the text or the roster, matches units against the datasheets and reports what it could not match |
 
 ## Phase 3: Moving between devices

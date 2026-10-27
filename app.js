@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.3.3';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.3.4';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -721,11 +721,41 @@ PAGES.feedback = () => `<div class="page spage">${hdr('Feedback')}<div class="sc
 const EXP0 = { type: 0, Descriptions: true, Statlines: true, Weapons: true, 'Weapon count': true, Abilities: true, Keywords: true, 'Army rules': true, Stratagems: true, 'Core / Stratagems': false, Notes: false, 'Include category headers': true, 'Filter weapons': true, 'Filter abilities': true, 'Statline modification': true, 'Force new page per datasheet': false };
 let EXP = { ...EXP0 };
 const CK = (k, label) => `<button class="chkrow ${EXP[k] ? 'on' : ''}" data-a="ck" data-k="${esc(k)}"><i></i><span>${label || k}</span></button>`;
-const ETYPES = ['Pdf', 'Text', 'TTS', 'Yellow Scribe'];
+const ETYPES = ['Pdf', 'Text', 'Share link', 'Yellow Scribe'];
+/* ---- share links: the list is packed (deflate) into the #s= part of the address, so nothing is stored on a server ---- */
+const b64u = u8 => { let t = ''; for (let i = 0; i < u8.length; i += 8192) t += String.fromCharCode(...u8.subarray(i, i + 8192)); return btoa(t).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') };
+const unb64u = t => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+const pipe = async (u8, T) => { const st = new T('deflate-raw'), w = st.writable.getWriter(); w.write(u8).catch(() => { }); w.close().catch(() => { }); return new Uint8Array(await new Response(st.readable).arrayBuffer()) };
+async function shareLink(l) {
+  const u = l.Units.map(({ Upgrades, AttachedUnitName, AttchedUnitNameType, ...x }) => (x.Notes && !x.Notes.CustomName && !x.Notes.Text && delete x.Notes, x));
+  return `${location.origin}${location.pathname}#s=${b64u(await pipe(new TextEncoder().encode(JSON.stringify({ v: 1, n: l.Name, f: l.Faction, m: l.MaxPoints, d: l.Detachments, p: l.Disposition, u })), CompressionStream))}`;
+}
+/* the list inside a share link, or null; everything goes through sanitizeList because the link comes from someone else */
+async function readShare(hash) {
+  try {
+    const m = /^#s=([\w-]{1,200000})$/.exec(hash); if (!m) return null;
+    const raw = await pipe(unb64u(m[1]), DecompressionStream); if (raw.length > 3e6) return null;
+    const j = JSON.parse(new TextDecoder().decode(raw)); if (!j || j.v !== 1) return null;
+    return sanitizeList({ Id: uid(), Name: j.n, Faction: j.f, MaxPoints: j.m, Detachments: j.d, Disposition: j.p, Units: (Array.isArray(j.u) ? j.u : []).map(x => ({ ...x, Notes: x?.Notes || { CustomName: '', Text: '' } })) });
+  } catch { return null }
+}
+const qrSvg = url => { try { const q = qrcode(0, 'L'); q.addData(url, 'Byte'); q.make(); return q.createSvgTag({ cellSize: 4, margin: 4, scalable: true }) } catch { return '' } };
+async function openShare(hash) {
+  const l = await readShare(hash); if (!l) return modal('Shared list', '<p>This link does not hold a list projectWar can read.</p>', null);
+  history.replaceState(history.state, '', location.pathname + location.search);
+  modal(`Shared list “${esc(l.Name || 'Army')}”`, `<p>${esc(l.Faction)}: ${l.Units.length} unit${l.Units.length === 1 ? '' : 's'}, ${esc(String(l.MaxPoints))} points. Saving it adds a copy to your lists; nothing in your other lists changes.</p>`, 'Save to my lists', async () => { l.LastModified = new Date().toISOString(); S.lists.push(l); saveLists(); closePops(); await openList(l.Id, 'editor') });
+}
+const linkOpts = () => { const l = S.cur, key = l.Id + l.LastModified + JSON.stringify(l.Units).length;
+  if (S.link?.key !== key) { if (!S.linkBusy) { S.linkBusy = true; shareLink(l).then(url => { S.link = { key, url }; S.linkBusy = false; if (S.stack.at(-1).page === 'export' && EXP.type === 2) render() }, () => { S.link = { key, url: '' }; S.linkBusy = false }) } return '<div class="empty" style="padding:20px 5px">Building the link…</div>' }
+  const u = S.link.url, qr = u.length < 2900 ? qrSvg(u) : '';
+  return `<div class="expwrap"><div style="flex:1;min-width:280px"><div class="cap" style="margin:0 0 3px 5px">Link <span>· ${u.length} characters</span></div><textarea class="in sm txpre" id="lkurl" readonly style="height:150px;resize:none">${esc(u)}</textarea>
+  <div class="empty" style="padding:10px 5px;text-align:left">Anyone who opens this link gets a copy of the list to save. The list travels inside the link itself; it is not stored on any server.</div></div>
+  <div>${qr ? `<div class="cap" style="margin:0 0 3px 5px">QR code</div><div class="qrbox">${qr}</div>` : '<div class="empty" style="padding:20px 5px">This list is too long for a QR code; use the link.</div>'}</div></div>`;
+};
 PAGES.export = () => `<div class="page spage">${hdr('Export')}<div class="scroll" style="padding:0 10px 70px"><div class="cap" style="margin:10px 0 3px 5px">Export type</div><button class="btn" style="width:160px;height:38px;gap:0;padding:0 8px 0 4px" data-a="etype"><span style="flex:1;text-align:center">${ETYPES[EXP.type]}</span>${ic('down', 22)}</button>
-  ${EXP.type > 1 ? `<div class="empty" style="padding:20px 5px">${['', '', 'Tabletop Simulator export writes to the Steam Workshop folder, which a web page cannot access.', 'YellowScribe is an external service; export to Text or PDF and import it there.'][EXP.type]}</div>` : EXP.type === 1 ? txtOpts() : `<div class="expwrap"><div><div class="cap" style="margin:0 0 3px 5px">Datasheet content to include</div><div class="expgrp" style="min-width:467px"><div class="expgrid">${['Descriptions', 'Statlines', 'Weapons', 'Weapon count', 'Abilities', 'Keywords', 'Army rules', 'Stratagems', 'Core Stratagems', 'Notes'].map(k => CK(k === 'Core Stratagems' ? 'Core / Stratagems' : k, k)).join('')}</div></div></div>
+  ${EXP.type > 2 ? `<div class="empty" style="padding:20px 5px">${['', '', '', 'YellowScribe is an external service; export to Text or PDF and import it there.'][EXP.type]}</div>` : EXP.type === 2 ? linkOpts() : EXP.type === 1 ? txtOpts() : `<div class="expwrap"><div><div class="cap" style="margin:0 0 3px 5px">Datasheet content to include</div><div class="expgrp" style="min-width:467px"><div class="expgrid">${['Descriptions', 'Statlines', 'Weapons', 'Weapon count', 'Abilities', 'Keywords', 'Army rules', 'Stratagems', 'Core Stratagems', 'Notes'].map(k => CK(k === 'Core Stratagems' ? 'Core / Stratagems' : k, k)).join('')}</div></div></div>
   ${EXP.type === 0 ? `<div><div class="cap" style="margin:0 0 3px 5px">PDF options</div><div class="expgrp" style="min-width:468px">${['Include category headers', 'Filter weapons', 'Filter abilities', 'Statline modification', 'Force new page per datasheet'].map(k => CK(k)).join('')}</div></div>` : ''}</div>`}
-  </div>${EXP.type === 1 ? `<button class="btn purple" style="position:fixed;right:180px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="txcopy">Copy text</button>` : ''}<button class="btn ${EXP.type > 1 ? 'off' : ''}" style="position:fixed;right:10px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="doexport">${EXP.type === 1 ? 'Download .txt' : 'Export'}</button></div>`;
+  </div>${EXP.type === 2 ? `<button class="btn purple" style="position:fixed;right:180px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="lkshare">Share…</button>` : ''}${EXP.type === 1 ? `<button class="btn purple" style="position:fixed;right:180px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="txcopy">Copy text</button>` : ''}<button class="btn ${EXP.type > 2 ? 'off' : ''}" style="position:fixed;right:10px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="doexport">${EXP.type === 2 ? 'Copy link' : EXP.type === 1 ? 'Download .txt' : 'Export'}</button></div>`;
 /* ---- text export: several formats, a live preview, download and copy ---- */
 const TXT_FMT = ['GW', 'Tournament', 'Short', 'Simple'];
 let TXT = { fmt: 'GW', gear: true, header: true, player: false, team: false, pname: '', tname: '' };
@@ -864,7 +894,8 @@ document.addEventListener('click', async e => {
     case 'txck': TXT[t.dataset.k] = !TXT[t.dataset.k]; return render();
     case 'txcopy': { let ok = true; try { await navigator.clipboard.writeText(listText(l)) } catch { ok = false } t.textContent = ok ? 'Copied' : 'Copy failed'; return setTimeout(() => { t.textContent = 'Copy text' }, 1500) }
     case 'ck': EXP[t.dataset.k] = !EXP[t.dataset.k]; return render();
-    case 'doexport': { if (EXP.type > 1) return; if (EXP.type === 1) return download((l.Name || 'army') + '.txt', listText(l)); const pr = $('#printroot'); pr.innerHTML = printHtml(l); setTimeout(() => print(), 50); return }
+    case 'lkshare': { if (S.link?.url && navigator.share) try { await navigator.share({ title: l.Name || 'Army', url: S.link.url }) } catch { } return }
+    case 'doexport': { if (EXP.type > 2) return; if (EXP.type === 2) { if (!S.link?.url) return; let ok = true; try { await navigator.clipboard.writeText(S.link.url) } catch { ok = false } t.textContent = ok ? 'Copied' : 'Copy failed'; return setTimeout(() => { t.textContent = 'Copy link' }, 1500) } if (EXP.type === 1) return download((l.Name || 'army') + '.txt', listText(l)); const pr = $('#printroot'); pr.innerHTML = printHtml(l); setTimeout(() => print(), 50); return }
   }
 });
 function mutateView() { S.keepScroll = true; render() }
@@ -969,6 +1000,7 @@ function readUnits(lines, fd) {
     if ((m = /^(.+?)\s*\((?:enhancement|upgrade)\)$/i.exec(x))) { u.enh = m[1].trim(); return }
     if ((m = /^(?:attached to|leading|leads|led by|joins|bodyguard)\s*[:\-]?\s*(.+)$/i.exec(x))) { u.attach = m[1].trim(); return }
     let n = 1; if ((m = /^(\d+)\s*[x×]\s+(.+)$/i.exec(x))) { n = +m[1]; x = m[2].trim() }
+    if (/\swarlord$/i.test(x)) { u.warlord = true; return }
     let tail = ''; if ((m = /^([^:]+):\s*(.+)$/.exec(x))) { x = m[1].trim(); tail = m[2] }
     const comp = u.d.UnitComposition.ModelCompositions.find(c => nrs(c.ModelName) === nrs(x));
     if (comp) u.models.set(comp.ModelName, (u.models.get(comp.ModelName) || 0) + n); else u.weapons.set(nrn(x), (u.weapons.get(nrn(x)) || 0) + n);
@@ -1001,6 +1033,7 @@ async function importExternal(text) {
     const d = e.d, sizes = d.Points.map(p => p.ModelCount), min = Math.min(...sizes), max = Math.max(...sizes), seen = [...e.models.values()].reduce((a, b) => a + b, 0);
     const n = seen ? Math.max(min, Math.min(max, seen)) : min;
     const u = { InstanceId: ++id, AttachedToInstanceId: 0, Id: d.Name, EnhancementId: null, Upgrades: [], UnitCompositionRef: composition(d, n), Notes: { CustomName: '', Text: '' }, IsWarlord: e.warlord, AttachedUnitName: null, AttchedUnitNameType: 0 };
+    if (!e.enh) { const en = enhs(l).find(x => e.weapons.has(nrn(x.Name.replace(/\s*\((?:upgrade|aura)\)$/i, '')))); if (en) { e.enh = en.Name; e.weapons.delete(nrn(en.Name.replace(/\s*\((?:upgrade|aura)\)$/i, ''))) } }
     const counts = optCounts(u, d);
     optList(d).forEach(g => g.o.Options.forEach(a => { const parts = a.split(/ and |, /).map(nrn), c = Math.min(...parts.map(p => e.weapons.get(p) || e.weapons.get(nrs(p)) || 0)); if (c > 0) counts[altKey(g, a)] = Math.min(c, optMax(g, n, n), n) }));
     try { rebuildLoadouts(u, d, counts) } catch { }
@@ -1039,6 +1072,6 @@ wasWide = WIDE();
 (async () => {
   try {
     S.info = await getJson('FactionInfoData'); S.dv = (await getJson('DataInfo')).Version; await warmLists(); S.stack = [{ page: 'home' }]; histReplace();
-    render();
+    render(); if (location.hash.startsWith('#s=')) openShare(location.hash); addEventListener('hashchange', () => { if (location.hash.startsWith('#s=')) openShare(location.hash) });
   } catch (e) { $('#app').innerHTML = `<pre style="padding:20px;white-space:pre-wrap">Could not load the data (${esc(e)}).\nOpen this page through a local server: run start.bat (or: python serve.py 8080) and visit http://localhost:8080</pre>` }
 })();

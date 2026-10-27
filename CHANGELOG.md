@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.4 (27 October 2026)
+
+- **Share link and QR code:** Export → Share link builds a link that holds the whole list (packed into the address, nothing is stored on a server) and a QR code for it. Opening the link shows the list and offers to save a copy; it never touches your other lists. Links from other people are checked like any imported file. A 2,000-point list makes a link of about 1,700 characters.
+- **Importing text lists:** an enhancement written as an ordinary bullet (without the "Enhancements:" prefix) is now recognised, and so is the Warlord marker named after the army (for example "Militarum Tempestus Warlord"). A real 2,000-point Astra Militarum list now imports to exactly 2,000 points, with its three Command Squad enhancements and its Warlord. Leaders still stay unattached when the text does not say which unit they lead.
+- Tabletop Simulator export is no longer part of the web scope (a web page cannot write to the game folder); it moves to the app scope in the roadmap.
+
 ## 1.3.3 (27 October 2026)
 
 - **Text export:** choosing Text on the Export page now shows its options and a live preview on the same page. Four formats: GW (the official-app layout, which imports back into projectWar and New Recruit), Tournament (header block with Warlord, enhancements and numbered units), Short and Simple. You can leave out the wargear or the header, add a player and a team name, then download a .txt or copy the text.

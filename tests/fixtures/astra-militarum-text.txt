@@ -1,0 +1,191 @@
+Basic (2,000 Points)
+
+Astra Militarum
+Bridgehead Strike and Combined Arms (3 Detachment Points)
+Take and Hold
+Strike Force (2,000 Points)
+
+CHARACTERS
+
+Commissar Yarrick (110 Points)
+  • 1x Bale Eye
+  • 1x Laspistol
+  • 1x Power klaw
+  • 1x Power sword
+  • 1x Storm bolter
+
+Gaunt’s Ghosts (95 Points)
+  • 1x Ibram Gaunt
+     ◦ 1x Bolt pistol
+     ◦ 1x Gaunt's chainsword
+  • 5x Tanith Ghost
+     ◦ 1x Bragg's autocannon
+     ◦ 1x Corbec's hot-shot lascarbine
+     ◦ 1x Larkin's long-las
+     ◦ 1x Lascarbine
+     ◦ 1x Mkoll's straight silver knife
+     ◦ 1x Rawne's lascarbine
+     ◦ 4x Straight silver knife
+
+Militarum Tempestus Command Squad (100 Points)
+  • 1x Tempestor Prime
+     ◦ 1x Bombast-class Vox-array
+     ◦ 1x Command rod
+     ◦ 1x Militarum Tempestus Warlord
+     ◦ 1x Tempestus dagger
+  • 4x Tempestus Scion
+     ◦ 4x Close combat weapon
+     ◦ 2x Hot-shot laspistol
+     ◦ 1x Master vox
+     ◦ 1x Medi-pack
+     ◦ 1x Meltagun
+     ◦ 1x Plasma gun
+
+Militarum Tempestus Command Squad (100 Points)
+  • 1x Tempestor Prime
+     ◦ 1x Command rod
+     ◦ 1x Grand Strategist
+     ◦ 1x Tempestus dagger
+  • 4x Tempestus Scion
+     ◦ 4x Close combat weapon
+     ◦ 1x Grenade launcher
+     ◦ 1x Hot-shot volley gun
+     ◦ 1x Meltagun
+     ◦ 1x Plasma gun
+
+Militarum Tempestus Command Squad (110 Points)
+  • 1x Tempestor Prime
+     ◦ 1x Command rod
+     ◦ 1x Reactive Command
+     ◦ 1x Tempestus dagger
+  • 4x Tempestus Scion
+     ◦ 4x Close combat weapon
+     ◦ 1x Grenade launcher
+     ◦ 1x Hot-shot volley gun
+     ◦ 1x Meltagun
+     ◦ 1x Plasma gun
+
+Nork Deddog (60 Points)
+  • 1x Huge knife
+  • 1x Ripper gun
+
+BATTLELINE
+
+Tempestus Scions (150 Points)
+  • 1x Tempestor
+     ◦ 1x Plasma pistol
+     ◦ 1x Power fist
+  • 9x Tempestus Scion
+     ◦ 9x Close combat weapon
+     ◦ 4x Hot-shot lasgun
+     ◦ 1x Hot-shot laspistol
+     ◦ 2x Meltagun
+     ◦ 2x Plasma gun
+     ◦ 1x Vox-caster
+
+Tempestus Scions (150 Points)
+  • 1x Tempestor
+     ◦ 1x Plasma pistol
+     ◦ 1x Power fist
+  • 9x Tempestus Scion
+     ◦ 9x Close combat weapon
+     ◦ 4x Hot-shot lasgun
+     ◦ 1x Hot-shot laspistol
+     ◦ 2x Meltagun
+     ◦ 2x Plasma gun
+     ◦ 1x Vox-caster
+
+Tempestus Scions (160 Points)
+  • 1x Tempestor
+     ◦ 1x Plasma pistol
+     ◦ 1x Power fist
+  • 9x Tempestus Scion
+     ◦ 9x Close combat weapon
+     ◦ 4x Hot-shot lasgun
+     ◦ 1x Hot-shot laspistol
+     ◦ 2x Meltagun
+     ◦ 2x Plasma gun
+     ◦ 1x Vox-caster
+
+OTHER DATASHEETS
+
+Hellhound (115 Points)
+  • 1x Armoured tracks
+  • 1x Heavy bolter
+  • 1x Hunter-killer missile
+  • 1x Inferno cannon
+
+Hellhound (115 Points)
+  • 1x Armoured tracks
+  • 1x Heavy bolter
+  • 1x Hunter-killer missile
+  • 1x Inferno cannon
+
+Kasrkin (105 Points)
+  • 1x Kasrkin Sergeant
+     ◦ 1x Plasma pistol
+     ◦ 1x Power weapon
+  • 9x Kasrkin Trooper
+     ◦ 9x Close combat weapon
+     ◦ 3x Hot-shot lasgun
+     ◦ 1x Hot-shot laspistol
+     ◦ 1x Hot-shot marksman rifle
+     ◦ 1x Melta mine
+     ◦ 2x Meltagun
+     ◦ 2x Plasma gun
+     ◦ 1x Vox-caster
+
+Kasrkin (105 Points)
+  • 1x Kasrkin Sergeant
+     ◦ 1x Plasma pistol
+     ◦ 1x Power weapon
+  • 9x Kasrkin Trooper
+     ◦ 9x Close combat weapon
+     ◦ 3x Hot-shot lasgun
+     ◦ 1x Hot-shot laspistol
+     ◦ 1x Hot-shot marksman rifle
+     ◦ 1x Melta mine
+     ◦ 2x Meltagun
+     ◦ 2x Plasma gun
+     ◦ 1x Vox-caster
+
+Leman Russ Battle Tank (160 Points)
+  • 1x Armoured tracks
+  • 1x Heavy bolter
+  • 2x Heavy bolter
+  • 1x Heavy stubber
+  • 1x Hunter-killer missile
+  • 1x Leman Russ battle cannon
+
+Leman Russ Battle Tank (160 Points)
+  • 1x Armoured tracks
+  • 1x Heavy bolter
+  • 2x Heavy bolter
+  • 1x Heavy stubber
+  • 1x Hunter-killer missile
+  • 1x Leman Russ battle cannon
+
+Scout Sentinels (55 Points)
+  • 1x Close combat weapon
+  • 1x Hunter-killer missile
+  • 1x Lascannon
+  • 1x Sentinel chainsaw
+
+Scout Sentinels (55 Points)
+  • 1x Close combat weapon
+  • 1x Hunter-killer missile
+  • 1x Lascannon
+  • 1x Sentinel chainsaw
+
+Tempestus Aquilons (95 Points)
+  • 1x Tempestor Aquilon
+     ◦ 1x Close combat weapon
+     ◦ 1x Hot-shot laspistol
+     ◦ 1x Power weapon
+     ◦ 1x Sentry hot-shot volley gun
+  • 9x Tempestus Aquilon
+     ◦ 9x Close combat weapon
+     ◦ 6x Hot-shot lascarbine
+     ◦ 2x Hot-shot laspistol
+     ◦ 1x Hot-shot long las
+     ◦ 1x Plasma carbine

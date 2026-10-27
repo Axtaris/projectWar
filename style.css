@@ -582,3 +582,4 @@ h2.mid{margin:0;font:600 32px/1.05 var(--cond);text-transform:uppercase;letter-s
 .txfmt:hover{background:var(--p1)}.txfmt.on{background:var(--p1);border-left-color:var(--c)}
 .txmain{flex:1;min-width:280px}
 .txpre{margin:0;padding:12px 14px;height:62vh;overflow:auto;white-space:pre-wrap;word-break:break-word;font:13px/1.45 ui-monospace,Consolas,monospace;background:var(--bg);color:var(--fg);border:1px solid var(--ln);border-radius:3px}
+.qrbox{width:200px;height:200px;background:#fff;padding:4px;border-radius:3px}.qrbox svg{display:block;width:100%;height:100%}
