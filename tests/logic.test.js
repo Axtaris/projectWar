@@ -281,3 +281,13 @@ test('army rules render as collapsibles on the new-list step and the viewer', as
   api.S.cur = l; const nl = api.PAGES.newlist({ draft: l, faction: 'Necrons' }), v = api.PAGES.viewer();
   for (const html of [nl, v]) assert.match(html, /<details class="arule"><summary>/, 'the army rules are in the page');
 });
+
+test('the donate button is a plain https PayPal link in Settings and on the home panel, and the legal pages mention it', async () => {
+  const set = api.PAGES.settings(), home = api.PAGES.home();
+  for (const [name, html] of [['settings', set], ['home', home]]) {
+    const m = html.match(/href="(https:\/\/(?:www\.)?paypal\.(?:com|me)\/[^"]+)"[^>]*rel="noopener noreferrer"/);
+    assert.ok(m, `${name}: a PayPal link that opens safely`);
+  }
+  const fs = require('node:fs'), path = require('node:path'), legal = (f) => fs.readFileSync(path.join(__dirname, '..', 'legal', f), 'utf8');
+  assert.match(legal('privacy.html'), /PayPal/); assert.match(legal('terms.html'), /Donations are voluntary/); assert.match(legal('terms.html'), /Las donaciones son voluntarias/);
+});

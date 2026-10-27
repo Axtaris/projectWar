@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.7 (27 October 2026)
+
+- **Donate button:** Settings (Support) and the home panel now have a link to donate through PayPal. It is a plain link that opens PayPal in a new tab: the app sends nothing to PayPal, and the security policy of the site is unchanged. The privacy policy and the terms (English and Spanish) now say that donations are voluntary, are made on PayPal's site, are not refundable by the project and unlock nothing.
+
 ## 1.2.6 (27 October 2026)
 
 - **Detachment rules that grant an ability:** Recon Element (Stealth to Astra Militarum units except Titanic), Shadowmark Talon (Stealth to Adeptus Astartes units) and Emissaries Imperatus (Fights First to Adeptus Custodes units) now show the ability on the datasheets of the units they affect. The other detachment rules are conditional (re-rolls, triggers, "while", battle rounds), so they stay as text.
@@ -33,7 +37,7 @@ First package of the 1.2 line. Bug fix.
 
 Closes what 1.1 left open in the data: enhancements and detachment rules that change the datasheet, the options and Marks the conversion had dropped, the Soul Grinder, the checks against the Munitorum Field Manual, and a round of bug fixes found by players (Back and Forward of the browser, attached units, leaders and Support, Guard battleline, per-model weapon limits). Fixes made along the way are listed above, under 1.2.1 to 1.2.6.
 
-Still waiting for the maintainer: the donate button (PayPal link), the two repository secrets that let GitHub deploy the site by itself, and the check of the points against the official Munitorum Field Manual PDF. Sharing and export (phase 2) are next. See [ROADMAP.md](ROADMAP.md).
+Still waiting for the maintainer: the two repository secrets that let GitHub deploy the site by itself, and the check of the points against the official Munitorum Field Manual PDF. Sharing and export (phase 2) are next. See [ROADMAP.md](ROADMAP.md).
 
 ## 1.1.6 (27 October 2026)
 
