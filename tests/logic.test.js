@@ -151,3 +151,25 @@ test('a bodyguard unit takes one Leader unit and one Support unit', async () => 
   l.Units = [body, mk(2, 'LIEUTENANT'), mk(3, 'APOTHECARY BIOLOGIS')];
   assert.ok(has(/can only have one Support unit/), 'two Supports are not');
 });
+
+test('Guard battleline takes two Leader units (one Command Squad at most); Ogryn Bodyguard joins a Command Squad', async () => {
+  const l = await newList('Astra Militarum', 3000), errs = () => api.errors(l).filter((x) => !/warlord/.test(x));
+  const mk = (id, n, att = 0) => ({ ...unit(api, l, id, n), AttachedToInstanceId: att });
+  l.Units = [mk(1, 'CADIAN SHOCK TROOPS'), mk(2, 'COMMISSAR', 1), mk(3, 'MINISTORUM PRIEST', 1)];
+  assert.equal(errs().length, 0, 'two Leaders on a battleline unit');
+  l.Units.push(mk(4, 'COMMISSAR GRAVES', 1));
+  assert.match(errs().join('\n'), /can only have two Leader units/, 'but not three');
+  l.Units = [mk(1, 'CADIAN SHOCK TROOPS'), mk(2, 'CADIAN COMMAND SQUAD', 1), mk(3, 'KRIEG COMMAND SQUAD', 1)];
+  assert.match(errs().join('\n'), /one Command Squad/, 'two Command Squads are not allowed');
+  l.Units = [mk(1, 'CADIAN SHOCK TROOPS'), mk(2, 'CADIAN COMMAND SQUAD', 1), mk(3, 'OGRYN BODYGUARD', 2)];
+  assert.equal(errs().length, 0, 'Ogryn Bodyguard joined to a Command Squad that leads a squad');
+  l.Units = [mk(1, 'KASRKIN'), mk(2, 'COMMISSAR', 1), mk(3, 'MINISTORUM PRIEST', 1)];
+  assert.match(errs().join('\n'), /can only have one Leader unit/, 'a squad without the ability takes one');
+});
+
+test('"per X models" weapon limits count the whole unit (Cadian Shock Troops: 2 per 10 models)', async () => {
+  const l = await newList('Astra Militarum', 3000), d = api.fdOf(l).byName.get('CADIAN SHOCK TROOPS');
+  const g = { o: d.UnitComposition.ModelCompositions[1].Wargear[0].Options.find((o) => o.PerXModels && o.Options.includes('Flamer')) };
+  assert.equal(api.optMax(g, 18, 20), 4);
+  assert.equal(api.optMax(g, 9, 10), 2);
+});

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.5 (27 October 2026)
+
+Bug-fix release.
+
+- **Two Leaders on Guard battleline:** Cadian Shock Troops, Death Korps of Krieg, Catachan Jungle Fighters and Tempestus Scions can have two Leader units attached again (at most one of them a Command Squad), as their datasheets say. Kroot Carnivores can too once they have 20 models, without repeating a Leader. This was caused by the one-Leader limit added in 1.1.3, which now reads the exception from the datasheet.
+- **Special weapons per model count:** limits written as "per 10 models" now count the whole unit, so a 20-model Cadian Shock Troops squad can take 4 special weapons instead of being stopped at 2.
+- **Ogryn Bodyguard:** checked together with the Command Squad it joins, including a Command Squad that leads a Shock Troops squad, with no false errors.
+
 ## 1.1.4 (27 October 2026)
 
 Bug-fix release.

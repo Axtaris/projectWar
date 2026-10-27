@@ -6,7 +6,7 @@ const lc = s => String(s || '').toLowerCase();
 const tc0 = s => String(s || '').toLowerCase().replace(/(^|[\s(\-"“])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Of|And)\b/g, x => x.toLowerCase());
 const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar';
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.1.4';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.1.5';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -135,11 +135,17 @@ function errors(l) {
   Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) ? 1 : kws(d).has('battleline') ? bs.UnitLimit + 3 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
   /* leaders may go alone; only datasheets that say "must join" (Loyal Protector, Regimental Attaché) need a bodyguard */
   l.Units.forEach(u => { const d = unitOf(l, u); if (d?.UnitAbilities?.some(x => /\bmust join\b/i.test(x.Text)) && !u.AttachedToInstanceId) e.push(`${tc(u.Id)} must be attached to a bodyguard unit.`) });
-  /* attached units (core rule 19): unless stated otherwise a bodyguard unit takes one Leader unit and one Support unit; a datasheet can allow two Leaders */
+  /* attached units (core rule 19): unless stated otherwise a bodyguard unit takes one Leader unit and one Support unit.
+     Datasheets that say "up to two Leader units" (Guard battleline, Kroot) allow two; the text sits in the abilities or in the unit info. */
   const isSupport = d => (d?.CoreAbilities || []).some(a => lc(a) === 'support');
+  const txtOf = d => [...(d?.UnitAbilities || []), ...(d?.Infos || [])].map(x => x.Text).join(' | ');
   l.Units.forEach(b => { const att = l.Units.filter(x => x.AttachedToInstanceId === b.InstanceId), bd = unitOf(l, b); if (att.length < 2) return;
-    const sup = att.filter(x => isSupport(unitOf(l, x))).length, lead = att.length - sup, maxLead = bd?.UnitAbilities?.some(x => /attach up to two Leader/i.test(x.Text)) ? 2 : 1;
-    if (sup > 1) e.push(`${tc(b.Id)} can only have one Support unit attached.`); if (lead > maxLead) e.push(`${tc(b.Id)} can only have ${maxLead === 1 ? 'one Leader unit' : 'two Leader units'} attached.`) });
+    const T = txtOf(bd), sup = att.filter(x => isSupport(unitOf(l, x))), lead = att.filter(x => !isSupport(unitOf(l, x)));
+    const two = /up to two Leader units/i.test(T) && (!/Starting Strength of 20/i.test(T) || models(b) >= 20), maxLead = two ? 2 : 1;
+    if (sup.length > 1) e.push(`${tc(b.Id)} can only have one Support unit attached.`);
+    if (lead.length > maxLead) e.push(`${tc(b.Id)} can only have ${maxLead === 1 ? 'one Leader unit' : 'two Leader units'} attached.`);
+    else if (two && /no more than one of those units is a Command Squad/i.test(T) && lead.filter(x => /command squad/i.test(x.Id)).length > 1) e.push(`${tc(b.Id)} can only have one Command Squad attached.`);
+    else if (two && /not duplicates/i.test(T) && new Set(lead.map(x => x.Id)).size < lead.length) e.push(`${tc(b.Id)} cannot have two copies of the same Leader attached.`) });
   if (l.Units.filter(u => u.IsWarlord).length > 1) e.push('Only one warlord may be selected.');
   l.Units.forEach(u => { const d = unitOf(l, u), f = flagsOf(d); if (d && f & 2 && !u.IsWarlord) e.push(`${tc(u.Id)} must be your warlord.`); if (d && f & 1 && u.IsWarlord) e.push(`${tc(u.Id)} cannot be your warlord.`); if (d && f & 4 && u.EnhancementId) e.push(`${tc(u.Id)} cannot take enhancements.`) });
   return e;
@@ -177,7 +183,8 @@ function rebuildLoadouts(u, d, counts) {
   });
   u.UnitCompositionRef = out;
 }
-const optMax = (g, n) => g.o.Max != null ? (g.o.PerXModels ? Math.floor(n / g.o.PerXModels) * g.o.Max : g.o.Max) : n;
+/* "per X models" counts the whole unit, not only the models of this kind (Cadian Shock Troops: up to 2 special weapons per 10 models, sergeants included) */
+const optMax = (g, n, tot = n) => g.o.Max != null ? (g.o.PerXModels ? Math.floor(tot / g.o.PerXModels) * g.o.Max : g.o.Max) : n;
 const nv = v => /^n\/a$/i.test(String(v).trim()) ? '-' : v;
 const cap1 = x => x ? x[0].toUpperCase() + x.slice(1) : x;
 const wgName = (d, w) => cap1(w);
@@ -742,9 +749,9 @@ document.addEventListener('click', async e => {
     case 'einfo': { e.stopPropagation(); const en = enhs(l).find(x => x.Name === id); return modal(tc(en.Name), esc(en.Description) + `<p><b>${en.Cost || 0} points</b></p>`, null) }
     case 'mc': return mutate(() => { const u = l.Units.find(x => x.InstanceId === cu(r)), d = unitOf(l, u), m = d.UnitComposition.ModelCompositions[+t.dataset.i], lim = limOf(m), [mn, mx] = rng(d); const cur = u.UnitCompositionRef.filter(x => lc(x.ModelName) === lc(m.ModelName)).reduce((s, x) => s + x.ModelCount, 0), nv = Math.max(lim.Min, Math.min(lim.Max, cur + +t.dataset.v)), tot = models(u) - cur + nv; if (tot < mn || tot > mx) return;
       const keep = optCounts(u, d); const mcs = d.UnitComposition.ModelCompositions, base = {}; mcs.forEach((x, i) => base[x.ModelName] = u.UnitCompositionRef.filter(q => lc(q.ModelName) === lc(x.ModelName)).reduce((s, q) => s + q.ModelCount, 0)); base[m.ModelName] = nv;
-      u.UnitCompositionRef = mcs.map(x => ({ ModelCount: base[x.ModelName], ModelName: x.ModelName, Wargear: [...(x.Wargear?.[0]?.InitalWargear || [])] })); optList(d).forEach(g => g.o.Options.forEach(a => { const k = altKey(g, a); keep[k] = Math.min(keep[k] || 0, optMax(g, base[g.m.ModelName])) })); rebuildLoadouts(u, d, keep) });
+      u.UnitCompositionRef = mcs.map(x => ({ ModelCount: base[x.ModelName], ModelName: x.ModelName, Wargear: [...(x.Wargear?.[0]?.InitalWargear || [])] })); optList(d).forEach(g => g.o.Options.forEach(a => { const k = altKey(g, a); keep[k] = Math.min(keep[k] || 0, optMax(g, base[g.m.ModelName], Object.values(base).reduce((a, b) => a + b, 0))) })); rebuildLoadouts(u, d, keep) });
     case 'pick': return mutate(() => { const u = l.Units.find(x => x.InstanceId === cu(r)), d = unitOf(l, u), c = optCounts(u, d), g = optList(d)[+t.dataset.gi], k = t.dataset.k, was = c[k]; g.o.Options.forEach(a => c[altKey(g, a)] = 0); if (k && !(t.dataset.opt && was)) c[k] = 1; rebuildLoadouts(u, d, c) });
-    case 'opt': return mutate(() => { const u = l.Units.find(x => x.InstanceId === cu(r)), d = unitOf(l, u), c = optCounts(u, d), k = t.dataset.k, g = optList(d).find(x => x.o.Options.some(a => altKey(x, a) === k)), used = g.o.Options.reduce((s, a) => s + (c[altKey(g, a)] || 0), 0), n = u.UnitCompositionRef.filter(q => lc(q.ModelName) === lc(g.m.ModelName)).reduce((s, q) => s + q.ModelCount, 0), v = +t.dataset.v; if (v > 0 && used >= Math.min(optMax(g, n), n)) return; c[k] = Math.max(0, (c[k] || 0) + v); rebuildLoadouts(u, d, c) });
+    case 'opt': return mutate(() => { const u = l.Units.find(x => x.InstanceId === cu(r)), d = unitOf(l, u), c = optCounts(u, d), k = t.dataset.k, g = optList(d).find(x => x.o.Options.some(a => altKey(x, a) === k)), used = g.o.Options.reduce((s, a) => s + (c[altKey(g, a)] || 0), 0), n = u.UnitCompositionRef.filter(q => lc(q.ModelName) === lc(g.m.ModelName)).reduce((s, q) => s + q.ModelCount, 0), v = +t.dataset.v; if (v > 0 && used >= Math.min(optMax(g, n, models(u)), n)) return; c[k] = Math.max(0, (c[k] || 0) + v); rebuildLoadouts(u, d, c) });
     case 'attach2': return mutate(() => {
       const body = l.Units.find(x => x.InstanceId === cu(r)), ld = l.Units.find(x => x.InstanceId === +id);
       ld.AttachedToInstanceId = ld.AttachedToInstanceId === body.InstanceId ? 0 : body.InstanceId;
