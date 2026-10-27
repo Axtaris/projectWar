@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.3.2';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.3.3';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -726,10 +726,46 @@ PAGES.export = () => `<div class="page spage">${hdr('Export')}<div class="scroll
   ${EXP.type > 1 ? `<div class="empty" style="padding:20px 5px">${['', '', 'Tabletop Simulator export writes to the Steam Workshop folder, which a web page cannot access.', 'YellowScribe is an external service; export to Text or PDF and import it there.'][EXP.type]}</div>` : `<div class="expwrap"><div><div class="cap" style="margin:0 0 3px 5px">Datasheet content to include</div><div class="expgrp" style="min-width:467px"><div class="expgrid">${['Descriptions', 'Statlines', 'Weapons', 'Weapon count', 'Abilities', 'Keywords', 'Army rules', 'Stratagems', 'Core Stratagems', 'Notes'].map(k => CK(k === 'Core Stratagems' ? 'Core / Stratagems' : k, k)).join('')}</div></div></div>
   ${EXP.type === 0 ? `<div><div class="cap" style="margin:0 0 3px 5px">PDF options</div><div class="expgrp" style="min-width:468px">${['Include category headers', 'Filter weapons', 'Filter abilities', 'Statline modification', 'Force new page per datasheet'].map(k => CK(k)).join('')}</div></div>` : ''}</div>`}
   </div><button class="btn ${EXP.type > 1 ? 'off' : ''}" style="position:fixed;right:10px;bottom:10px;width:160px;height:38px;justify-content:center" data-a="doexport">Export</button></div>`;
-function listText(l) {
-  const fd = fdOf(l), out = [`${l.Name} (${total(l)}/${l.MaxPoints} points)`, `${l.Faction} - ${l.Detachments.map(tc).join(' + ')}`, effDisp(l) ? tc(effDisp(l)) : '', ''];
-  CATS.forEach(c => { const us = l.Units.filter(u => unitOf(l, u) && catOf(unitOf(l, u)) === c); if (!us.length) return; if (EXP['Include category headers']) out.push(c.toUpperCase()); us.forEach(u => { const en = enhOf(l, u); out.push(`${tc(u.Id)}${models(u) > 1 ? ' (' + models(u) + ' models)' : ''} - ${unitCost(l, u)} pts${u.IsWarlord ? ' [Warlord]' : ''}${en ? ' [' + tc(en.Name) + ']' : ''}`); u.UnitCompositionRef.forEach(r => out.push(`  • ${r.ModelCount} ${r.ModelName}: ${wgText(unitOf(l, u), r)}`)); if (u.Notes?.Text && EXP.Notes) out.push('  Notes: ' + u.Notes.Text) }); out.push('') });
-  out.push('Created with projectWar 1.0'); return out.join('\n');
+/* ---- text export: several formats, a live preview, download and copy ---- */
+const TXT_FMT = ['GW', 'Tournament', 'Short', 'Simple'];
+let TXT = { fmt: 'GW', gear: true, header: true, player: false, team: false, pname: '', tname: '' };
+function listText(l, f = TXT.fmt, o = TXT) {
+  const us = l.Units.filter(u => unitOf(l, u)), nm = u => tc0(u.Id), pts = u => unitCost(l, u), en = u => enhOf(l, u), disp = effDisp(l) ? tc0(effDisp(l)) : '', dn = l.Detachments.map(tc0).join(' + ');
+  const host = u => u.AttachedToInstanceId && l.Units.find(x => x.InstanceId === u.AttachedToInstanceId);
+  const gear = u => o.gear ? u.UnitCompositionRef.map(r => ({ n: r.ModelCount, m: tc0(r.ModelName), w: wgText(unitOf(l, u), r) })) : [];
+  const wl = us.find(u => u.IsWarlord), ens = us.filter(en), tot = total(l);
+  const byCat = (names, fn) => { const out = []; names.forEach(h => { const g = us.filter(u => h.cats.includes(catOf(unitOf(l, u)))); if (g.length) out.push(...fn(h, g)) }); return out };
+  const GROUPS = [{ t: 'CHARACTERS', cats: ['Epic Hero', 'Character'], a: 'Char' }, { t: 'BATTLELINE', cats: ['Battleline'], a: 'Battle' }, { t: 'OTHER DATASHEETS', cats: ['Transport', 'Vehicle', 'Mounted', 'Other'], a: 'Other' }];
+  const out = [];
+  if (f === 'GW') {
+    if (o.header) out.push(`${l.Name || 'Army'} (${tot} Points)`, '', l.Faction, dn, disp, o.player && o.pname ? 'Player: ' + o.pname : '', o.team && o.tname ? 'Team: ' + o.tname : '', '');
+    out.push(...byCat(GROUPS, (h, g) => [h.t, '', ...g.flatMap(u => [`${nm(u)} (${pts(u)} Points)`, ...(u.IsWarlord ? ['• Warlord'] : []), ...(en(u) ? ['• Enhancements: ' + tc0(en(u).Name)] : []), ...gear(u).flatMap(r => [`• ${r.n}x ${r.m}`, ...(r.w ? ['   • ' + r.w.split(/, | and /).join('\n   • ')] : [])]), '']), '']));
+  } else if (f === 'Tournament') {
+    const bar = '+'.repeat(48);
+    if (o.header) out.push(bar, `+ FACTION KEYWORD: ${l.Faction}`, `+ DETACHMENT: ${dn}`, ...(disp ? [`+ FORCE DISPOSITION: ${disp}`] : []), `+ TOTAL ARMY POINTS: ${tot}pts`, ...(o.player && o.pname ? [`+ PLAYER: ${o.pname}`] : []), ...(o.team && o.tname ? [`+ TEAM: ${o.tname}`] : []), '+', ...(wl ? [`+ WARLORD: ${nm(wl)}`] : []), ...ens.map(u => `+ ENHANCEMENT: ${tc0(en(u).Name)} (on ${nm(u)})`), `+ NUMBER OF UNITS: ${us.length}`, bar, '');
+    const num = {}; us.forEach(u => { const g = GROUPS.find(h => h.cats.includes(catOf(unitOf(l, u)))); u._n = g.a + (num[g.a] = (num[g.a] || 0) + 1) });
+    us.forEach(u => { const g = gear(u), one = g.length === 1; out.push(`${u._n}: ${models(u)}x ${nm(u)} (${pts(u)} pts)${g.length ? ': ' + g.map(r => (one ? '' : `${r.n}x ${r.m} - `) + r.w).join('; ') : ''}`); if (en(u)) out.push(`  Enhancement: ${tc0(en(u).Name)} (+${en(u).Cost} pts)`); if (u.IsWarlord) out.push('  Warlord'); if (host(u)) out.push(`  Leading ${nm(host(u))}`); out.push('') }); us.forEach(u => delete u._n);
+  } else if (f === 'Short') {
+    if (o.header) out.push(`${l.Name || 'Army'} - ${l.Faction}, ${dn} (${tot}/${l.MaxPoints} pts)`, '');
+    us.forEach(u => out.push(`${host(u) ? '  + ' : ''}${nm(u)} (${pts(u)})${u.IsWarlord ? ' [Warlord]' : ''}${en(u) ? ' [' + tc0(en(u).Name) + ']' : ''}`)); out.push('');
+  } else {
+    if (o.header) out.push(l.Name || 'Army', '');
+    us.forEach(u => out.push(`${models(u) > 1 ? models(u) + 'x ' : ''}${nm(u)}`)); out.push('');
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').replace(/\n+$/, '') + '\n\nCreated with projectWar ' + VERSION;
+}
+const TXT_CK = [['gear', 'Wargear'], ['header', 'Header']], TXT_SH = [['player', 'Player name'], ['team', 'Team name']];
+function textModal(l) {
+  closePops(); const sc = document.createElement('div'); sc.className = 'scrim'; sc.style.background = '#000a';
+  const p = document.createElement('div'); p.className = 'popup txtx'; document.body.append(sc, p); pops.push(sc, p);
+  const draw = () => {
+    const txt = listText(l), ck = ([k, t]) => `<button class="chkrow ${TXT[k] ? 'on' : ''}" data-t="${k}"><i></i><span>${t}</span></button>`;
+    p.innerHTML = `<div class="txh"><b>Text export</b><button class="mi" data-t="close" aria-label="Close">${ic('close', 22)}</button></div><div class="txb"><div class="txside"><div class="cap">Export format</div>${TXT_FMT.map(f => `<button class="txfmt ${TXT.fmt === f ? 'on' : ''}" data-t="fmt" data-f="${f}">${f}</button>`).join('')}<div class="cap">Content</div>${TXT_CK.map(ck).join('')}<div class="cap">Sharing</div>${TXT_SH.map(ck).join('')}${TXT.player ? `<input class="in sm" data-t="pname" placeholder="Player name" value="${esc(TXT.pname)}">` : ''}${TXT.team ? `<input class="in sm" data-t="tname" placeholder="Team name" value="${esc(TXT.tname)}">` : ''}</div><div class="txmain"><pre class="txpre">${esc(txt)}</pre><div class="txf"><span>${txt.length} characters</span><button class="btn" data-t="dl">Download .txt</button><button class="btn on" data-t="cp">Copy to clipboard</button></div></div></div>`;
+  };
+  p.onclick = async e => { const b = e.target.closest('[data-t]'); if (!b) return; const t = b.dataset.t;
+    if (t === 'close') return closePops(); if (t === 'fmt') TXT.fmt = b.dataset.f; else if (t === 'dl') return download((l.Name || 'army') + '.txt', listText(l)); else if (t === 'cp') { let ok = true; try { await navigator.clipboard.writeText(listText(l)) } catch { ok = false } b.textContent = ok ? 'Copied' : 'Copy failed'; return setTimeout(() => { b.textContent = 'Copy to clipboard' }, 1500) } else if (TXT_CK.concat(TXT_SH).some(x => x[0] === t)) TXT[t] = !TXT[t]; else return; draw() };
+  p.oninput = e => { const t = e.target.dataset.t; if (t !== 'pname' && t !== 'tname') return; TXT[t] = e.target.value; p.querySelector('.txpre').textContent = listText(l); p.querySelector('.txf span').textContent = listText(l).length + ' characters' };
+  draw();
 }
 function printHtml(l) {
   const fd = fdOf(l), rows = u => { const d = unitOf(l, u), en = enhOf(l, u); return `<div class="u" style="${EXP['Force new page per datasheet'] ? 'break-after:page' : ''}"><b>${u.IsWarlord ? '★ ' : ''}${tc(u.Id)}${models(u) > 1 ? ' (' + models(u) + ' models)' : ''} — ${unitCost(l, u)} pts${en ? ' — ' + tc(en.Name) : ''}</b>
@@ -831,7 +867,7 @@ document.addEventListener('click', async e => {
     case 'etype': return anchorPop(t, ETYPES.map((x, i) => `<button class="btn" style="width:160px;margin:3px 0;justify-content:center" data-a="doetype" data-id="${i}">${x}</button>`).join(''));
     case 'doetype': EXP.type = +id; return render();
     case 'ck': EXP[t.dataset.k] = !EXP[t.dataset.k]; return render();
-    case 'doexport': { if (EXP.type > 1) return; if (EXP.type === 1) { const txt = listText(l); download((l.Name || 'army') + '.txt', txt); return } const pr = $('#printroot'); pr.innerHTML = printHtml(l); setTimeout(() => print(), 50); return }
+    case 'doexport': { if (EXP.type > 1) return; if (EXP.type === 1) return textModal(l); const pr = $('#printroot'); pr.innerHTML = printHtml(l); setTimeout(() => print(), 50); return }
   }
 });
 function mutateView() { S.keepScroll = true; render() }

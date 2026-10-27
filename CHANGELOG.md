@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3 (27 October 2026)
+
+- **Text export dialog:** Export → Text now opens a dialog with a live preview. Four formats: GW (the official-app layout, which imports back into projectWar and New Recruit), Tournament (header block with Warlord, enhancements and numbered units), Short and Simple. You can leave out the wargear or the header, add a player and a team name, then download a .txt or copy to the clipboard.
+
 ## 1.3.2 (27 October 2026)
 
 - **Detachment rules reached units they do not apply to:** an effect that lists several keywords (for example Designation Force: Astra Militarum Infantry Smoke) was applied to every unit that had any one of them, so a Leman Russ Battle Tank received the Signal Flares ability. A unit must now have all the keywords. 34 detachment effects in 17 armies were affected (among them Champions of Fenris, Steel Hammer, Chorus of Condemnation, Armoured Warhost, Starshatter Arsenal and Cult of the Arkifane). The Null Maiden Vigil effect on Prosecutors also pointed to a name that no longer exists and now reaches them.

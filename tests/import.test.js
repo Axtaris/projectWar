@@ -128,3 +128,13 @@ test('a zip without a roster, and broken XML, fail cleanly', async () => {
   await assert.rejects(() => api.unzipRos(Buffer.from('not a zip at all, just text')));
   fresh(); const b = await api.importExternal('<roster><forces>'); assert.ok(b === null || (b.error && !b.list), 'broken XML gives no list');
 });
+
+test('text export: every format renders, and the GW format imports back to the same list', async () => {
+  fresh(); const r = await api.importExternal(APP_STYLE), l = r.list; api.S.cur = l;
+  for (const f of ['GW', 'Tournament', 'Short', 'Simple']) { const t = api.listText(l, f, { ...api.TXT, gear: true, header: true }); assert.ok(t.includes('Overlord'), f); assert.ok(t.includes('Immortals'), f) }
+  assert.ok(api.listText(l, 'Tournament', { gear: true, header: true }).includes('+ WARLORD: Overlord'));
+  assert.ok(!api.listText(l, 'GW', { gear: false, header: false }).includes('Annihilation'));
+  const again = await api.importExternal(api.listText(l, 'GW', { gear: true, header: true }));
+  assert.equal(api.total(again.list), api.total(l)); assert.equal(again.list.Units.length, l.Units.length);
+  assert.equal(again.list.Units.find(u => u.IsWarlord)?.Id, l.Units.find(u => u.IsWarlord)?.Id);
+});

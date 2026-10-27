@@ -576,3 +576,19 @@ h2.mid{margin:0;font:600 32px/1.05 var(--cond);text-transform:uppercase;letter-s
 .arule{border:1px solid var(--ln);border-left:3px solid var(--c);border-radius:3px;background:var(--p1)}
 .arule summary{cursor:pointer;padding:10px 12px;font:600 15px var(--cond);text-transform:uppercase;letter-spacing:.04em;list-style-position:inside}
 .arule .b{padding:4px 14px 12px;white-space:pre-wrap;line-height:1.5;font-size:14px}
+
+/* text export dialog */
+.popup.txtx{left:50%;top:6vh;transform:translateX(-50%);width:min(900px,94vw);height:88vh;display:flex;flex-direction:column;padding:0}
+.txh{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--ln);font:600 18px var(--cond);text-transform:uppercase;letter-spacing:.1em}
+.txh .mi{width:40px;min-height:40px;padding:0;justify-content:center}
+.txb{display:flex;flex:1;min-height:0}
+.txside{width:210px;flex:none;padding:10px 12px;border-right:1px solid var(--ln);overflow:auto;display:flex;flex-direction:column;gap:4px}
+.txside .cap{margin:12px 0 4px}.txside .cap:first-child{margin-top:0}
+.txfmt{text-align:left;padding:10px 12px;border:1px solid transparent;border-left:3px solid transparent;border-radius:2px;font:600 15px var(--cond);text-transform:uppercase;letter-spacing:.08em}
+.txfmt:hover{background:var(--p1)}.txfmt.on{background:var(--p1);border-color:var(--ln);border-left-color:var(--c)}
+.txside .chkrow{min-height:36px;font-size:14px}.txside .chkrow i{width:26px;height:26px}.txside .chkrow.on i::after{width:7px;height:13px;border-width:0 2px 2px 0}
+.txmain{flex:1;min-width:0;display:flex;flex-direction:column}
+.txpre{flex:1;margin:0;padding:12px 14px;overflow:auto;white-space:pre-wrap;word-break:break-word;font:13px/1.45 ui-monospace,Consolas,monospace;background:var(--bg);color:var(--fg)}
+.txf{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--ln);font-size:12px;color:var(--dim)}
+.txf span{flex:1}.txf .btn{height:38px;padding:0 14px}
+@media(max-width:640px){.popup.txtx{top:0;height:100vh;width:100vw}.txb{flex-direction:column}.txside{width:auto;flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--ln);max-height:34vh}.txside .cap{width:100%;margin:6px 0 0}}
