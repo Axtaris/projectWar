@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.4 (27 October 2026)
+
+- **Attached units stay in one group:** a Command Squad leading a Krieg squad, with an Ogryn Bodyguard joined to the Command Squad and a Psyker beside it, is one unit and now shows as one group (with all its points added), instead of two overlapping groups. Three such units show as three groups, not six.
+
 ## 1.2.3 (27 October 2026)
 
 - **Marks and detachment options are back:** the conversion had dropped options that the original data offered, so Daemon Princes of the Heretic Astartes could not choose their Mark, Pactbound Zealots units could not choose theirs, and vehicles in detachments such as Steel Hammer or Houndpack Lance could not become Characters. 117 options were restored (58 tied to a detachment, 59 plain ones such as vox-casters, banners and Marks).

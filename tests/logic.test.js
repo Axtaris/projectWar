@@ -255,3 +255,14 @@ test('options chosen on a unit (a Mark, "Steel Hammer Character") count for enha
   const l = await newList('Chaos Space Marines', 3000), dp = api.fdOf(l).byName.get('HERETIC ASTARTES DAEMON PRINCE');
   assert.ok(dp.UnitComposition.ModelCompositions.some((m) => (m.Wargear[0].Options || []).some((o) => (o.Options || []).includes('khorne'))), 'the Daemon Prince offers its Marks');
 });
+
+test('an attached unit is one group, even when a joined unit sits on a leader (Krieg + Command Squad + Ogryn Bodyguard + Psyker = one)', async () => {
+  const l = await newList('Astra Militarum', 3000), mk = (id, n, att = 0) => ({ ...unit(api, l, id, n), AttachedToInstanceId: att });
+  l.Units = [];
+  for (let i = 0; i < 3; i++) { const b = 10 * i + 1; l.Units.push(mk(b, 'DEATH KORPS OF KRIEG'), mk(b + 1, 'KRIEG COMMAND SQUAD', b), mk(b + 2, 'OGRYN BODYGUARD', b + 1), mk(b + 3, 'PRIMARIS PSYKER', b)) }
+  const html = api.listHtml(l, true);
+  assert.equal((html.match(/data-id="a\d+"/g) || []).length, 3, 'three groups, not six');
+  assert.equal((html.match(/class="ucard/g) || []).length, 12, 'every unit appears exactly once');
+  l.Units = l.Units.slice(0, 4); l.Units[2].AttachedToInstanceId = 0;   // the Ogryn alone, the rest still attached
+  assert.equal((api.listHtml(l, true).match(/class="ucard/g) || []).length, 4);
+});

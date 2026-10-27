@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar';
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.2.3';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.2.4';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -406,9 +406,14 @@ function rosterHtml(l) {
       return `<div class="ucard"><button class="t" style="text-align:left;flex:1" data-a="rsel" data-id="${esc(d.Name)}">${tc(d.Name)}<br><span class="badge">${mn} points${multi ? '' : ''}</span></button><button class="ibtn" data-a="addunit" data-id="${esc(d.Name)}">${ic('plus', 36)}</button></div>` }).join('')) }).join('');
 }
 function listHtml(l, ro) {
-  const by = new Map(); l.Units.forEach(u => { if (u.AttachedToInstanceId && l.Units.some(x => x.InstanceId === u.AttachedToInstanceId)) { const k = u.AttachedToInstanceId; by.set(k, [...(by.get(k) || []), u]) } });
+  /* an attached unit is one unit: a Command Squad leading a Krieg squad, with an Ogryn Bodyguard joined to the Command Squad and a Psyker beside it, is a single group (root bodyguard first, then everything attached to it, each unit followed by what is attached to it) */
+  const units = l.Units, byId = new Map(units.map(x => [x.InstanceId, x])), kids = new Map();
+  units.forEach(u => { if (u.AttachedToInstanceId && byId.has(u.AttachedToInstanceId)) kids.set(u.AttachedToInstanceId, [...(kids.get(u.AttachedToInstanceId) || []), u]) });
+  const rootOf = u => { const seen = new Set(); while (u.AttachedToInstanceId && byId.has(u.AttachedToInstanceId) && !seen.has(u.InstanceId)) { seen.add(u.InstanceId); u = byId.get(u.AttachedToInstanceId) } return u };
+  const walk = (id, seen) => (kids.get(id) || []).flatMap(c => seen.has(c.InstanceId) ? [] : (seen.add(c.InstanceId), [c, ...walk(c.InstanceId, seen)]));
+  const by = new Map(); units.forEach(u => { const r = rootOf(u); if (r !== u && !by.has(r.InstanceId)) by.set(r.InstanceId, walk(r.InstanceId, new Set([r.InstanceId]))) });
   const inGroup = new Set([...by.keys(), ...[...by.values()].flat().map(x => x.InstanceId)]), sum = us => us.reduce((a, u) => a + unitPts(l, u), 0);
-  const att = [...by].map(([k, ls]) => { const body = l.Units.find(x => x.InstanceId === k), us = [body, ...ls]; return exp('a' + k, `${esc(body.AttachedUnitName || tc(body.Id))} ${sum(us)} points`, us.map(u => unitCardHtml(l, u, ro)).join(''), true, 'static') }).join('');
+  const att = [...by].map(([k, ls]) => { const body = byId.get(k), us = [body, ...ls]; return exp('a' + k, `${esc(body.AttachedUnitName || tc(body.Id))} ${sum(us)} points`, us.map(u => unitCardHtml(l, u, ro)).join(''), true, 'static') }).join('');
   const g = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (d && !inGroup.has(u.InstanceId)) (g[catOf(d)] ??= []).push(u) });
   const out = att + CATS.filter(c => g[c]).map(c => exp('l' + c, `${c} ${sum(g[c])} points`, g[c].map(u => unitCardHtml(l, u, ro)).join(''), true, 'static')).join('');
   return out || (ro ? '<div class="empty">This list has no units.</div>' : '');
