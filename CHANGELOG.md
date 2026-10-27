@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.8 (27 October 2026)
+
+- **Nork Deddog:** he has the same Loyal Protector ability as the Ogryn Bodyguard, so like the Ogryn he must be joined to a Command Squad, and now he can be (before, no Command Squad accepted him). A Command Squad takes only one Loyal Protector (Ogryn or Nork, not both). The same rule now covers every unit that joins another unit (Support Weapon platforms, Servitors, Cryptothralls...): one of each kind per unit.
+- **Warlord ban restored:** Nork Deddog, the Ogryn Bodyguard and Sly Marbo cannot be your Warlord. A 1.1.1 data fix had cleared this by mistake, because their datasheets say "cannot be selected as your Warlord" and the check only knew the wording "cannot be your Warlord". A test now covers both wordings.
+- **Lieutenant with Combi-weapon:** removed the 10th-edition ability "Last Survivor", which the 11th edition datasheet no longer has.
+
 ## 1.2.7 (27 October 2026)
 
 - **Donate button:** Settings (Support) and the home panel now have a link to donate through PayPal. It is a plain link that opens PayPal in a new tab: the app sends nothing to PayPal, and the security policy of the site is unchanged. The privacy policy and the terms (English and Spanish) now say that donations are voluntary, are made on PayPal's site, are not refundable by the project and unlock nothing.

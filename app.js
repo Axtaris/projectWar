@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.2.7';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.2.8';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -158,6 +158,10 @@ function errors(l) {
   l.Units.forEach(u => { const m = /army cannot contain both (.+?) and (.+?)\./i.exec(dsText(unitOf(l, u))); if (m && l.Units.some(x => lc(x.Id) === lc(m[1]).trim()) && l.Units.some(x => lc(x.Id) === lc(m[2]).trim()) && lc(u.Id) === lc(m[1]).trim()) e.push(`Your army cannot contain both ${tc(m[1])} and ${tc(m[2])}.`) });
   /* leaders may go alone; only datasheets that say "must join" (Loyal Protector, Regimental Attaché) need a bodyguard */
   l.Units.forEach(u => { const d = unitOf(l, u); if (d?.UnitAbilities?.some(x => /\bmust join\b/i.test(x.Text)) && !u.AttachedToInstanceId) e.push(`${tc(u.Id)} must be attached to a bodyguard unit.`) });
+  /* units that join another unit (Loyal Protector, Support Weapon platforms, Servitors...) say "a unit cannot have more than one X joined to it": one per ability name */
+  const joinKey = d => (d?.UnitAbilities || []).find(x => /(can|must) join one/i.test(x.Text))?.Title;
+  l.Units.forEach(b => { const by = new Map(); l.Units.filter(x => x.AttachedToInstanceId === b.InstanceId).forEach(x => { const k = joinKey(unitOf(l, x)); if (k) by.set(k, (by.get(k) || 0) + 1) });
+    by.forEach((c, k) => { if (c > 1) e.push(`${tc(b.Id)} can only have one ${tc(k)} unit joined to it.`) }) });
   /* attached units (core rule 19): unless stated otherwise a bodyguard unit takes one Leader unit and one Support unit.
      Exceptions sit on the datasheets: "up to two Leader units" (Guard battleline, Kroot) and, on the leader's own sheet, "even if one other Leader unit has already been attached" (Death Guard).
      Units that "join" another unit (Servitors, Cryptothralls, Loyal Protector...) are not counted. */

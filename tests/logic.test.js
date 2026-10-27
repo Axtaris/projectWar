@@ -291,3 +291,14 @@ test('the donate button is a plain https PayPal link in Settings and on the home
   const fs = require('node:fs'), path = require('node:path'), legal = (f) => fs.readFileSync(path.join(__dirname, '..', 'legal', f), 'utf8');
   assert.match(legal('privacy.html'), /PayPal/); assert.match(legal('terms.html'), /Donations are voluntary/); assert.match(legal('terms.html'), /Las donaciones son voluntarias/);
 });
+
+test('Nork Deddog: joins a Command Squad like the Ogryn Bodyguard, cannot be Warlord, and a Command Squad takes only one Loyal Protector', async () => {
+  const l = await newList('Astra Militarum', 3000), mk = (id, n, att = 0) => ({ ...unit(api, l, id, n), AttachedToInstanceId: att }), errs = () => api.errors(l).filter((x) => !/requires a warlord/.test(x)).join('\n');
+  const nork = mk(2, 'NORK DEDDOG'), cs = mk(1, 'CADIAN COMMAND SQUAD');
+  assert.ok(api.ledNames(l, nork).has('cadian command squad'), 'Nork can be joined to a Cadian Command Squad');
+  assert.equal(api.unitOf(l, nork).Flags & 1, 1, 'Nork cannot be your Warlord'); assert.equal(api.unitOf(l, mk(3, 'OGRYN BODYGUARD')).Flags & 1, 1, 'nor the Ogryn Bodyguard');
+  l.Units = [cs, mk(2, 'NORK DEDDOG', 1)]; assert.equal(errs(), '', 'Nork joined to a Command Squad is valid');
+  l.Units = [cs, mk(2, 'NORK DEDDOG')]; assert.match(errs(), /must be attached/, 'alone he is not');
+  l.Units = [cs, mk(2, 'NORK DEDDOG', 1), mk(3, 'OGRYN BODYGUARD', 1)]; assert.match(errs(), /only have one Loyal Protector/, 'one Loyal Protector per Command Squad');
+  const sl = api.unitOf(l, mk(4, 'SLY MARBO')); assert.equal(sl.Flags & 1, 1, 'Sly Marbo cannot be your Warlord');
+});

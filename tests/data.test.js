@@ -150,3 +150,13 @@ test('Soul Grinder is in the Chaos Daemons roster, priced by copy, and offers it
   const marks = u.UnitComposition.ModelCompositions.flatMap((m) => m.Wargear[0].Options || []).flatMap((o) => o.Options);
   for (const g of ['khorne', 'tzeentch', 'nurgle', 'slaanesh']) assert.ok(marks.includes(g), `offers ${g}`);
 });
+
+/* every datasheet that says "cannot be your / selected as your Warlord" carries the flag (the wording differs between datasheets) */
+test('units whose text bans the Warlord role carry the not-warlord flag', () => {
+  const bad = [];
+  for (const f of factionFiles) for (const u of read(f).Units) {
+    const t = [...(u.UnitAbilities || []), ...(u.Infos || [])].map((a) => a.Text).join(' ') + ' ' + (u.LeaderInfo?.Description || '');
+    if (/cannot (?:be selected (?:to be|as) |be )?your warlord/i.test(t) && !((u.Flags || 0) & 1)) bad.push(`${f}: ${u.Name}`);
+  }
+  assert.equal(bad.length, 0, bad.slice(0, 8).join('\n'));
+});
