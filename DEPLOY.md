@@ -36,6 +36,6 @@ The data lives in another repository, so a data change does not redeploy the sit
 
 ## After deploying
 
-- Fill in the placeholders in `legal/*.html` (`[[LEGAL NAME]]`, `[[CONTACT EMAIL]]`, `[[HOSTING PROVIDER]]` = Cloudflare, Inc., `[[CITY]]`).
+- Fill in the placeholders in `legal/*.html` (`[[LEGAL NAME]]`, `[[CONTACT EMAIL]]` = Cloudflare, Inc., `[[CITY]]`).
 - Check the headers with <https://securityheaders.com> and the policy with the browser console (no CSP violations should appear).
 - Enable *private vulnerability reporting* on the GitHub repository (Settings → Code security) so `SECURITY.md` and `.well-known/security.txt` work.

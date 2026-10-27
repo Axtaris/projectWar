@@ -78,7 +78,7 @@ The application code is released into the public domain under the [Unlicense](ht
 
 ## Legal
 
-[Privacy Policy](legal/privacy.html), [Terms of Use](legal/terms.html) and [Cookie Notice](legal/cookies.html) (English and Spanish; written for Colombian and international law). The app sets no cookies and collects no personal data. Fill in the bracketed placeholders (`[[LEGAL NAME]]`, `[[CONTACT EMAIL]]`, `[[HOSTING PROVIDER]]`, `[[CITY]]`) in `legal/*.html` before deploying. These pages are a good-faith draft, not legal advice.
+[Privacy Policy](legal/privacy.html), [Terms of Use](legal/terms.html) and [Cookie Notice](legal/cookies.html) (English and Spanish; written for Colombian and international law). The app sets no cookies and collects no personal data. Fill in the bracketed placeholders (`[[LEGAL NAME]]`, `[[CONTACT EMAIL]]`, `[[CITY]]`) in `legal/*.html` before deploying. These pages are a good-faith draft, not legal advice.
 
 ## Security and deployment
 
