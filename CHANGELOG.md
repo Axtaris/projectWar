@@ -1,0 +1,16 @@
+# Changelog
+
+## 1.1 (in development)
+
+Goal: **trust**. Data review, structured effects for new content, automated tests, automatic data deployment, a working theme setting and compact-layout parity. See [ROADMAP.md](ROADMAP.md), phase 1.
+
+## 1.0 (27 October 2026)
+
+First public version.
+
+- Army list builder for Warhammer 40,000 11th edition (data version 11.3): factions and Space Marine chapters, detachments with detachment points, units with wargear options, enhancements, Warlord and attached leaders.
+- Editor and viewer, datasheets, rules and stratagems, data search and history.
+- Text and print export; backup and restore of lists as a file; lists stored in the browser.
+- New visual identity: orange brand colour with a thin line in each faction's colour.
+- Static deployment with strict security headers, sanitised list imports, self-hosted fonts, no cookies and no third-party requests.
+- Privacy policy, terms of use and cookie notice (English and Spanish).
