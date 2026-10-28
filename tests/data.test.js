@@ -160,3 +160,11 @@ test('units whose text bans the Warlord role carry the not-warlord flag', () => 
   }
   assert.equal(bad.length, 0, bad.slice(0, 8).join('\n'));
 });
+
+test('starting wargear holds items, never sentences of the datasheet; the Kasrkin Sergeant weapons replace the printed ones', () => {
+  const bad = [];
+  for (const f of factionFiles) read(f).Units.forEach(u => u.UnitComposition.ModelCompositions.forEach(m => (m.Wargear || []).forEach(w => (w.InitalWargear || []).forEach(x => { if (x.length > 70 || x.endsWith('.') || / this | unit /.test(x)) bad.push(`${f}: ${u.Name}: ${x.slice(0, 50)}`) }))));
+  assert.equal(bad.length, 0, bad.join(', '));
+  const k = read('Astra Militarum.json').Units.find(u => u.Name === 'KASRKIN').UnitComposition.ModelCompositions[0].Wargear[0].Options;
+  assert.equal(JSON.stringify(k.map(o => o.Replaces)), JSON.stringify([['chainsword'], ['hot-shot laspistol']]));
+});

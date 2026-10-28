@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.5 (28 October 2026)
+
+- **Wargear options that replace:** the Kasrkin Sergeant, the Tempestor of the Tempestus Scions and the Brotherhood Terminator Squad now replace the weapon the datasheet says (before, the chosen weapon was added to the printed one, so a Sergeant carried a hot-shot laspistol, a chainsword, a power weapon and a plasma pistol at once). The cause was a footnote under the option list ("You cannot select the same weapon more than twice") that stopped the conversion of the whole unit; the converter now ignores such footnotes.
+- **Rules text among the weapons:** nine units (Death Korps Watchmasters, Jungle Fighter Sergeants, the Tempestor, Atalan Jackals, Inquisitorial Agents, Brôkhyr Iron-Master, Grimnyr, Firesight Marksman and Neurogaunt Nodebeasts) listed a sentence of the datasheet as if it were a weapon. Removed, and a data test now fails if any starting wargear looks like a sentence.
+- About 260 other units still have wargear options the converter cannot read safely (the reasons are listed in the converter report); they keep their previous options and are reviewed one by one.
+
 ## 1.4.4 (28 October 2026)
 
 - **YellowScribe weapons:** the weapons written for each model are now matched by exact name (a profile such as "Plasma gun – supercharge" counts as the plasma gun), so a model no longer receives weapons that only share part of a name. Tried against the live service: it accepted an 18-unit Astra Militarum list and returned a code.
