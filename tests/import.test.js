@@ -242,13 +242,20 @@ test('the force disposition written in an imported text is kept', async () => {
   fresh(); const s = (await api.importExternal(fixture('spacemarines-attached.txt'))).list; assert.equal(api.effDisp(s), 'TAKE AND HOLD');
 });
 
-test('a list exported by projectWar: its title is not a unit, and a Boyz unit of 19 models is read as 20 (the Field Manual prices 10 or 20)', async () => {
+test('a list exported by projectWar: its title is not a unit; 1 Nob + 18 Boyz stays as written; a Support character needs a bodyguard (as New Recruit says)', async () => {
   fresh(); const r = await api.importExternal(fixture('orks-boys-projectwar.txt')), l = r.list; api.S.cur = l;
-  assert.equal(l.Units.length, 12); assert.equal(api.total(l), 1990); assert.equal(api.errors(l).length, 0, api.errors(l).join('; '));
-  assert.ok(r.notes.some(n => /19 models is not a size/.test(n)));
-  const b = l.Units.find(u => u.Id === 'BOYZ'); assert.equal(api.models(b), 20);
-  b.UnitCompositionRef.find(x => /^Boyz$/i.test(x.ModelName)).ModelCount -= 1;                 // 19 models, as the editor used to allow
-  assert.ok(api.errors(l).some(e => /has 19 models; the Munitorum Field Manual prices 10 or 20/.test(e)));
+  assert.equal(l.Units.length, 12); assert.equal(api.total(l), 1990);
+  const b = l.Units.find(u => u.Id === 'BOYZ'); assert.equal(api.models(b), 19); assert.equal(JSON.stringify(b.UnitCompositionRef.map(x => [x.ModelName, x.ModelCount])), JSON.stringify([['Boss Nob', 1], ['Boyz', 18]]));
+  assert.equal(JSON.stringify(api.errors(l)), JSON.stringify(['Painboy must be attached to a bodyguard unit.']));   // the one error New Recruit gives for this list
+  const pb = l.Units.find(u => u.Id === 'PAINBOY'); pb.AttachedToInstanceId = b.InstanceId; assert.equal(api.errors(l).length, 0, api.errors(l).join('; '));
+  b.UnitCompositionRef.find(x => /^Boyz$/i.test(x.ModelName)).ModelCount = 19;      // 1 Nob + 19 Boyz = 20: the datasheet says 1-2 Nob and 9-18 Boy
+  assert.ok(api.errors(l).some(e => /has 19 Boyz; the datasheet allows 9 to 18/.test(e)));
+  b.UnitCompositionRef.find(x => /^Boyz$/i.test(x.ModelName)).ModelCount = 18; b.UnitCompositionRef.find(x => /Nob/.test(x.ModelName)).ModelCount = 2; assert.equal(api.models(b), 20); assert.equal(api.errors(l).length, 0);
+});
+test('GW text export writes attached units the way New Recruit does and imports back with them', async () => {
+  fresh(); const l = (await api.importExternal(fixture('sororitas-attached.txt'))).list; api.S.cur = l;
+  const t = api.listText(l, 'GW', { gear: true, header: true }); assert.ok(/ATTACHED UNITS/.test(t) && /Attached unit 4/.test(t) && t.includes('• Attached as: Support (Character)') && /• Attached as: Bodyguard/.test(t));
+  fresh(); const again = (await api.importExternal(t)).list; assert.equal(again.Units.filter(u => u.AttachedToInstanceId).length, 4); assert.equal(api.total(again), api.total(l));
 });
 test('Deathwatch Support: Deathwatch units join a Space Marines army, within 500 points and never as Warlord', async () => {
   fresh(); const r = await api.importExternal(fixture('spacemarines-deathwatch-support.txt')), l = r.list; api.S.cur = l;

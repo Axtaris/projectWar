@@ -1,11 +1,22 @@
 # Changelog
 
+## 1.4.10 (30 October 2026)
+
+Checked against New Recruit itself (its Text Import, with the Orks list that gave errors there).
+
+- **Text import dialog:** Import list → Text import now opens a dialog like New Recruit's: choose the army or let it be detected, give the list a name and a points limit if you want, paste the text, and the line under the box says what was understood while you paste ("No import issues · Ultramarines · 14 units · 2000 pts", or the things to check). Import now creates the list.
+- **Boyz and Beast Snagga Boyz:** the datasheet allows 1-2 Nob and 9-18 Boy models (10 to 20 in all). The data had a single Nob and up to 19 Boyz, so a unit could be 1 Nob + 19 Boyz = 20, one more than the datasheet allows. With 20 models you now get 2 Nobs + 18 Boyz, and with 19 models 1 Nob + 18 Boyz, as New Recruit shows. All other units were compared row by row against Wahapedia (1,054 datasheets) and have the right limits.
+- **Support characters must be attached:** "Each support unit in your roster must be attached to a bodyguard unit" (core rules). The Painboy, Runtherd and other Support characters now show "must be attached to a bodyguard unit", which is the one error New Recruit gave for the Orks list.
+- **Limits of a model type:** a list with more or fewer models of a type than the datasheet allows (for example 19 Boyz) shows an error.
+- **Sizes are not restricted to 10 or 20:** version 1.4.9 treated the points table (Boyz 10 or 20 models) as the only allowed sizes. New Recruit accepts any size the datasheet allows, priced by the tier that covers it, and so does projectWar again.
+- **GW text export:** attached units are written as "Attached unit N" with "Attached as: Leader / Support / Bodyguard", and every weapon with its count ("7x Boltgun"), the way New Recruit writes them. Importing that text gives back the same list, with the same points.
+
 ## 1.4.9 (29 October 2026)
 
 Found with two lists that New Recruit rejected and projectWar did not, and a Deathwatch Support list that did not import.
 
 - **Deathwatch Support works:** the detachment lets Deathwatch units into a Space Marines army (and any Chapter): they appear in the unit picker and in imported lists, their combined cost may not exceed 500 points, and none of them can be your Warlord. The rule is described in the data (`Allies` on the detachment), so other detachments with allies (Ynnari, Brood Brothers, Legions of Excess...) can use it; they are still to be described one by one.
-- **Unit sizes:** the editor let a Boyz unit have 19 models (and Meganobz 4), sizes the Munitorum Field Manual does not price, which New Recruit then rejected. The +/- buttons now jump between the priced sizes (Boyz 10 or 20), the list shows an error if a unit has another size, and an import with 19 Boyz is read as 20, matching the points of the text.
+- **Unit sizes (corrected in 1.4.10):** the first reading of the Munitorum Field Manual as "only 10 or 20 models" was wrong and was withdrawn in the next version.
 - **List title:** a list named like a unit ("Boys") no longer adds that unit; the first line of an exported list is its title.
 - **Points updated to the Munitorum Field Manual 1.6:** 21 units still had earlier points: Deathwatch Terminator Squad (190 for the first two, 230 for the third), Fortis, Indomitor and Spectrus Kill Teams, Kastelan Robots, Plagueburst Crawler, Space Wolves Venerable Dreadnought and 12 Imperial Agents datasheets (Inquisitor, Coteaz, Draxus, Vindicare and Eversor Assassins, Navigator, Voidsmen-at-Arms, Subductor Squad, Sisters of Battle Squad, Grey Knights Terminator Squad and others). Wolf Guard Headtakers, where the Manual gives two prices for six models, was left for a manual look.
 

@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.9';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.10';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -167,7 +167,6 @@ function errors(l) {
   const e = [], t = total(l), bs = BS(l.MaxPoints), fd = fdOf(l);
   if (l.Units.length && !l.Units.some(u => u.IsWarlord)) e.push('Your army list requires a warlord.');
   alliesOf(l).forEach(a => { const au = l.Units.filter(u => unitOf(l, u)?.Ally === a.Faction), pts = au.reduce((n, u) => n + unitCost(l, u), 0); if (pts > a.MaxPoints) e.push(`${a.Faction} allied units cost ${pts} points; this detachment allows ${a.MaxPoints}.`); if (a.NoWarlord && au.some(u => u.IsWarlord)) e.push(`${a.Faction} allied units cannot be your Warlord.`) });
-  l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; const sz = [...new Set(pointsOf(l, d).map(p => p.ModelCount))].sort((a, b) => a - b); if (sz.length && !sz.includes(models(u))) e.push(`${tc(u.Id)} has ${models(u)} models; the Munitorum Field Manual prices ${sz.join(', ').replace(/, (\d+)$/, ' or $1')}.`) });
   if (t > l.MaxPoints) e.push(`Your army list exceeds the points limit by ${t - l.MaxPoints}.`);
   if (dpUsed(l) > bs.DetachmentPoints) e.push(`Detachments use ${dpUsed(l)} DP, but only ${bs.DetachmentPoints} are available.`);
   const isUp = e => /Upgrade/.test(e?.Features || '');   // 11th edition: up to three of the same Upgrade; the copies after the first do not count towards the enhancement limit (their points are still paid)
@@ -176,8 +175,9 @@ function errors(l) {
   const cnt = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (d) cnt[u.Id] = (cnt[u.Id] || 0) + 1 });
   Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) || /cannot include more than one of this model/i.test(dsText(d)) ? 1 : battleline(l, d) ? bs.UnitLimit + 3 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
   l.Units.forEach(u => { const m = /army cannot contain both (.+?) and (.+?)\./i.exec(dsText(unitOf(l, u))); if (m && l.Units.some(x => lc(x.Id) === lc(m[1]).trim()) && l.Units.some(x => lc(x.Id) === lc(m[2]).trim()) && lc(u.Id) === lc(m[1]).trim()) e.push(`Your army cannot contain both ${tc(m[1])} and ${tc(m[2])}.`) });
+  l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; d.UnitComposition.ModelCompositions.forEach(m => { const lim = limOf(m), c = u.UnitCompositionRef.filter(x => lc(x.ModelName) === lc(m.ModelName)).reduce((a, x) => a + x.ModelCount, 0); if (c > lim.Max || c < lim.Min) e.push(`${tc(u.Id)} has ${c} ${tc(m.ModelName)}; the datasheet allows ${lim.Min === lim.Max ? lim.Min : lim.Min + ' to ' + lim.Max}.`) }) });
   /* leaders may go alone; only datasheets that say "must join" (Loyal Protector, Regimental Attaché) need a bodyguard */
-  l.Units.forEach(u => { const d = unitOf(l, u); if (d?.UnitAbilities?.some(x => /\bmust join\b/i.test(x.Text)) && !u.AttachedToInstanceId) e.push(`${tc(u.Id)} must be attached to a bodyguard unit.`) });
+  l.Units.forEach(u => { const d = unitOf(l, u); if ((d?.UnitAbilities?.some(x => /\bmust join\b/i.test(x.Text)) || d?.LeaderInfo?.LeaderType === 'Support') && !u.AttachedToInstanceId) e.push(`${tc(u.Id)} must be attached to a bodyguard unit.`) });
   /* units that join another unit (Loyal Protector, Support Weapon platforms, Servitors...) say "a unit cannot have more than one X joined to it": one per ability name */
   const joinKey = d => (d?.UnitAbilities || []).find(x => /(can|must) join one/i.test(x.Text))?.Title;
   l.Units.forEach(b => { const by = new Map(); l.Units.filter(x => x.AttachedToInstanceId === b.InstanceId).forEach(x => { const k = joinKey(unitOf(l, x)); if (k) by.set(k, (by.get(k) || 0) + 1) });
@@ -198,9 +198,11 @@ function errors(l) {
   return e;
 }
 function composition(d, n) {
-  const mc = d.UnitComposition.ModelCompositions, lim = limOf;
-  let rest = n - mc.reduce((a, m) => a + lim(m).Min, 0);
-  return mc.map((m, i) => { let c = lim(m).Min; if (rest > 0) { const add = Math.min(rest, lim(m).Max - c); c += add; rest -= add } return { ModelCount: c, ModelName: m.ModelName, Wargear: [...(m.Wargear?.[0]?.InitalWargear || [])] } });
+  const mc = d.UnitComposition.ModelCompositions, lim = limOf, count = mc.map(m => lim(m).Min);
+  let rest = n - count.reduce((a, c) => a + c, 0);
+  // extra models go to the rows with the most room first (the Boyz, not the Nob), keeping the order of the datasheet on ties
+  mc.map((m, i) => i).sort((x, y) => (lim(mc[y]).Max - lim(mc[y]).Min) - (lim(mc[x]).Max - lim(mc[x]).Min) || x - y).forEach(i => { if (rest > 0) { const add = Math.min(rest, lim(mc[i]).Max - count[i]); count[i] += add; rest -= add } });
+  return mc.map((m, i) => ({ ModelCount: count[i], ModelName: m.ModelName, Wargear: [...(m.Wargear?.[0]?.InitalWargear || [])] }));
 }
 /* model limits: some datasheets give only Max (Min = 0) or none (exactly 1) */
 const limOf = m => m.Limit ? { Min: m.Limit.Min ?? 0, Max: m.Limit.Max ?? m.Limit.Min ?? 1 } : { Min: 1, Max: 1 };
@@ -791,12 +793,16 @@ function listText(l, f = TXT.fmt, o = TXT) {
   const host = u => u.AttachedToInstanceId && l.Units.find(x => x.InstanceId === u.AttachedToInstanceId);
   const gear = u => o.gear ? u.UnitCompositionRef.map(r => ({ n: r.ModelCount, m: tc0(r.ModelName), w: wgText(unitOf(l, u), r) })) : [];
   const wl = us.find(u => u.IsWarlord), ens = us.filter(en), tot = total(l);
-  const byCat = (names, fn) => { const out = []; names.forEach(h => { const g = us.filter(u => h.cats.includes(catOf(unitOf(l, u)))); if (g.length) out.push(...fn(h, g)) }); return out };
+  let pool = us; const byCat = (names, fn) => { const out = []; names.forEach(h => { const g = pool.filter(u => h.cats.includes(catOf(unitOf(l, u)))); if (g.length) out.push(...fn(h, g)) }); return out };
   const GROUPS = [{ t: 'CHARACTERS', cats: ['Epic Hero', 'Character'], a: 'Char' }, { t: 'BATTLELINE', cats: ['Battleline'], a: 'Battle' }, { t: 'OTHER DATASHEETS', cats: ['Transport', 'Vehicle', 'Mounted', 'Other'], a: 'Other' }];
   const out = [];
   if (f === 'GW') {
     if (o.header) out.push(`${l.Name || 'Army'} (${tot} Points)`, '', l.Faction, dn, disp, o.player && o.pname ? 'Player: ' + o.pname : '', o.team && o.tname ? 'Team: ' + o.tname : '', '');
-    out.push(...byCat(GROUPS, (h, g) => [h.t, '', ...g.flatMap(u => [`${nm(u)} (${pts(u)} Points)`, ...(u.IsWarlord ? ['• Warlord'] : []), ...(en(u) ? ['• Enhancements: ' + tc0(en(u).Name)] : []), ...gear(u).flatMap(r => [`• ${r.n}x ${r.m}`, ...(r.w ? ['   • ' + r.w.split(/, | and /).join('\n   • ')] : [])]), '']), '']));
+    const kidsOf = u => us.filter(x => x.AttachedToInstanceId === u.InstanceId), grouped = us.filter(u => !host(u) && kidsOf(u).length), solo = us.filter(u => !host(u) && !kidsOf(u).length);
+    const tag = u => { const c = catOf(unitOf(l, u)); return c === 'Character' || c === 'Epic Hero' ? ' (Character)' : c === 'Battleline' ? ' (Battleline)' : '' };
+    const blk = (u, role) => [`${nm(u)} (${pts(u)} Points)`, ...(role ? [`• Attached as: ${role}${tag(u)}`] : []), ...(u.IsWarlord ? ['• Warlord'] : []), ...(en(u) ? ['• Enhancements: ' + tc0(en(u).Name)] : []), ...u.UnitCompositionRef.flatMap(r => { const c = new Map(); (o.gear ? r.Wargear : []).forEach(w => c.set(w, (c.get(w) || 0) + 1)); return [`• ${r.ModelCount}x ${tc0(r.ModelName)}`, ...[...c].map(([w, k]) => `   • ${r.ModelCount * k}x ${cap1(w)}`)] }), ''];   // counts per weapon, as New Recruit writes them, so the options cost the same when the text is read back
+    if (grouped.length) out.push('ATTACHED UNITS', '', ...grouped.flatMap((b, i) => [`Attached unit ${i + 1}`, '', ...kidsOf(b).flatMap(k => blk(k, unitOf(l, k).LeaderInfo?.LeaderType === 'Support' ? 'Support' : 'Leader')), ...blk(b, 'Bodyguard')]));
+    pool = solo; out.push(...byCat(GROUPS, (h, g) => [h.t, '', ...g.flatMap(u => blk(u)), '']));
   } else if (f === 'Tournament') {
     const bar = '+'.repeat(48);
     if (o.header) out.push(bar, `+ FACTION KEYWORD: ${l.Faction}`, `+ DETACHMENT: ${dn}`, ...(disp ? [`+ FORCE DISPOSITION: ${disp}`] : []), `+ TOTAL ARMY POINTS: ${tot}pts`, ...(o.player && o.pname ? [`+ PLAYER: ${o.pname}`] : []), ...(o.team && o.tname ? [`+ TEAM: ${o.tname}`] : []), '+', ...(wl ? [`+ WARLORD: ${nm(wl)}`] : []), ...ens.map(u => `+ ENHANCEMENT: ${tc0(en(u).Name)} (on ${nm(u)})`), `+ NUMBER OF UNITS: ${us.length}`, bar, '');
@@ -889,11 +895,10 @@ document.addEventListener('click', async e => {
     case 'hopen': return openResult(S.history[+id]);
     case 'sort': return anchorPop(t, ['Sort by name', 'Sort by faction', 'Sort by last modified'].map((x, i) => `<button class="btn purple sortb" data-a="dosort" data-id="${i}">${x}</button>`).join(''), 'popup sortp', 'right');
     case 'dosort': S.set.HomeScreenSort = +id; saveSet(); return render();
-    case 'plusmenu': return anchorPop(t, `${mi('imppaste', 'clip', 'Paste a list (New Recruit, official app)')}${mi('imptext', 'clip', 'Import from copied text')}${mi('impfile', 'export', 'Import list file')}`, 'popup big plusm');
+    case 'plusmenu': return anchorPop(t, `${mi('imptext', 'clip', 'Text import (New Recruit, official app)')}${mi('impfile', 'export', 'Import list file')}`, 'popup big plusm');
     case 'newl': return nav('faction');
     case 'impfile': case 'importfile': return pickFile();
-    case 'imppaste': { closePops(); return modal('Paste a list', '<p style="margin:0 0 8px;color:var(--dim)">Copy the list from New Recruit (share or export as text) or from the official app and paste it here. It is read in your browser and not sent anywhere.</p><textarea id="imp-ta" class="in" rows="10" style="width:100%;font-family:var(--mono);font-size:13px" aria-label="List text"></textarea>', 'Import', async p => { const txt = p.querySelector('#imp-ta').value; if (importList(txt)) { closePops(); return render() } const r = await importExternal(txt); closePops(); if (r?.list) { render(); return importReport(r) } return importReport(r || { error: 'This text does not look like a list I can read.' }) }) }
-    case 'imptext': { const pp = $('.popup'); let ok = false, txt = ''; try { txt = await navigator.clipboard.readText(); ok = importList(txt) } catch { } if (!ok && txt) { const r = await importExternal(txt); if (r?.list) { closePops(); render(); return importReport(r) } } if (ok) { closePops(); return render() } pp?.querySelector('.pmsg,.pcode')?.remove(); pp?.insertAdjacentHTML('beforeend', '<div class="pmsg">Failed to import.</div>'); return }
+    case 'imptext': closePops(); return textImportDialog();
     case 'pickfaction': { const d = newDraft(id); await loadFaction(d); S.stack.push({ page: 'newlist', draft: d, faction: id }); histPush(); return render() }
     case 'sizepick': return anchorPop(t, [...SIZES.map(s => `<button class="btn" style="margin:3px;width:290px;background:${'var(--c)'}" data-a="size" data-id="${s[0]}">${s[0]} - ${s[1]}</button>`), `<button class="btn" style="margin:3px;width:290px" data-a="size" data-id="custom">Custom</button>`].join(''), 'popup');
     case 'ndisp': { const d = r.draft; syncDraft(); d.Disposition = id; return render() }
@@ -933,8 +938,7 @@ document.addEventListener('click', async e => {
     case 'warlord': return mutate(() => { if (flagsOf(unitOf(l, l.Units.find(x => x.InstanceId === cu(r)))) & 1) return; const u = l.Units.find(x => x.InstanceId === cu(r)), was = u.IsWarlord; l.Units.forEach(x => x.IsWarlord = false); u.IsWarlord = !was });
     case 'enh': return mutate(() => { const u = l.Units.find(x => x.InstanceId === cu(r)); u.EnhancementId = u.EnhancementId === id ? null : id });
     case 'einfo': { e.stopPropagation(); const en = enhs(l).find(x => x.Name === id); return modal(tc(en.Name), esc(en.Description) + `<p><b>${en.Cost || 0} points</b></p>`, null) }
-    case 'mc': return mutate(() => { const u = l.Units.find(x => x.InstanceId === cu(r)), d = unitOf(l, u), m = d.UnitComposition.ModelCompositions[+t.dataset.i], lim = limOf(m), [mn, mx] = rng(d); const cur = u.UnitCompositionRef.filter(x => lc(x.ModelName) === lc(m.ModelName)).reduce((s, x) => s + x.ModelCount, 0), dir_ = Math.sign(+t.dataset.v); let nv = Math.max(lim.Min, Math.min(lim.Max, cur + +t.dataset.v)), tot = models(u) - cur + nv; if (tot < mn || tot > mx) return;
-      { const V = [...new Set(pointsOf(l, d).map(p => p.ModelCount))].sort((a, b) => a - b); if (V.length > 1 && !V.includes(tot)) { const tgt = dir_ > 0 ? V.find(v => v > models(u)) : [...V].reverse().find(v => v < models(u)); if (tgt === undefined) return; nv = cur + (tgt - models(u)); if (nv < lim.Min || nv > lim.Max) return } }
+    case 'mc': return mutate(() => { const u = l.Units.find(x => x.InstanceId === cu(r)), d = unitOf(l, u), m = d.UnitComposition.ModelCompositions[+t.dataset.i], lim = limOf(m), [mn, mx] = rng(d); const cur = u.UnitCompositionRef.filter(x => lc(x.ModelName) === lc(m.ModelName)).reduce((s, x) => s + x.ModelCount, 0), nv = Math.max(lim.Min, Math.min(lim.Max, cur + +t.dataset.v)), tot = models(u) - cur + nv; if (tot < mn || tot > mx) return;
       const keep = optCounts(u, d); const mcs = d.UnitComposition.ModelCompositions, base = {}; mcs.forEach((x, i) => base[x.ModelName] = u.UnitCompositionRef.filter(q => lc(q.ModelName) === lc(x.ModelName)).reduce((s, q) => s + q.ModelCount, 0)); base[m.ModelName] = nv;
       u.UnitCompositionRef = mcs.map(x => ({ ModelCount: base[x.ModelName], ModelName: x.ModelName, Wargear: [...(x.Wargear?.[0]?.InitalWargear || [])] })); optList(d).forEach(g => g.o.Options.forEach(a => { const k = altKey(g, a); keep[k] = Math.min(keep[k] || 0, optMax(g, base[g.m.ModelName], Object.values(base).reduce((a, b) => a + b, 0))) })); rebuildLoadouts(u, d, keep) });
     case 'pick': return mutate(() => { const u = l.Units.find(x => x.InstanceId === cu(r)), d = unitOf(l, u), c = optCounts(u, d), g = optList(d)[+t.dataset.gi], k = t.dataset.k, was = c[k]; g.o.Options.forEach(a => c[altKey(g, a)] = 0); if (k && !(t.dataset.opt && was)) c[k] = 1; rebuildLoadouts(u, d, c) });
@@ -1084,14 +1088,14 @@ function readUnits(lines, fd) {
   units.forEach(u => { if (u.grp && (u.role === 'leader' || u.role === 'support')) u.host = units.find(x => x.grp === u.grp && x.role === 'bodyguard') });   // the unit written in the same group as "Bodyguard" is the one they join
   return { units, loose };
 }
-async function importExternal(text) {
+async function importExternal(text, o = {}) {
   text = String(text || '').replace(/^﻿/, ''); if (!text.trim() || text.length > 2e5) return null;
   let src = text; const t = text.trim();
   if (t[0] === '{' || t[0] === '[') { try { src = rosterJsonToText(JSON.parse(t)) } catch { return null } if (!src) return null }
   else if (t[0] === '<') { try { const x = parseXml(t); src = x && rosterJsonToText(xmlToRoster(x)) } catch { return null } if (!src) return null }
   const lines = src.split(/\r?\n/).map(x => x.replace(/\*\*|__/g, '').replace(/^\s*\+{2,}\s*/, '').replace(/\s*\+{2,}\s*$/, '').trimEnd());
   const body = nrn(src);
-  const names = S.info.Factions.map(f => f.Name).filter(n => body.includes(nrn(n))).sort((a, b) => b.length - a.length);
+  const names = o.faction ? [o.faction] : S.info.Factions.map(f => f.Name).filter(n => body.includes(nrn(n))).sort((a, b) => b.length - a.length);
   if (!names.length) return { error: 'I could not tell which army this list is for. Make sure it includes the army name (for example “Necrons” or “Space Wolves”).' };
   let best = null;
   for (const name of names) { const l = newDraft(name); try { await loadFaction(l) } catch { continue } const r = readUnits(lines, fdOf(l)); if (!best || r.units.length > best.r.units.length) best = { name, l, r } }
@@ -1109,7 +1113,6 @@ async function importExternal(text) {
   r.units.forEach(e => {
     const d = e.d, sizes = d.Points.map(p => p.ModelCount), min = Math.min(...sizes), max = Math.max(...sizes), seen = [...e.models.values()].reduce((a, b) => a + b, 0);
     let n = seen ? Math.max(min, Math.min(max, seen)) : min;
-    { const V = [...new Set(d.Points.map(p => p.ModelCount))].sort((a, b) => a - b); if (V.length > 1 && !V.includes(n)) { const byPts = V.find(v => d.Points.some(p => p.ModelCount === v && p.Cost === e.pts)), to = byPts ?? V.find(v => v >= n) ?? V.at(-1); notes.push(`${tc(d.Name)}: ${n} models is not a size in the Munitorum Field Manual (${V.join(', ')}); ${to} used.`); n = to } }
     const u = { InstanceId: ++id, AttachedToInstanceId: 0, Id: d.Name, EnhancementId: null, Upgrades: [], UnitCompositionRef: composition(d, n), Notes: { CustomName: '', Text: '' }, IsWarlord: e.warlord, AttachedUnitName: null, AttchedUnitNameType: 0 };
     if (!e.enh) { const en = enhs(l).find(x => e.weapons.has(nrn(x.Name.replace(/\s*\((?:upgrade|aura)\)$/i, '')))); if (en) { e.enh = en.Name; e.weapons.delete(nrn(en.Name.replace(/\s*\((?:upgrade|aura)\)$/i, ''))) } }
     const counts = optCounts(u, d);
@@ -1128,8 +1131,30 @@ async function importExternal(text) {
   if (declared && Math.abs(total(l) - +declared) > 0) notes.push(`The list says ${declared} points; with the points of the current Munitorum Field Manual it is ${total(l)}.`);
   const meta = new Set([nrn(nm), ...names.map(nrn), ...fd.Dettachments.map(d => nrn(d.Name)), 'combat patrol', 'incursion', 'strike force', 'onslaught']);
   const skipped = [...new Set(r.loose)].filter(x => !meta.has(nrn(x)) && !/^(total|detachment|battle size|force disposition|army rule)/i.test(x));
-  l.Id = uid(); l.LastModified = new Date().toISOString(); { const dd = dispOpts(l).find(o => dn.includes(nrn(o))); if (dd) l.Disposition = dd } l.Disposition = effDisp(l); S.lists.push(l); saveLists();
+  if (o.name) l.Name = String(o.name).slice(0, 60); if (o.max >= 100) l.MaxPoints = Math.min(100000, Math.round(o.max));
+  l.Id = uid(); l.LastModified = new Date().toISOString(); { const dd = dispOpts(l).find(x => dn.includes(nrn(x))); if (dd) l.Disposition = dd } l.Disposition = effDisp(l); if (!o.dry) { S.lists.push(l); saveLists() }
   return { list: l, faction: best.name, count: l.Units.length, skipped, notes };
+}
+/* Text import: pick the army or let it be detected, name and size are optional, and the line under the box says what was understood while you paste (like New Recruit's) */
+function textImportDialog() {
+  const fac = ['<option value="">Detect the army</option>', ...S.info.Factions.map(f => `<option>${esc(f.Name)}</option>`)].join('');
+  const p = modal('Text import', `<div class="timp"><select id="ti-f" class="in sm" aria-label="Army">${fac}</select><input id="ti-n" class="in sm" placeholder="List name" maxlength="60" aria-label="List name"><input id="ti-p" class="in sm" type="number" min="100" max="100000" placeholder="Points" aria-label="Points limit"></div>
+    <div id="ti-s" class="tstat">Paste your list below. It is read in your browser and sent nowhere.</div><textarea id="ti-t" class="in timp-t" rows="12" placeholder="Paste your list here" aria-label="List text"></textarea>`, 'Import now', async q => {
+    const txt = q.querySelector('#ti-t').value; if (!txt.trim()) return;
+    if (importList(txt)) { closePops(); return render() }
+    const r = await importExternal(txt, opts(q)); closePops(); if (r?.list) { render(); return importReport(r) } return importReport(r || { error: 'This text does not look like a list I can read.' });
+  });
+  p.style.width = 'min(760px,94vw)'; p.style.top = '8%';
+  const opts = q => ({ faction: q.querySelector('#ti-f').value || null, name: q.querySelector('#ti-n').value.trim(), max: +q.querySelector('#ti-p').value || 0 });
+  let seq = 0, timer = 0; const st = (cls, html) => { const e = p.querySelector('#ti-s'); e.className = 'tstat ' + cls; e.innerHTML = html };
+  const live = async () => { const my = ++seq, txt = p.querySelector('#ti-t').value; if (!txt.trim()) return st('', 'Paste your list below. It is read in your browser and sent nowhere.');
+    let r = null; try { r = await importExternal(txt, { ...opts(p), dry: true }) } catch { }
+    if (my !== seq) return;
+    if (!r) return st('bad', 'This text does not look like a list.'); if (r.error) return st('bad', esc(r.error));
+    const l = r.list, errs = errors(l), issues = [...r.skipped.map(x => `Not found: ${x}`), ...r.notes, ...errs];
+    st(issues.length ? 'warn' : 'ok', `${issues.length ? issues.length + ' thing' + (issues.length > 1 ? 's' : '') + ' to check' : 'No import issues'} · ${esc(r.faction)} · ${r.count} unit${r.count === 1 ? '' : 's'} · ${total(l)} pts${issues.length ? `<ul>${issues.slice(0, 6).map(x => `<li>${esc(x)}</li>`).join('')}${issues.length > 6 ? `<li>…and ${issues.length - 6} more</li>` : ''}</ul>` : ''}`) };
+  p.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(live, 350) }); p.addEventListener('change', () => { clearTimeout(timer); timer = setTimeout(live, 50) });
+  setTimeout(() => p.querySelector('#ti-t')?.focus(), 30); return p;
 }
 function importReport(r) {
   if (r.error) return modal('Import', `<p>${esc(r.error)}</p>`, null);

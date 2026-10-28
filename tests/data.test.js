@@ -182,3 +182,10 @@ test('points follow the Munitorum Field Manual where the converter was checked a
   assert.equal(pts('Imperial Agents.json', 'INQUISITOR'), '-:1:65');
   assert.ok(read('Space Marines.json').Dettachments.find((d) => d.Name === 'DEATHWATCH SUPPORT').Allies[0].MaxPoints === 500);
 });
+
+test('composition limits of the Boyz follow the datasheet: 1-2 Nob and 9-18 Boy', () => {
+  for (const [n, nob] of [['BOYZ', 'Boss Nob'], ['BEAST SNAGGA BOYZ', 'Beast Snagga Nob']]) {
+    const m = read('Orks.json').Units.find((u) => u.Name === n).UnitComposition.ModelCompositions;
+    assert.deepEqual(m.find((x) => x.ModelName === nob).Limit, { Min: 1, Max: 2 }); assert.deepEqual(m.find((x) => x.ModelName !== nob).Limit, { Min: 9, Max: 18 });
+  }
+});
