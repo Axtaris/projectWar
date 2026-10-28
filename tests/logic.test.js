@@ -314,3 +314,14 @@ test('detachment effects apply to units that have ALL the keywords listed (Desig
   const has = (n) => api.effFor(sw, sf.byName.get(n)).some((e) => (e.AddedAbilities || []).some((a) => a.Title === 'Countercharge'));
   assert.equal(has('INTERCESSOR SQUAD'), false); assert.equal(has('CAPTAIN'), true);
 });
+
+/* An enhancement that says "ranged weapons equipped by models in the bearer's unit have [IGNORES COVER]" must reach the bearer and the unit it leads. */
+test('Miniaturised Nebuloscope gives IGNORES COVER to the ranged weapons of the bearer and of its bodyguard', async () => {
+  const l = api.newDraft('Necrons'); await api.loadFaction(l); l.MaxPoints = 2000; l.Detachments = ['STARSHATTER ARSENAL']; const fd = api.fdOf(l);
+  const mk = (id, name, att) => ({ InstanceId: id, AttachedToInstanceId: att, Id: name, EnhancementId: null, Upgrades: [], UnitCompositionRef: api.composition(fd.byName.get(name), fd.byName.get(name).Points[0].ModelCount), Notes: { CustomName: '', Text: '' }, IsWarlord: false });
+  const imm = mk(1, 'IMMORTALS', 0), pl = mk(2, 'PLASMANCER', 1); pl.EnhancementId = 'Miniaturised Nebuloscope'; l.Units.push(imm, pl);
+  const kws = (u) => api.modWeapons(fd.byName.get(u.Id), l, u, fd.byName.get(u.Id).Weapons).flatMap((g) => g.Weapons.map((w) => (g.IsMelee ? 'M ' : 'R ') + w.Name + ': ' + (w.Keywords || ''))).filter((x) => /^R /.test(x));
+  assert.ok(kws(imm).length && kws(imm).every((x) => /IGNORES COVER/i.test(x)), 'bodyguard: ' + kws(imm));
+  assert.ok(kws(pl).length && kws(pl).every((x) => /IGNORES COVER/i.test(x)), 'bearer: ' + kws(pl));
+  const solo = mk(3, 'IMMORTALS', 0); assert.ok(kws(solo).every((x) => !/IGNORES COVER/i.test(x)), 'a unit without the enhancement is untouched');
+});
