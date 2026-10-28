@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.7';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.8';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -132,6 +132,7 @@ const total = l => l.Units.reduce((a, u) => a + unitCost(l, u), 0);
 const nk = k => lc(k).replace(/^\|\s*[^:]*:\s*/, '');
 const kws = d => new Set([...d.Keywords, ...d.FactionKeywords, d.Name].flatMap(k => [lc(k), nk(k)]));
 const flagsOf = d => d?.Flags || 0; /* UnitFlags: 1 NotWarlord, 2 MustBeWarlord, 4 NoEnhancements, 8 MayBeWarlord */
+const battleline = (l, d) => kws(d).has('battleline') || kws(d).has('dedicated transport') || dets(l).some(det => { const m = /friendly ([^.\n▪]+?) units? (?:have|gain|has) (?:the )?battleline/i.exec(det.Rule?.Text || ''); return m && m[1].toLowerCase().split(/\s+/).every(w => kws(d).has(w) || lc(d.Name) === m[1].toLowerCase()) });
 const isChar = d => kws(d).has('character'), isEpic = d => kws(d).has('epic hero');
 /* keywords of a unit in a list: the datasheet's plus the ones its chosen wargear options add (a Mark, "Tank Ace Character"...) */
 const kwsU = (l, u, d) => {
@@ -160,7 +161,7 @@ function errors(l) {
   const n = l.Units.filter((u, i) => u.EnhancementId && !(isUp(enhOf(l, u)) && l.Units.findIndex(x => x.EnhancementId === u.EnhancementId) < i)).length; if (n > bs.EnhancementLimit) e.push(`Too many enhancements (${n}/${bs.EnhancementLimit}).`);
   const seen = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; if (u.EnhancementId) { seen[u.EnhancementId] = (seen[u.EnhancementId] || 0) + 1; const up = isUp(enhOf(l, u)); if (seen[u.EnhancementId] === (up ? 4 : 2)) e.push(`${tc(u.EnhancementId)} is used more than ${up ? 'three times' : 'once'}.`); const en = enhOf(l, u); if (!en || !eligible(en, d, kwsU(l, u, d))) e.push(`${tc(u.Id)} cannot take ${tc(u.EnhancementId)}.`) } });
   const cnt = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (d) cnt[u.Id] = (cnt[u.Id] || 0) + 1 });
-  Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) || /cannot include more than one of this model/i.test(dsText(d)) ? 1 : kws(d).has('battleline') || kws(d).has('dedicated transport') ? bs.UnitLimit + 3 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
+  Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) || /cannot include more than one of this model/i.test(dsText(d)) ? 1 : battleline(l, d) ? bs.UnitLimit + 3 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
   l.Units.forEach(u => { const m = /army cannot contain both (.+?) and (.+?)\./i.exec(dsText(unitOf(l, u))); if (m && l.Units.some(x => lc(x.Id) === lc(m[1]).trim()) && l.Units.some(x => lc(x.Id) === lc(m[2]).trim()) && lc(u.Id) === lc(m[1]).trim()) e.push(`Your army cannot contain both ${tc(m[1])} and ${tc(m[2])}.`) });
   /* leaders may go alone; only datasheets that say "must join" (Loyal Protector, Regimental Attaché) need a bodyguard */
   l.Units.forEach(u => { const d = unitOf(l, u); if (d?.UnitAbilities?.some(x => /\bmust join\b/i.test(x.Text)) && !u.AttachedToInstanceId) e.push(`${tc(u.Id)} must be attached to a bodyguard unit.`) });
@@ -971,8 +972,11 @@ function pickFile() { const i = document.createElement('input'); i.type = 'file'
 /* ---------- lists written by other builders (New Recruit, the official app): plain text, and roster JSON ----------
    The text is matched against the datasheets of the army it names. Points are not trusted (ours apply); what cannot be matched is reported, never guessed. */
 const nrn = s => String(s).toLowerCase().replace(/[’‘`´]/g, "'").replace(/&/g, ' and ').replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
-const nrs = s => nrn(s).replace(/ies$/, 'y').replace(/(?<=[a-z])s$/, '');   /* plural-insensitive key */
+const nrs = s => nrn(s).replace(/ies$/, 'y').replace(/(?<=[a-z]{2})z$/, '').replace(/(?<=[a-z])s$/, '');   /* plural-insensitive key */
+const addWeaponKey = (u, name, n) => { for (const k of new Set([nrn(name), nrs(name)])) u.weapons.set(k, (u.weapons.get(k) || 0) + n) };   // "Twin Killsaws" in the text is the option "twin killsaw"
 const HEAD_RX = /^(?:[•·▪●○◦*+–-]\s*)?(?:(\d+)\s*[x×]\s+)?(.+?)\s*[(\[]\s*(\d{1,5})\s*(?:pts?|points?)?\s*[)\]]\s*(?::\s*(.*))?$/i;
+const HEAD2 = /^(?![•·▪●○◦*+–-])(.+?)\s+(\d{1,5})\s*(?:pts?|points?)$/i;   // "Warboss 100 points" (no brackets), as other sites print it
+const headOf = line => HEAD_RX.exec(line) || ((m2 => m2 && [line, undefined, m2[1], m2[2], undefined])(HEAD2.exec(line)));
 /* New Recruit / BattleScribe roster JSON -> the same lines the text export would have */
 function rosterJsonToText(j) {
   const r = j?.roster || (j?.forces ? j : null); if (!r) return null;
@@ -1038,8 +1042,8 @@ function readUnits(lines, fd) {
   lines.forEach(raw => {
     const line = raw.trim(); if (!line || /^exported with|^discord|^player/i.test(line)) return;
     if (/^attached unit\s+\d+$/i.test(line)) { grp = ++g; cur = null; return }
-    if (!HEAD_RX.test(line) && /^[A-Z][A-Z &'’-]+$/.test(line) && !/^[•·▪●○◦*+–-]/.test(raw)) { if (!/^attached units$/i.test(line)) grp = 0; cur = null; return }   // a section heading (OTHER DATASHEETS...): ends the group
-    const m = HEAD_RX.exec(line);
+    if (!headOf(line) && /^[A-Z][A-Z &'’-]+$/.test(line) && !/^[•·▪●○◦*+–-]/.test(raw)) { if (!/^attached units$/i.test(line)) grp = 0; cur = null; return }   // a section heading (OTHER DATASHEETS...): ends the group
+    const m = headOf(line);
     if (m) {
       const d = matchUnit(fd, m[2], idx);
       if (d) { cur = { d, header: m[2], pts: +m[3], models: new Map(), weapons: new Map(), warlord: false, enh: null, attach: null, grp, role: '' }; units.push(cur); (m[4] || '').split(/,\s*/).filter(Boolean).forEach(x => detail(cur, x)); return }
@@ -1059,8 +1063,8 @@ function readUnits(lines, fd) {
     if (/\swarlord$/i.test(x)) { u.warlord = true; return }
     let tail = ''; if ((m = /^([^:]+):\s*(.+)$/.exec(x))) { x = m[1].trim(); tail = m[2] }
     const comp = u.d.UnitComposition.ModelCompositions.find(c => nrs(c.ModelName) === nrs(x));
-    if (comp) u.models.set(comp.ModelName, (u.models.get(comp.ModelName) || 0) + n); else u.weapons.set(nrn(x), (u.weapons.get(nrn(x)) || 0) + n);
-    tail.split(/,\s*/).filter(Boolean).forEach(w => u.weapons.set(nrn(w), (u.weapons.get(nrn(w)) || 0) + 1));
+    if (comp) u.models.set(comp.ModelName, (u.models.get(comp.ModelName) || 0) + n); else addWeaponKey(u, x, n);
+    tail.split(/,\s*/).filter(Boolean).forEach(w => addWeaponKey(u, w, 1));
   }
   units.forEach(u => { if (u.grp && (u.role === 'leader' || u.role === 'support')) u.host = units.find(x => x.grp === u.grp && x.role === 'bodyguard') });   // the unit written in the same group as "Bodyguard" is the one they join
   return { units, loose };
@@ -1094,7 +1098,8 @@ async function importExternal(text) {
     const counts = optCounts(u, d);
     optList(d).forEach(g => g.o.Options.forEach(a => { const parts = a.split(/ and |, /).map(nrn), c = Math.min(...parts.map(p => e.weapons.get(p) || e.weapons.get(nrs(p)) || 0)); if (c > 0) counts[altKey(g, a)] = Math.min(c, optMax(g, n, n), n) }));
     try { rebuildLoadouts(u, d, counts) } catch { }
-    if (e.enh) { const en = enhs(l).find(x => nrn(x.Name.replace(/\s*\((?:upgrade|aura)\)$/i, '')) === nrn(e.enh.replace(/\s*\((?:upgrade|aura)\)$/i, ''))); if (en) u.EnhancementId = en.Name; else notes.push(`The enhancement “${e.enh}” of ${tc(d.Name)} is not offered by the detachments found.`) }
+    if (e.enh) { let en = enhs(l).find(x => nrn(x.Name.replace(/\s*\((?:upgrade|aura)\)$/i, '')) === nrn(e.enh.replace(/\s*\((?:upgrade|aura)\)$/i, ''))); if (!en) { const g = nrn(e.enh); en = enhs(l).find(x => g.startsWith(nrn(x.Name.replace(/\s*\((?:upgrade|aura)\)$/i, '')) + ' ')) }
+    if (en) u.EnhancementId = en.Name; else notes.push(`The enhancement “${e.enh}” of ${tc(d.Name)} is not offered by the detachments found.`) }
     made.push([u, e]);
   });
   made.forEach(([u, e]) => { if (e.host) { const host = made.find(([, x]) => x === e.host); if (host && host[0] !== u) u.AttachedToInstanceId = host[0].InstanceId } else if (e.attach) { const host = made.find(([x]) => nrn(x.Id) === nrn(e.attach) || nrs(x.Id) === nrs(e.attach)); if (host && host[0] !== u) u.AttachedToInstanceId = host[0].InstanceId } });
@@ -1106,7 +1111,7 @@ async function importExternal(text) {
   if (declared && Math.abs(total(l) - +declared) > 0) notes.push(`The list says ${declared} points; with the points of the current Munitorum Field Manual it is ${total(l)}.`);
   const meta = new Set([nrn(nm), ...names.map(nrn), ...fd.Dettachments.map(d => nrn(d.Name)), 'combat patrol', 'incursion', 'strike force', 'onslaught']);
   const skipped = [...new Set(r.loose)].filter(x => !meta.has(nrn(x)) && !/^(total|detachment|battle size|force disposition|army rule)/i.test(x));
-  l.Id = uid(); l.LastModified = new Date().toISOString(); l.Disposition = effDisp(l); S.lists.push(l); saveLists();
+  l.Id = uid(); l.LastModified = new Date().toISOString(); { const dd = dispOpts(l).find(o => dn.includes(nrn(o))); if (dd) l.Disposition = dd } l.Disposition = effDisp(l); S.lists.push(l); saveLists();
   return { list: l, faction: best.name, count: l.Units.length, skipped, notes };
 }
 function importReport(r) {

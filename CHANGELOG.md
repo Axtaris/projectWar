@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.8 (29 October 2026)
+
+Checked with three recent undefeated Ork lists from Listhammer (War Horde, Kult of Speed + Flyboyz + Dread Mob, and Green Tide + Runt Swarm + Taktikal Brigade). They now import to the exact points (2,000, 2,000 and 1,995) with no errors.
+
+- **Force disposition from the text:** the importer ignored the force disposition written in the list (it always chose the first one allowed), so a Reconnaissance list came in as Purge the Foe. It is read now, for every list.
+- **Orkish plurals:** "Boyz", "Meganobz", "Nobz" and "Beast Snagga Boyz" are the same models as "Boy", "Meganob", "Nob" and "Beast Snagga Boy". Before, "18x Beast Snagga Boy" counted as zero models and the unit came in at half its size.
+- **Options named in the plural:** "3x Twin Killsaws" now picks the option "twin killsaw" (and its 5 points each).
+- **Enhancement with a note:** "Minefield Detail (Upgrade) - 6" scout" is read as Minefield Detail.
+- **Runt Swarm:** "Friendly Gretchin units have Battleline", so Gretchin follow the Battleline limit (6, not 3) when that detachment is in the army. Detachment texts of that shape work for any army.
+- **Lists in the form "Warboss 100 points"** (no brackets), as Listhammer prints them, are read too.
+
 ## 1.4.7 (28 October 2026)
 
 - **Wargear options, second pass:** the converter now reads more of the printed option sentences ("can replace their X with", "Navis Sergeant-at-Arms' shotgun can be replaced with", "For every 5 models in this unit: ...", "&" written as "and", "1 additional storm bolter", plurals such as Legionaries/Legionary, a typo in the printed text) and ignores designer's notes. 20 more units were rebuilt (among them Noise Marines, Winged Hive Tyrant, Acolyte Hybrids, Cthonian Beserks, Hekaton Land Fortress, Vindicator, whose duplicated option is gone, and Onager Dunecrawler).

@@ -224,3 +224,20 @@ test('Dedicated Transports share the Battleline limit (6 in a Strike Force)', as
   assert.equal(l.Units.length, 6); assert.ok(!api.errors(l).some(e => /may only be included/.test(e)));
   l.Units.push({ ...JSON.parse(JSON.stringify(l.Units[0])), InstanceId: 50 }); assert.ok(api.errors(l).some(e => /may only be included 6 times/.test(e)));
 });
+
+test('three recent Ork tournament lists (Listhammer format, "Name 100 points") import to the exact points, disposition and no errors', async () => {
+  const cases = [['orks-warhorde.txt', 2000, 'TAKE AND HOLD'], ['orks-kult-of-speed.txt', 2000, 'RECONNAISSANCE'], ['orks-green-tide.txt', 1995, 'TAKE AND HOLD']];
+  for (const [f, pts, disp] of cases) {
+    fresh(); const r = await api.importExternal(fixture(f)); const l = r.list; api.S.cur = l;
+    assert.equal(api.total(l), pts, f); assert.equal(api.effDisp(l), disp, f); assert.equal(api.errors(l).length, 0, f + ': ' + api.errors(l).join('; ')); assert.equal(r.skipped.length, 0, f);
+  }
+  fresh(); const l = (await api.importExternal(fixture('orks-green-tide.txt'))).list;
+  assert.equal(l.Units.filter(u => u.Id === 'GRETCHIN').length, 4);     // Runt Swarm gives Gretchin Battleline: four copies are within the limit of six
+  assert.ok(l.Units.filter(u => u.Id === 'GRETCHIN' && u.EnhancementId).length === 2);   // "Minefield Detail (Upgrade) - 6\" scout" is still the Upgrade
+  fresh(); const m = (await api.importExternal(fixture('orks-warhorde.txt'))).list;
+  assert.equal(api.models(m.Units.find(u => u.Id === 'MEGANOBZ')), 5);   // "5x Meganob" is the Meganobz
+});
+test('the force disposition written in an imported text is kept', async () => {
+  fresh(); const l = (await api.importExternal(fixture('sororitas-attached.txt'))).list; assert.equal(api.effDisp(l), 'RECONNAISSANCE');
+  fresh(); const s = (await api.importExternal(fixture('spacemarines-attached.txt'))).list; assert.equal(api.effDisp(s), 'TAKE AND HOLD');
+});
