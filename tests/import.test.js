@@ -241,3 +241,21 @@ test('the force disposition written in an imported text is kept', async () => {
   fresh(); const l = (await api.importExternal(fixture('sororitas-attached.txt'))).list; assert.equal(api.effDisp(l), 'RECONNAISSANCE');
   fresh(); const s = (await api.importExternal(fixture('spacemarines-attached.txt'))).list; assert.equal(api.effDisp(s), 'TAKE AND HOLD');
 });
+
+test('a list exported by projectWar: its title is not a unit, and a Boyz unit of 19 models is read as 20 (the Field Manual prices 10 or 20)', async () => {
+  fresh(); const r = await api.importExternal(fixture('orks-boys-projectwar.txt')), l = r.list; api.S.cur = l;
+  assert.equal(l.Units.length, 12); assert.equal(api.total(l), 1990); assert.equal(api.errors(l).length, 0, api.errors(l).join('; '));
+  assert.ok(r.notes.some(n => /19 models is not a size/.test(n)));
+  const b = l.Units.find(u => u.Id === 'BOYZ'); assert.equal(api.models(b), 20);
+  b.UnitCompositionRef.find(x => /^Boyz$/i.test(x.ModelName)).ModelCount -= 1;                 // 19 models, as the editor used to allow
+  assert.ok(api.errors(l).some(e => /has 19 models; the Munitorum Field Manual prices 10 or 20/.test(e)));
+});
+test('Deathwatch Support: Deathwatch units join a Space Marines army, within 500 points and never as Warlord', async () => {
+  fresh(); const r = await api.importExternal(fixture('spacemarines-deathwatch-support.txt')), l = r.list; api.S.cur = l;
+  assert.equal(r.skipped.length, 0); assert.equal(api.total(l), 2000); assert.equal(api.errors(l).length, 0, api.errors(l).join('; '));
+  const dw = l.Units.filter(u => api.unitOf(l, u)?.Ally === 'Deathwatch'); assert.equal(dw.length, 2);
+  dw[0].IsWarlord = true; l.Units.find(u => u.IsWarlord && u !== dw[0]).IsWarlord = false;
+  assert.ok(api.errors(l).some(e => /cannot be your Warlord/.test(e))); dw[0].IsWarlord = false; l.Units[4].IsWarlord = true;
+  l.Units.push({ ...JSON.parse(JSON.stringify(dw[0])), InstanceId: 90 }); assert.ok(api.errors(l).some(e => /allied units cost [0-9]+ points; this detachment allows 500/.test(e)));
+  l.Detachments = l.Detachments.filter(d => d !== 'DEATHWATCH SUPPORT'); assert.equal(api.alliesOf(l).length, 0);
+});

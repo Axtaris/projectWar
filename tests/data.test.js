@@ -175,3 +175,10 @@ test('Space Marine army rules are the 11th edition ones, and "any number of mode
   const p = read('Adepta Sororitas.json').Units.find((u) => u.Name === 'PARAGON WARSUITS').UnitComposition.ModelCompositions[0].Wargear[0].Options;
   assert.ok(p.some((o) => o.Options.includes('multi-melta')));
 });
+
+test('points follow the Munitorum Field Manual where the converter was checked against it (Deathwatch Terminator Squad 190, Valerian, Imperial Agents)', () => {
+  const pts = (f, n) => read(f).Units.find((u) => u.Name === n).Points.map((p) => `${p.UnitCount ?? '-'}:${p.ModelCount}:${p.Cost}`).join(' ');
+  assert.equal(pts('Deathwatch.json', 'DEATHWATCH TERMINATOR SQUAD'), '2:5:190 2:10:380 3:5:230 3:10:420');
+  assert.equal(pts('Imperial Agents.json', 'INQUISITOR'), '-:1:65');
+  assert.ok(read('Space Marines.json').Dettachments.find((d) => d.Name === 'DEATHWATCH SUPPORT').Allies[0].MaxPoints === 500);
+});

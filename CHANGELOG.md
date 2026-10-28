@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.9 (29 October 2026)
+
+Found with two lists that New Recruit rejected and projectWar did not, and a Deathwatch Support list that did not import.
+
+- **Deathwatch Support works:** the detachment lets Deathwatch units into a Space Marines army (and any Chapter): they appear in the unit picker and in imported lists, their combined cost may not exceed 500 points, and none of them can be your Warlord. The rule is described in the data (`Allies` on the detachment), so other detachments with allies (Ynnari, Brood Brothers, Legions of Excess...) can use it; they are still to be described one by one.
+- **Unit sizes:** the editor let a Boyz unit have 19 models (and Meganobz 4), sizes the Munitorum Field Manual does not price, which New Recruit then rejected. The +/- buttons now jump between the priced sizes (Boyz 10 or 20), the list shows an error if a unit has another size, and an import with 19 Boyz is read as 20, matching the points of the text.
+- **List title:** a list named like a unit ("Boys") no longer adds that unit; the first line of an exported list is its title.
+- **Points updated to the Munitorum Field Manual 1.6:** 21 units still had earlier points: Deathwatch Terminator Squad (190 for the first two, 230 for the third), Fortis, Indomitor and Spectrus Kill Teams, Kastelan Robots, Plagueburst Crawler, Space Wolves Venerable Dreadnought and 12 Imperial Agents datasheets (Inquisitor, Coteaz, Draxus, Vindicare and Eversor Assassins, Navigator, Voidsmen-at-Arms, Subductor Squad, Sisters of Battle Squad, Grey Knights Terminator Squad and others). Wolf Guard Headtakers, where the Manual gives two prices for six models, was left for a manual look.
+
 ## 1.4.8 (29 October 2026)
 
 Checked with three recent undefeated Ork lists from Listhammer (War Horde, Kult of Speed + Flyboyz + Dread Mob, and Green Tide + Runt Swarm + Taktikal Brigade). They now import to the exact points (2,000, 2,000 and 1,995) with no errors.

@@ -1,0 +1,94 @@
+Boys (1990 Points)
+
+Orks
+Shoota Boyz + Green Tide + Flyboyz
+Purge The Foe
+
+CHARACTERS
+
+Ghazghkull Thraka (290 Points)
+• Warlord
+• 1x Ghazghkull Thraka
+   • Adamantine ’eadbutt
+   • Gork’s klaw
+   • Mork’s Roar
+
+Wazdakka Gutsmek (200 Points)
+• 1x Wazdakka Gutsmek
+   • Fixit’s wrench
+   • Grabba dragga
+   • Psyko-gatler
+   • Speeding bulk
+   • flaming exhaust
+
+Painboy (45 Points)
+• 1x Painboy
+   • ’urty syringe
+   • Dok’s toolz
+
+Bigboss (50 Points)
+• 1x Bigboss
+   • Big choppa
+   • Slugga
+
+BATTLELINE
+
+Boyz (170 Points)
+• 1x Boss Nob
+   • Kombi-skorcha
+   • Kustom choppa
+   • Power Klaw
+   • Shoota
+   • Slugga
+• 18x Boyz
+   • Choppa
+   • Slugga
+
+OTHER DATASHEETS
+
+Battlewagon (160 Points)
+• 1x Battlewagon
+   • crushin’ bulk
+
+Gorkanaut (325 Points)
+• 1x Gorkanaut
+   • 2 rokkit launchas
+   • Deffstorm mega-shoota
+   • Dual big shoota
+   • Klaw of gork
+   • Skorcha
+
+Kommandos (125 Points)
+• 1x Boss Nob
+   • Choppa
+   • Slugga
+• 9x Kommandos
+   • Choppa
+   • Slugga
+
+Meganobz (210 Points)
+• 6x Meganobz
+   • Kustom shoota
+   • Power klaw
+
+Meganobz (210 Points)
+• 6x Meganobz
+   • Kustom shoota
+   • Power klaw
+
+Tankbustas (160 Points)
+• 1x Boss Nob
+   • Busta rokkit launcha
+   • Choppa
+   • Gitstikka
+   • Smash Hammer
+• 4x Tankbustas
+• 1x Tankbustas
+   • Busta Rokkit Launcha
+
+Gretchin (45 Points)
+• 10x Gretchin
+   • Grot blasta
+   • Scavenged shivs
+
+Created with projectWar 1.4.7

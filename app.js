@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.8';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.9';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -67,16 +67,27 @@ function sanitizeList(raw) {
 }
 
 const getJson = async f => JSON.parse((await (await fetch('data/' + encodeURIComponent(f) + '.json', { cache: 'no-cache' })).text()).replace(/^﻿/, ''));
+async function loadAllies(l) {
+  const d = S.fd[fdKey(l)], al = alliesOf(l), k2 = allyKey(l, al), units = d.all;
+  const extra = []; for (const a of al) { try { const o = await getJson(a.Faction); o.Units.forEach(u => { if (!d.byName.has(u.Name) && (u.FactionKeywords || []).some(k => lc(k) === lc(a.Keyword)) && !extra.some(x => x.Name === u.Name)) extra.push({ ...u, Ally: a.Faction }) }) } catch { } }
+  const m = { ...d, all: [...units, ...extra] }; m.byName = new Map(m.all.map(u => [u.Name, u])); m.alt = altBodies(m.all);
+  return S.fd[k2] = m;
+}
 async function loadFaction(l) {
-  const key = l.Faction + (l.IsLegendsEnabled ? '+L' : '');
-  if (S.fd[key]) return S.fd[key];
+  const key = fdKey(l);
+  if (S.fd[key]) { const al = alliesOf(l); return al.length && !S.fd[allyKey(l, al)] ? await loadAllies(l) : fdOf(l) }
   const d = await getJson(l.Faction); let units = d.Units.slice();
   if (l.IsLegendsEnabled) { try { units = units.concat((await getJson(l.Faction + ' Legends')).Units) } catch { } }
   d.all = units; d.byName = new Map(units.map(u => [u.Name, u]));
   d.alt = altBodies(units);
-  return S.fd[key] = d;
+  S.fd[key] = d;
+  return alliesOf(l).length ? loadAllies(l) : d;
 }
-const fdOf = l => S.fd[l.Faction + (l.IsLegendsEnabled ? '+L' : '')];
+const fdKey = l => l.Faction + (l.IsLegendsEnabled ? '+L' : '');
+/* detachments can open the army to units of another faction: {Faction (data file), Keyword (the Faction keyword that picks those units), MaxPoints, NoWarlord} */
+const alliesOf = l => { const b = S.fd[fdKey(l)]; return b ? (l.Detachments || []).flatMap(n => b.Dettachments.find(d => d.Name === n)?.Allies || []) : [] };
+const allyKey = (l, a = alliesOf(l)) => fdKey(l) + (a.length ? '|' + a.map(x => x.Faction).join(',') : '');
+const fdOf = l => S.fd[allyKey(l)] || S.fd[fdKey(l)];
 
 /* ---------- colours ---------- */
 function hsl(hex) { const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0; if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60 } return [h, s * 100, l * 100] }
@@ -155,6 +166,8 @@ const isLeader = d => (d?.LeaderInfo?.UnitNames || []).length > 0;
 function errors(l) {
   const e = [], t = total(l), bs = BS(l.MaxPoints), fd = fdOf(l);
   if (l.Units.length && !l.Units.some(u => u.IsWarlord)) e.push('Your army list requires a warlord.');
+  alliesOf(l).forEach(a => { const au = l.Units.filter(u => unitOf(l, u)?.Ally === a.Faction), pts = au.reduce((n, u) => n + unitCost(l, u), 0); if (pts > a.MaxPoints) e.push(`${a.Faction} allied units cost ${pts} points; this detachment allows ${a.MaxPoints}.`); if (a.NoWarlord && au.some(u => u.IsWarlord)) e.push(`${a.Faction} allied units cannot be your Warlord.`) });
+  l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; const sz = [...new Set(pointsOf(l, d).map(p => p.ModelCount))].sort((a, b) => a - b); if (sz.length && !sz.includes(models(u))) e.push(`${tc(u.Id)} has ${models(u)} models; the Munitorum Field Manual prices ${sz.join(', ').replace(/, (\d+)$/, ' or $1')}.`) });
   if (t > l.MaxPoints) e.push(`Your army list exceeds the points limit by ${t - l.MaxPoints}.`);
   if (dpUsed(l) > bs.DetachmentPoints) e.push(`Detachments use ${dpUsed(l)} DP, but only ${bs.DetachmentPoints} are available.`);
   const isUp = e => /Upgrade/.test(e?.Features || '');   // 11th edition: up to three of the same Upgrade; the copies after the first do not count towards the enhancement limit (their points are still paid)
@@ -885,12 +898,12 @@ document.addEventListener('click', async e => {
     case 'sizepick': return anchorPop(t, [...SIZES.map(s => `<button class="btn" style="margin:3px;width:290px;background:${'var(--c)'}" data-a="size" data-id="${s[0]}">${s[0]} - ${s[1]}</button>`), `<button class="btn" style="margin:3px;width:290px" data-a="size" data-id="custom">Custom</button>`].join(''), 'popup');
     case 'ndisp': { const d = r.draft; syncDraft(); d.Disposition = id; return render() }
     case 'size': { const d = r.draft; syncDraft(); d.MaxPoints = id === 'custom' ? (SIZES.some(s => s[0] === d.MaxPoints) ? 1500 : d.MaxPoints) : +id; d.Detachments = []; closePops(); return render() }
-    case 'choose': { const lst = r.page === 'newlist' ? r.draft : l; if (r.page === 'newlist') syncDraft(); return openChooser(t, () => lst, () => { if (r.page === 'rules') { lst.Disposition = effDisp(lst) || lst.Disposition; commit() } render() }) }
+    case 'choose': { const lst = r.page === 'newlist' ? r.draft : l; if (r.page === 'newlist') syncDraft(); return openChooser(t, () => lst, async () => { await loadFaction(lst); if (r.page === 'rules') { lst.Disposition = effDisp(lst) || lst.Disposition; commit() } render() }) }
     case 'dopen': { syncDraft(); S.open['nlx' + id] = !S.open['nlx' + id]; return render() }
     case 'dtog': { const d = r.draft; syncDraft(); const fd = S.fd[d.Faction + (d.IsLegendsEnabled ? '+L' : '')] || S.fd[d.Faction], i = d.Detachments.indexOf(id);
       if (i >= 0) d.Detachments.splice(i, 1); else { const x = fd.Dettachments.find(z => z.Name === id), tg = new Set(d.Detachments.flatMap(n => fd.Dettachments.find(z => z.Name === n)?.Tags || [])); if (!x || (x.Cost ?? 1) > BS(d.MaxPoints).DetachmentPoints - dpUsed2(d, fd) || (x.Tags || []).some(t => tg.has(t))) return; d.Detachments.push(id) } return render() }
     case 'legtog': { const d = r.draft; syncDraft(); d.IsLegendsEnabled = !d.IsLegendsEnabled; await loadFaction(d); return render() }
-    case 'create': { const d = r.draft; syncDraft(); if (!d.Name.trim()) return; d.Name = d.Name.trim(); d.Disposition = effDisp(d); S.lists.push(d); saveLists(); S.cur = d; resetHist(); S.stack = [{ page: 'home' }, { page: 'editor' }]; histReplace(); return render() }
+    case 'create': { const d = r.draft; syncDraft(); if (!d.Name.trim()) return; d.Name = d.Name.trim(); await loadFaction(d); d.Disposition = effDisp(d); S.lists.push(d); saveLists(); S.cur = d; resetHist(); S.stack = [{ page: 'home' }, { page: 'editor' }]; histReplace(); return render() }
     case 'openlist': if (e.target.closest('[data-a=cardmenu]')) return; return openList(id, 'viewer');
     case 'cardmenu': { e.stopPropagation(); return anchorPop(t, `${mi('c-edit', 'edit', 'Edit', `data-id="${id}"`)}${mi('c-del', 'trash', 'Delete', `data-id="${id}"`)}${mi('c-dup', 'copy', 'Duplicate', `data-id="${id}"`)}${mi('c-rules', 'rules', 'Detachment Rules &amp; Stratagems', `data-id="${id}"`)}`, 'popup big', 'right') }
     case 'c-edit': closePops(); return openList(t.dataset.id, 'editor');
@@ -920,7 +933,8 @@ document.addEventListener('click', async e => {
     case 'warlord': return mutate(() => { if (flagsOf(unitOf(l, l.Units.find(x => x.InstanceId === cu(r)))) & 1) return; const u = l.Units.find(x => x.InstanceId === cu(r)), was = u.IsWarlord; l.Units.forEach(x => x.IsWarlord = false); u.IsWarlord = !was });
     case 'enh': return mutate(() => { const u = l.Units.find(x => x.InstanceId === cu(r)); u.EnhancementId = u.EnhancementId === id ? null : id });
     case 'einfo': { e.stopPropagation(); const en = enhs(l).find(x => x.Name === id); return modal(tc(en.Name), esc(en.Description) + `<p><b>${en.Cost || 0} points</b></p>`, null) }
-    case 'mc': return mutate(() => { const u = l.Units.find(x => x.InstanceId === cu(r)), d = unitOf(l, u), m = d.UnitComposition.ModelCompositions[+t.dataset.i], lim = limOf(m), [mn, mx] = rng(d); const cur = u.UnitCompositionRef.filter(x => lc(x.ModelName) === lc(m.ModelName)).reduce((s, x) => s + x.ModelCount, 0), nv = Math.max(lim.Min, Math.min(lim.Max, cur + +t.dataset.v)), tot = models(u) - cur + nv; if (tot < mn || tot > mx) return;
+    case 'mc': return mutate(() => { const u = l.Units.find(x => x.InstanceId === cu(r)), d = unitOf(l, u), m = d.UnitComposition.ModelCompositions[+t.dataset.i], lim = limOf(m), [mn, mx] = rng(d); const cur = u.UnitCompositionRef.filter(x => lc(x.ModelName) === lc(m.ModelName)).reduce((s, x) => s + x.ModelCount, 0), dir_ = Math.sign(+t.dataset.v); let nv = Math.max(lim.Min, Math.min(lim.Max, cur + +t.dataset.v)), tot = models(u) - cur + nv; if (tot < mn || tot > mx) return;
+      { const V = [...new Set(pointsOf(l, d).map(p => p.ModelCount))].sort((a, b) => a - b); if (V.length > 1 && !V.includes(tot)) { const tgt = dir_ > 0 ? V.find(v => v > models(u)) : [...V].reverse().find(v => v < models(u)); if (tgt === undefined) return; nv = cur + (tgt - models(u)); if (nv < lim.Min || nv > lim.Max) return } }
       const keep = optCounts(u, d); const mcs = d.UnitComposition.ModelCompositions, base = {}; mcs.forEach((x, i) => base[x.ModelName] = u.UnitCompositionRef.filter(q => lc(q.ModelName) === lc(x.ModelName)).reduce((s, q) => s + q.ModelCount, 0)); base[m.ModelName] = nv;
       u.UnitCompositionRef = mcs.map(x => ({ ModelCount: base[x.ModelName], ModelName: x.ModelName, Wargear: [...(x.Wargear?.[0]?.InitalWargear || [])] })); optList(d).forEach(g => g.o.Options.forEach(a => { const k = altKey(g, a); keep[k] = Math.min(keep[k] || 0, optMax(g, base[g.m.ModelName], Object.values(base).reduce((a, b) => a + b, 0))) })); rebuildLoadouts(u, d, keep) });
     case 'pick': return mutate(() => { const u = l.Units.find(x => x.InstanceId === cu(r)), d = unitOf(l, u), c = optCounts(u, d), g = optList(d)[+t.dataset.gi], k = t.dataset.k, was = c[k]; g.o.Options.forEach(a => c[altKey(g, a)] = 0); if (k && !(t.dataset.opt && was)) c[k] = 1; rebuildLoadouts(u, d, c) });
@@ -1039,8 +1053,9 @@ function unitIndex(fd) { const exact = new Map(), sing = new Map(); fd.all.forEa
 /* the lines of a list -> units [{d, header, count, models: Map, weapons: Map, warlord, enh, attach}] and the lines that look like units but match nothing */
 function readUnits(lines, fd) {
   const idx = unitIndex(fd), units = [], loose = []; let cur = null, grp = 0, g = 0;
+  const nonEmpty = lines.map(x => x.trim()).filter(Boolean), title = nonEmpty.length > 1 && headOf(nonEmpty[0]) && !headOf(nonEmpty[1]) && !/^[•·▪●○◦*+–-]/.test(nonEmpty[1]) ? nonEmpty[0] : null;   // "Boys (1990 Points)" names the list; a unit of the same name is not meant
   lines.forEach(raw => {
-    const line = raw.trim(); if (!line || /^exported with|^discord|^player/i.test(line)) return;
+    const line = raw.trim(); if (!line || /^exported with|^discord|^player/i.test(line) || (title && line === title)) return;
     if (/^attached unit\s+\d+$/i.test(line)) { grp = ++g; cur = null; return }
     if (!headOf(line) && /^[A-Z][A-Z &'’-]+$/.test(line) && !/^[•·▪●○◦*+–-]/.test(raw)) { if (!/^attached units$/i.test(line)) grp = 0; cur = null; return }   // a section heading (OTHER DATASHEETS...): ends the group
     const m = headOf(line);
@@ -1081,7 +1096,7 @@ async function importExternal(text) {
   let best = null;
   for (const name of names) { const l = newDraft(name); try { await loadFaction(l) } catch { continue } const r = readUnits(lines, fdOf(l)); if (!best || r.units.length > best.r.units.length) best = { name, l, r } }
   if (!best || !best.r.units.length) return { error: 'No unit of the list matched the datasheets of ' + (best?.name || names[0]) + '.' };
-  const { l, r } = best, fd = fdOf(l), notes = [], declared = ((/[(\[]\s*(\d{1,2}[,.]\d{3}|\d{3,5})\s*(?:pts?|points?)\s*[)\]]/i.exec(src) || [])[1] || '').replace(/[,.]/g, '');
+  const { l } = best; let { r } = best; let fd = fdOf(l); const notes = [], declared = ((/[(\[]\s*(\d{1,2}[,.]\d{3}|\d{3,5})\s*(?:pts?|points?)\s*[)\]]/i.exec(src) || [])[1] || '').replace(/[,.]/g, '');
   const nm = (lines.find(x => x.trim()) || '').replace(/\s*[(\[]\s*\d+.*$/, '').replace(/^[+\s]+|[+\s]+$/g, '').trim();
   l.Name = nm && nm.length < 80 && !names.some(n => nrn(n) === nrn(nm)) && !/^(army roster|roster)/i.test(nm) ? nm.slice(0, 60) : 'Imported list';
   l.MaxPoints = declared ? (SIZES.map(s => s[0]).find(s => s >= +declared) || +declared) : 2000;
@@ -1089,10 +1104,12 @@ async function importExternal(text) {
   l.Detachments = fd.Dettachments.filter(d => dn.some(x => x === nrn(d.Name) || (x.length < 90 && x.includes(nrn(d.Name))))).map(d => d.Name);
   const cap = BS(l.MaxPoints).DetachmentPoints; let used = 0; l.Detachments = l.Detachments.filter(n => { const c = fd.Dettachments.find(d => d.Name === n)?.Cost ?? 1; if (used + c > cap) { notes.push(`The detachment ${tc(n)} was left out: it does not fit in the detachment points.`); return false } used += c; return true });
   if (!l.Detachments.length) notes.push('No detachment was found in the text: choose one in the editor.');
+  if (alliesOf(l).length) { await loadFaction(l); fd = fdOf(l); r = readUnits(lines, fd) }   // a detachment that brings allied units: read the list again with them
   let id = 0; const made = [];
   r.units.forEach(e => {
     const d = e.d, sizes = d.Points.map(p => p.ModelCount), min = Math.min(...sizes), max = Math.max(...sizes), seen = [...e.models.values()].reduce((a, b) => a + b, 0);
-    const n = seen ? Math.max(min, Math.min(max, seen)) : min;
+    let n = seen ? Math.max(min, Math.min(max, seen)) : min;
+    { const V = [...new Set(d.Points.map(p => p.ModelCount))].sort((a, b) => a - b); if (V.length > 1 && !V.includes(n)) { const byPts = V.find(v => d.Points.some(p => p.ModelCount === v && p.Cost === e.pts)), to = byPts ?? V.find(v => v >= n) ?? V.at(-1); notes.push(`${tc(d.Name)}: ${n} models is not a size in the Munitorum Field Manual (${V.join(', ')}); ${to} used.`); n = to } }
     const u = { InstanceId: ++id, AttachedToInstanceId: 0, Id: d.Name, EnhancementId: null, Upgrades: [], UnitCompositionRef: composition(d, n), Notes: { CustomName: '', Text: '' }, IsWarlord: e.warlord, AttachedUnitName: null, AttchedUnitNameType: 0 };
     if (!e.enh) { const en = enhs(l).find(x => e.weapons.has(nrn(x.Name.replace(/\s*\((?:upgrade|aura)\)$/i, '')))); if (en) { e.enh = en.Name; e.weapons.delete(nrn(en.Name.replace(/\s*\((?:upgrade|aura)\)$/i, ''))) } }
     const counts = optCounts(u, d);
