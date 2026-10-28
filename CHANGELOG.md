@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.7 (28 October 2026)
+
+- **Wargear options, second pass:** the converter now reads more of the printed option sentences ("can replace their X with", "Navis Sergeant-at-Arms' shotgun can be replaced with", "For every 5 models in this unit: ...", "&" written as "and", "1 additional storm bolter", plurals such as Legionaries/Legionary, a typo in the printed text) and ignores designer's notes. 20 more units were rebuilt (among them Noise Marines, Winged Hive Tyrant, Acolyte Hybrids, Cthonian Beserks, Hekaton Land Fortress, Vindicator, whose duplicated option is gone, and Onager Dunecrawler).
+- **A rebuild can no longer make a unit worse:** the converter refuses to rebuild a unit if any model type would lose an option, or if a limit ("up to 2", "for every 10 models") would be lost or loosened. Four units that would have regressed this way (Chaos Terminator Squad, Blightlord Terminators, Nemesis Claw, Atalan Jackals) were caught and kept as they were.
+- **What is still not read:** 121 units still keep their previous options because the datasheet text cannot be turned into options safely (missing starting wargear, weapons without a profile such as drones, a sentence that names several model types). The list, with the reason for each, is published in the converter repository (`wargear-options-unread.md`) so they can be checked one by one.
+
 ## 1.4.6 (28 October 2026)
 
 - **Upgrades (Ironstorm Spearhead, Chorus of Condemnation, Talons of the Norn Queen...):** the enhancements marked Upgrade can be used up to three times in the army, and the copies after the first do not count towards the enhancement limit (they still cost their points). Before, the app said "used more than once" and "too many enhancements (5/4)". An ordinary enhancement is still limited to one.
