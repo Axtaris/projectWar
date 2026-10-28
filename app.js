@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.5';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.6';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -156,10 +156,11 @@ function errors(l) {
   if (l.Units.length && !l.Units.some(u => u.IsWarlord)) e.push('Your army list requires a warlord.');
   if (t > l.MaxPoints) e.push(`Your army list exceeds the points limit by ${t - l.MaxPoints}.`);
   if (dpUsed(l) > bs.DetachmentPoints) e.push(`Detachments use ${dpUsed(l)} DP, but only ${bs.DetachmentPoints} are available.`);
-  const n = l.Units.filter(u => u.EnhancementId).length; if (n > bs.EnhancementLimit) e.push(`Too many enhancements (${n}/${bs.EnhancementLimit}).`);
-  const seen = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; if (u.EnhancementId) { if (seen[u.EnhancementId]) e.push(`${tc(u.EnhancementId)} is used more than once.`); seen[u.EnhancementId] = 1; const en = enhOf(l, u); if (!en || !eligible(en, d, kwsU(l, u, d))) e.push(`${tc(u.Id)} cannot take ${tc(u.EnhancementId)}.`) } });
+  const isUp = e => /Upgrade/.test(e?.Features || '');   // 11th edition: up to three of the same Upgrade; the copies after the first do not count towards the enhancement limit (their points are still paid)
+  const n = l.Units.filter((u, i) => u.EnhancementId && !(isUp(enhOf(l, u)) && l.Units.findIndex(x => x.EnhancementId === u.EnhancementId) < i)).length; if (n > bs.EnhancementLimit) e.push(`Too many enhancements (${n}/${bs.EnhancementLimit}).`);
+  const seen = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; if (u.EnhancementId) { seen[u.EnhancementId] = (seen[u.EnhancementId] || 0) + 1; const up = isUp(enhOf(l, u)); if (seen[u.EnhancementId] === (up ? 4 : 2)) e.push(`${tc(u.EnhancementId)} is used more than ${up ? 'three times' : 'once'}.`); const en = enhOf(l, u); if (!en || !eligible(en, d, kwsU(l, u, d))) e.push(`${tc(u.Id)} cannot take ${tc(u.EnhancementId)}.`) } });
   const cnt = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (d) cnt[u.Id] = (cnt[u.Id] || 0) + 1 });
-  Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) || /cannot include more than one of this model/i.test(dsText(d)) ? 1 : kws(d).has('battleline') ? bs.UnitLimit + 3 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
+  Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) || /cannot include more than one of this model/i.test(dsText(d)) ? 1 : kws(d).has('battleline') || kws(d).has('dedicated transport') ? bs.UnitLimit + 3 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
   l.Units.forEach(u => { const m = /army cannot contain both (.+?) and (.+?)\./i.exec(dsText(unitOf(l, u))); if (m && l.Units.some(x => lc(x.Id) === lc(m[1]).trim()) && l.Units.some(x => lc(x.Id) === lc(m[2]).trim()) && lc(u.Id) === lc(m[1]).trim()) e.push(`Your army cannot contain both ${tc(m[1])} and ${tc(m[2])}.`) });
   /* leaders may go alone; only datasheets that say "must join" (Loyal Protector, Regimental Attaché) need a bodyguard */
   l.Units.forEach(u => { const d = unitOf(l, u); if (d?.UnitAbilities?.some(x => /\bmust join\b/i.test(x.Text)) && !u.AttachedToInstanceId) e.push(`${tc(u.Id)} must be attached to a bodyguard unit.`) });
@@ -1033,13 +1034,15 @@ function matchUnit(fd, name, idx) {
 function unitIndex(fd) { const exact = new Map(), sing = new Map(); fd.all.forEach(d => { exact.set(nrn(d.Name), d); sing.set(nrs(d.Name), d) }); return { exact, sing } }
 /* the lines of a list -> units [{d, header, count, models: Map, weapons: Map, warlord, enh, attach}] and the lines that look like units but match nothing */
 function readUnits(lines, fd) {
-  const idx = unitIndex(fd), units = [], loose = []; let cur = null;
+  const idx = unitIndex(fd), units = [], loose = []; let cur = null, grp = 0, g = 0;
   lines.forEach(raw => {
     const line = raw.trim(); if (!line || /^exported with|^discord|^player/i.test(line)) return;
+    if (/^attached unit\s+\d+$/i.test(line)) { grp = ++g; cur = null; return }
+    if (!HEAD_RX.test(line) && /^[A-Z][A-Z &'’-]+$/.test(line) && !/^[•·▪●○◦*+–-]/.test(raw)) { if (!/^attached units$/i.test(line)) grp = 0; cur = null; return }   // a section heading (OTHER DATASHEETS...): ends the group
     const m = HEAD_RX.exec(line);
     if (m) {
       const d = matchUnit(fd, m[2], idx);
-      if (d) { cur = { d, header: m[2], pts: +m[3], models: new Map(), weapons: new Map(), warlord: false, enh: null, attach: null }; units.push(cur); (m[4] || '').split(/,\s*/).filter(Boolean).forEach(x => detail(cur, x)); return }
+      if (d) { cur = { d, header: m[2], pts: +m[3], models: new Map(), weapons: new Map(), warlord: false, enh: null, attach: null, grp, role: '' }; units.push(cur); (m[4] || '').split(/,\s*/).filter(Boolean).forEach(x => detail(cur, x)); return }
       if (!cur || !/^\s*[•·▪●○◦*+–-]/.test(raw)) { loose.push(m[2]); cur = null; return }   // a unit we do not know: its details must not leak into the previous unit
     }
     if (cur) detail(cur, line.replace(/^[•·▪●○◦*+–-]\s*/, ''));
@@ -1050,6 +1053,7 @@ function readUnits(lines, fd) {
     let m;
     if ((m = /^enhancements?\s*[:\-]\s*(.+)$/i.exec(x))) { u.enh = m[1].trim(); return }
     if ((m = /^(.+?)\s*\((?:enhancement|upgrade)\)$/i.exec(x))) { u.enh = m[1].trim(); return }
+    if ((m = /^attached as\s*:\s*(leader|support|bodyguard)/i.exec(x))) { u.role = m[1].toLowerCase(); return }
     if ((m = /^(?:attached to|leading|leads|led by|joins|bodyguard)\s*[:\-]?\s*(.+)$/i.exec(x))) { u.attach = m[1].trim(); return }
     let n = 1; if ((m = /^(\d+)\s*[x×]\s+(.+)$/i.exec(x))) { n = +m[1]; x = m[2].trim() }
     if (/\swarlord$/i.test(x)) { u.warlord = true; return }
@@ -1058,6 +1062,7 @@ function readUnits(lines, fd) {
     if (comp) u.models.set(comp.ModelName, (u.models.get(comp.ModelName) || 0) + n); else u.weapons.set(nrn(x), (u.weapons.get(nrn(x)) || 0) + n);
     tail.split(/,\s*/).filter(Boolean).forEach(w => u.weapons.set(nrn(w), (u.weapons.get(nrn(w)) || 0) + 1));
   }
+  units.forEach(u => { if (u.grp && (u.role === 'leader' || u.role === 'support')) u.host = units.find(x => x.grp === u.grp && x.role === 'bodyguard') });   // the unit written in the same group as "Bodyguard" is the one they join
   return { units, loose };
 }
 async function importExternal(text) {
@@ -1092,10 +1097,12 @@ async function importExternal(text) {
     if (e.enh) { const en = enhs(l).find(x => nrn(x.Name.replace(/\s*\((?:upgrade|aura)\)$/i, '')) === nrn(e.enh.replace(/\s*\((?:upgrade|aura)\)$/i, ''))); if (en) u.EnhancementId = en.Name; else notes.push(`The enhancement “${e.enh}” of ${tc(d.Name)} is not offered by the detachments found.`) }
     made.push([u, e]);
   });
-  made.forEach(([u, e]) => { if (e.attach) { const host = made.find(([x]) => nrn(x.Id) === nrn(e.attach) || nrs(x.Id) === nrs(e.attach)); if (host && host[0] !== u) u.AttachedToInstanceId = host[0].InstanceId } });
+  made.forEach(([u, e]) => { if (e.host) { const host = made.find(([, x]) => x === e.host); if (host && host[0] !== u) u.AttachedToInstanceId = host[0].InstanceId } else if (e.attach) { const host = made.find(([x]) => nrn(x.Id) === nrn(e.attach) || nrs(x.Id) === nrs(e.attach)); if (host && host[0] !== u) u.AttachedToInstanceId = host[0].InstanceId } });
   l.Units = made.map(([u]) => u);
+  if (!l.Units.some(u => u.IsWarlord)) { const must = l.Units.filter(u => flagsOf(unitOf(l, u)) & 2); if (must.length === 1) must[0].IsWarlord = true }   // a datasheet that must be the Warlord (Morvenn Vahl) is not always marked in the export
   if (!l.Units.some(u => u.IsWarlord)) notes.push('No Warlord was marked: pick one in the editor.');
   if (l.Units.some(u => { const d = unitOf(l, u); return ledNames(l, u).size && !u.AttachedToInstanceId }) && !made.some(([u]) => u.AttachedToInstanceId)) notes.push('Leaders are not attached to their units: do it in the editor (the text does not say which unit they lead).');
+  { const d = made.filter(([u, e]) => e.pts && unitCost(l, u) !== e.pts).map(([u, e]) => `${tc(u.Id)}: ${e.pts} in the text, ${unitCost(l, u)} here`); if (d.length) notes.push('Points that differ by unit: ' + d.join('; ') + '.') }
   if (declared && Math.abs(total(l) - +declared) > 0) notes.push(`The list says ${declared} points; with the points of the current Munitorum Field Manual it is ${total(l)}.`);
   const meta = new Set([nrn(nm), ...names.map(nrn), ...fd.Dettachments.map(d => nrn(d.Name)), 'combat patrol', 'incursion', 'strike force', 'onslaught']);
   const skipped = [...new Set(r.loose)].filter(x => !meta.has(nrn(x)) && !/^(total|detachment|battle size|force disposition|army rule)/i.test(x));

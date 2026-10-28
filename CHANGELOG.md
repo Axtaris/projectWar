@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.6 (28 October 2026)
+
+- **Upgrades (Ironstorm Spearhead, Chorus of Condemnation, Talons of the Norn Queen...):** the enhancements marked Upgrade can be used up to three times in the army, and the copies after the first do not count towards the enhancement limit (they still cost their points). Before, the app said "used more than once" and "too many enhancements (5/4)". An ordinary enhancement is still limited to one.
+- **Dedicated Transports** (Sagitaur and the rest) follow the Battleline limit: 6 in a Strike Force instead of 3.
+- **Space Marines army rules:** the 10th edition rule "Oath of Moment" is gone from Space Marines and every Chapter. They now show Combat Doctrines, Transhuman Strategist and Librarius from the 11th edition datasheets, followed by Space Marine Chapters.
+- **Wargear options for the leader of a squad:** when the datasheet says "any number of models can each replace...", the Sergeant, Superior, Pack Leader or Prime now gets the same options as the rest (before, only the largest group did). This was why a Paragon Warsuits list cost 10 points less than in New Recruit. 66 units in 23 files were rebuilt this way (Aggressors, Centurions, Inceptors, Bullgryns, Tzaangors, Wolf Guard Terminators and more). The converter now refuses to rebuild a unit when that would remove an option that exists today; those cases stay as they were.
+- **Import:** the "Attached unit" groups of New Recruit ("Attached as: Leader / Support / Bodyguard") now join each leader and support to its bodyguard unit, a datasheet that must be the Warlord (Morvenn Vahl) is marked when the export does not, and the notes list the units whose points differ from the text. Checked with real lists of Adepta Sororitas (1,985), Space Marines (1,990) and Tyranids (2,000): all match New Recruit to the point.
+
 ## 1.4.5 (28 October 2026)
 
 - **Wargear options that replace:** the Kasrkin Sergeant, the Tempestor of the Tempestus Scions and the Brotherhood Terminator Squad now replace the weapon the datasheet says (before, the chosen weapon was added to the printed one, so a Sergeant carried a hot-shot laspistol, a chainsword, a power weapon and a plasma pistol at once). The cause was a footnote under the option list ("You cannot select the same weapon more than twice") that stopped the conversion of the whole unit; the converter now ignores such footnotes.

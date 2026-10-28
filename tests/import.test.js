@@ -197,3 +197,30 @@ test('YellowScribe export: each model gets its own weapons, profiles with a suff
   assert.ok(w(models[1]).includes('Hot-shot lasgun')); assert.ok(!w(models[1]).includes('Meltagun'));
   assert.ok(w(models[2]).includes('Plasma gun – supercharge') && w(models[2]).includes('Meltagun'));
 });
+
+const fixture = n => require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', n), 'utf8');
+test('New Recruit "Attached unit" groups: leaders and supports join their bodyguard, points match, Upgrades may repeat', async () => {
+  fresh(); let l = (await api.importExternal(fixture('sororitas-attached.txt'))).list; api.S.cur = l;
+  assert.equal(api.total(l), 1985); assert.equal(l.Units.filter(u => u.AttachedToInstanceId).length, 4);
+  const host = u => l.Units.find(x => x.InstanceId === u.AttachedToInstanceId)?.Id;
+  assert.equal(host(l.Units.find(u => u.Id === 'HOSPITALLER')), 'BATTLE SISTERS SQUAD'); assert.equal(host(l.Units.find(u => u.Id === 'MORVENN VAHL')), 'PARAGON WARSUITS');
+  assert.equal(l.Units.find(u => u.IsWarlord)?.Id, 'MORVENN VAHL');   // she must be the Warlord, and the export does not mark it
+  assert.equal(api.errors(l).length, 0, api.errors(l).join('; '));    // 5 enhancements, Symphonic Payload twice: the second copy of an Upgrade is free of the limit
+  fresh(); l = (await api.importExternal(fixture('spacemarines-attached.txt'))).list; api.S.cur = l;
+  assert.equal(api.total(l), 1990); assert.equal(api.errors(l).length, 0, api.errors(l).join('; '));
+  fresh(); l = (await api.importExternal(fixture('tyranids-text.txt'))).list; api.S.cur = l;
+  assert.equal(api.total(l), 2000); assert.equal(api.errors(l).length, 0, api.errors(l).join('; '));
+});
+test('Upgrades: three copies are allowed, a fourth is not; an ordinary enhancement twice is not', async () => {
+  fresh(); const l = (await api.importExternal(fixture('tyranids-text.txt'))).list; api.S.cur = l;
+  const norn = l.Units.filter(u => u.Id === 'NORN ASSIMILATOR'); assert.equal(norn.length, 3);
+  const extra = JSON.parse(JSON.stringify(norn[0])); extra.InstanceId = 99; l.Units.push(extra);
+  assert.ok(api.errors(l).some(e => /more than three times/.test(e)));
+  l.Units.pop(); const nt = l.Units.find(u => u.Id === 'NEUROTYRANT'), sw = l.Units.find(u => u.Id === 'THE SWARMLORD'); sw.EnhancementId = nt.EnhancementId;
+  assert.ok(api.errors(l).some(e => /more than once/.test(e)));
+});
+test('Dedicated Transports share the Battleline limit (6 in a Strike Force)', async () => {
+  fresh(); const l = (await api.importExternal('Leagues of Votann\nStrike Force (2,000 Points)\n' + Array(6).fill('Sagitaur (100 Points)').join('\n'))).list; api.S.cur = l;
+  assert.equal(l.Units.length, 6); assert.ok(!api.errors(l).some(e => /may only be included/.test(e)));
+  l.Units.push({ ...JSON.parse(JSON.stringify(l.Units[0])), InstanceId: 50 }); assert.ok(api.errors(l).some(e => /may only be included 6 times/.test(e)));
+});

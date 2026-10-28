@@ -168,3 +168,10 @@ test('starting wargear holds items, never sentences of the datasheet; the Kasrki
   const k = read('Astra Militarum.json').Units.find(u => u.Name === 'KASRKIN').UnitComposition.ModelCompositions[0].Wargear[0].Options;
   assert.equal(JSON.stringify(k.map(o => o.Replaces)), JSON.stringify([['chainsword'], ['hot-shot laspistol']]));
 });
+
+test('Space Marine army rules are the 11th edition ones, and "any number of models" options reach the Superior', () => {
+  for (const f of factionFiles) { const t = (read(f).ArmyRules || []).map((r) => r.Title); assert.ok(!t.includes('OATH OF MOMENT'), f); }
+  assert.ok(read('Imperial Fists.json').ArmyRules.some((r) => r.Title === 'COMBAT DOCTRINES'));
+  const p = read('Adepta Sororitas.json').Units.find((u) => u.Name === 'PARAGON WARSUITS').UnitComposition.ModelCompositions[0].Wargear[0].Options;
+  assert.ok(p.some((o) => o.Options.includes('multi-melta')));
+});

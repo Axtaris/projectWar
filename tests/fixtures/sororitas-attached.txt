@@ -1,0 +1,118 @@
+Oop (1,985 Points)
+
+Adepta Sororitas
+Bringers of Flame and Chorus of Condemnation (3 Detachment Points)
+Reconnaissance
+Strike Force (2,000 Points)
+
+ATTACHED UNITS
+
+Attached unit 1
+
+Hospitaller (85 Points)
+  • Attached as: Support (Character)
+  • Enhancements: Manual of Saint Griselda
+
+Battle Sisters Squad (100 Points)
+  • Attached as: Bodyguard (Battleline)
+  • 1x Sister Superior
+     ◦ 1x Ministorum hand flamer
+     ◦ 1x Power weapon
+  • 9x Battle Sister
+     ◦ 7x Boltgun
+     ◦ 1x Ministorum flamer
+     ◦ 1x Ministorum heavy flamer
+     ◦ 1x Simulacrum Imperialis
+
+Attached unit 2
+
+Palatine (60 Points)
+  • Attached as: Leader (Character)
+  • 1x Plasma pistol
+  • Enhancements: Iron Surplice of Saint Istalela
+
+Retributor Squad (125 Points)
+  • Attached as: Bodyguard
+  • 1x Retributor Superior
+     ◦ 1x Plasma pistol
+     ◦ 1x Power weapon
+  • 4x Retributor
+     ◦ 4x Multi-melta
+
+Attached unit 3
+
+Canoness with Jump Pack (105 Points)
+  • Attached as: Leader (Character)
+  • 1x Ministorum Hand Flamer and Power Weapon
+  • Enhancements: Fire and Fury
+
+Seraphim Squad (150 Points)
+  • Attached as: Bodyguard
+  • 1x Seraphim Superior
+     ◦ 1x Plasma Pistol and Power Weapon
+  • 5x Seraphim
+     ◦ 10x Bolt pistol
+  • 4x Seraphim with Special Weapons
+     ◦ 8x Ministorum hand flamer
+
+Attached unit 4
+
+Morvenn Vahl (215 Points)
+  • Attached as: Leader (Character)
+
+Paragon Warsuits (195 Points)
+  • Attached as: Bodyguard
+  • 1x Paragon Superior
+     ◦ 1x Multi-melta
+     ◦ 1x Paragon Grenade Launchers
+     ◦ 1x Paragon War Mace
+  • 2x Paragon Warsuit
+     ◦ 2x Multi-melta
+     ◦ 2x Paragon Grenade Launchers
+     ◦ 2x Paragon War Mace
+
+DEDICATED TRANSPORTS
+
+Immolator (115 Points)
+  • 1x Hunter-Killer Missile
+  • 1x Twin Multi-melta
+
+Immolator (115 Points)
+  • 1x Hunter-Killer Missile
+  • 1x Twin Multi-melta
+
+OTHER DATASHEETS
+
+Castigator (165 Points)
+  • 1x Castigator battle cannon
+  • 1x Hunter-Killer Missile
+  • 1x Storm bolter
+
+Dominion Squad (110 Points)
+  • 1x Dominion Superior
+     ◦ 1x Inferno pistol
+     ◦ 1x Power weapon
+  • 9x Dominion
+     ◦ 5x Boltgun
+     ◦ 4x Meltagun
+     ◦ 1x Simulacrum Imperialis
+
+Exorcist (185 Points)
+  • 1x Exorcist Missile Launcher
+  • 1x Hunter-Killer Missile
+  • Enhancements: Symphonic Payload
+
+Exorcist (185 Points)
+  • 1x Exorcist Missile Launcher
+  • 1x Hunter-Killer Missile
+  • Enhancements: Symphonic Payload
+
+Seraphim Squad (75 Points)
+  • 1x Seraphim Superior
+     ◦ 1x Plasma Pistol and Power Weapon
+  • 2x Seraphim
+     ◦ 4x Bolt pistol
+  • 2x Seraphim with Special Weapons
+     ◦ 4x Ministorum hand flamer
+
+Exported with New Recruit v37.1, Data Version: v24
