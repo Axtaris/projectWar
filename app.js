@@ -251,7 +251,8 @@ const wgText = (d, r, low) => { const one = r.Wargear.length === 1, a = r.Wargea
 const defsOf = d => d?.UnitComposition?.WargearDefinitions || [];
 const defCost = (d, key) => defsOf(d).find(x => lc(x.Key) === lc(key))?.Cost || 0;
 const optLabel = (d, a) => cap1(a) + (defCost(d, a) ? ` (${defCost(d, a)} points)` : '');
-const wgCost = (d, u) => d ? u.UnitCompositionRef.reduce((s, r) => s + r.ModelCount * r.Wargear.reduce((t, w) => t + defCost(d, w), 0), 0) : 0;
+/* what a model starts with is in its points already: only the extras are charged (a Crisis Suit starts with a missile pod, a Ravager with its dark lance) */
+const wgCost = (d, u) => d ? u.UnitCompositionRef.reduce((s, r) => { const base = (d.UnitComposition.ModelCompositions.find(m => lc(m.ModelName) === lc(r.ModelName))?.Wargear?.[0]?.InitalWargear || []).map(lc); return s + r.ModelCount * r.Wargear.reduce((t, w) => t + (base.includes(lc(w)) ? 0 : defCost(d, w)), 0) }, 0) : 0;
 const normT = t => lc(t).replace(/[’‘]/g, "'");
 function wargearItems(u) { return u.UnitCompositionRef.flatMap(r => r.Wargear.map(lc)) }
 function visibleWeapons(d, u, viewer, force) {
@@ -1090,7 +1091,7 @@ function readUnits(lines, fd) {
     let n = 1; if ((m = /^(\d+)\s*[x×]\s+(.+)$/i.exec(x))) { n = +m[1]; x = m[2].trim() }
     if (/\swarlord$/i.test(x)) { u.warlord = true; return }
     let tail = ''; if ((m = /^([^:]+):\s*(.+)$/.exec(x))) { x = m[1].trim(); tail = m[2] }
-    const comp = u.d.UnitComposition.ModelCompositions.find(c => nrs(c.ModelName) === nrs(x));
+    const rows = u.d.UnitComposition.ModelCompositions, sg = t => nrn(t).split(' ').map(w => w.replace(/(?<=[a-z]{2})s$/, '')).join(' '), near = u.d.Weapons.some(g => g.Weapons.some(w => nrs(w.Name) === nrs(x))) ? [] : rows.filter(c => sg(c.ModelName).startsWith(sg(x) + ' ')), comp = rows.find(c => nrs(c.ModelName) === nrs(x)) || (near.length === 1 ? near[0] : null);   // "Death Company Marine" is the only row called "Death Company Marines with Jump Packs"
     if (comp) u.models.set(comp.ModelName, (u.models.get(comp.ModelName) || 0) + n); else addWeaponKey(u, x, n);
     tail.split(/,\s*/).filter(Boolean).forEach(w => addWeaponKey(u, w, 1));
   }

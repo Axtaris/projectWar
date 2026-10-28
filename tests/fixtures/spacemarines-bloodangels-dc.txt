@@ -1,0 +1,102 @@
+Dc full inf (2,000 Points)
+
+Space Marines
+Blood Angels
+Wrath of the Doomed, Ironstorm Spearhead, and Tacticus Attack Force (3 Detachment Points)
+Purge the Foe
+Strike Force (2,000 Points)
+
+ATTACHED UNITS
+
+Attached unit 1
+
+Ancient (40 Points)
+  • Attached as: Support (Character)
+  • 1x Bolt Rifle
+
+Captain (105 Points)
+  • Attached as: Leader (Character)
+  • Warlord
+  • 1x Power fist
+  • Enhancements: Spearpoint War Leader
+
+Intercessor Squad (170 Points)
+  • Attached as: Bodyguard (Battleline)
+  • 1x Intercessor Sergeant
+     ◦ 1x Bolt Rifle
+     ◦ 1x Power fist
+  • 9x Intercessor
+     ◦ 2x Grenade Launcher
+
+Attached unit 2
+
+Death Company Captain (80 Points)
+  • Attached as: Leader (Character)
+  • 1x Heavy Bolt Pistol
+  • 1x Power fist
+
+Death Company Marines (170 Points)
+  • Attached as: Bodyguard
+  • 10x Death Company Marine
+     ◦ 10x Combat blade
+     ◦ 2x Grenade Launcher
+
+Attached unit 3
+
+Death Company Captain (80 Points)
+  • Attached as: Leader (Character)
+  • 1x Heavy Bolt Pistol
+  • 1x Power fist
+
+Death Company Marines (170 Points)
+  • Attached as: Bodyguard
+  • 10x Death Company Marine
+     ◦ 10x Combat blade
+     ◦ 2x Grenade Launcher
+
+Attached unit 4
+
+Lemartes (110 Points)
+  • Attached as: Leader (Character)
+
+Death Company Marines with Jump Packs (260 Points)
+  • Attached as: Bodyguard
+  • 10x Death Company Marine
+     ◦ 2x Chainsword
+     ◦ 2x Eviscerator
+     ◦ 2x Hand flamer
+     ◦ 2x Heavy Bolt Pistol
+     ◦ 2x Inferno Pistol
+     ◦ 4x Plasma pistol
+     ◦ 2x Power fist
+     ◦ 4x Power weapon
+
+CHARACTERS
+
+Techmarine (65 Points)
+  • Enhancements: Martial Paragon
+
+OTHER DATASHEETS
+
+Death Company Dreadnought (165 Points)
+  • 1x Blood Fists & Blood Fist Bolt Rifles
+  • 1x Twin Multi-melta
+
+Death Company Dreadnought (165 Points)
+  • 1x Blood Fists & Blood Fist Bolt Rifles
+  • 1x Twin Multi-melta
+
+Death Company Marines with Jump Packs (260 Points)
+  • 10x Death Company Marine
+     ◦ 2x Chainsword
+     ◦ 2x Eviscerator
+     ◦ 2x Hand flamer
+     ◦ 2x Heavy Bolt Pistol
+     ◦ 2x Inferno Pistol
+     ◦ 4x Plasma pistol
+     ◦ 2x Power fist
+     ◦ 4x Power weapon
+
+Gladiator Lancer (160 Points)
+
+Exported with New Recruit v37.6, Data Version: v7

@@ -302,3 +302,16 @@ test('Devoted of Ynnead: Ynnari units need the detachment, and Yvraine or The Yn
   const none = api.newDraft('Aeldari'); await api.loadFaction(none); const fd = api.fdOf(none);   // without the detachment the picker hides the 11 Ynnari units but keeps War Walkers (an Asuryani unit with a stray Ynnari keyword)
   assert.equal(fd.all.filter((u) => api.lockedBy(none, u)).length, 11); assert.ok(!api.lockedBy(none, fd.byName.get('WAR WALKERS')));
 });
+
+/* New Recruit export (Blood Angels, 2,000): "10x Death Company Marine" is the only row of "Death Company Marines with Jump Packs", and a Burna is a weapon, not a Burna Boy */
+test('Blood Angels Death Company list from New Recruit adds up to its 2,000 points', async () => {
+  fresh(); const r = await api.importExternal(require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', 'spacemarines-bloodangels-dc.txt'), 'utf8'));
+  assert.equal(api.total(r.list), 2000);
+  assert.equal(r.list.Units.filter((u) => /JUMP PACKS/.test(u.Id)).map((u) => u.UnitCompositionRef.reduce((s, m) => s + m.ModelCount, 0)).join(), '10,10');
+});
+
+test('what a model starts with is never charged as an extra', async () => {
+  const l = api.newDraft('Tau Empire'); await api.loadFaction(l); const d = api.fdOf(l).byName.get('CRISIS FIREKNIFE BATTLESUITS');
+  l.Units.push({ InstanceId: 1, AttachedToInstanceId: 0, Id: d.Name, EnhancementId: null, Upgrades: [], UnitCompositionRef: api.composition(d, 3), Notes: { CustomName: '', Text: '' }, IsWarlord: false });
+  assert.equal(api.unitPts(l, l.Units[0]), 100);
+});
