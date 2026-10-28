@@ -1,9 +1,12 @@
 {
-  // Static site served by Cloudflare Workers Static Assets: no Worker script, only the files in dist/ (built by build.sh).
+  // Static site (files in dist/, built by build.sh) plus one small Worker, worker.mjs: the relay that fetches a YellowScribe code. Only /api/* runs the Worker first.
   "name": "projectwar",
+  "main": "worker.mjs",
   "compatibility_date": "2026-10-27",
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"],
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page"
   }

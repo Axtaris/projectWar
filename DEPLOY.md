@@ -12,6 +12,10 @@ projectWar is a static site, so any static host works. These steps use Cloudflar
 
 By default it uses the `main` branch of the data repository. Set `DATA_REF` (a tag or commit) to pin the published data to a specific version, or `DATA_REPO` to use another fork. `wrangler.jsonc` points the deployment at `dist/`.
 
+## The relay Worker
+
+`worker.mjs` is the only server-side code. It serves `/api/yellowscribe`: the page posts its roster there, the Worker forwards it to yellowscribe.link (which has no CORS headers, so a browser cannot call it directly), returns the code and stores nothing. Everything else is served as static files (`run_worker_first` is limited to `/api/*` in `wrangler.jsonc`). The local `serve.py` has no relay, so the button answers that the service is only available on the published site.
+
 ## Deploy from your machine
 
 ```bash

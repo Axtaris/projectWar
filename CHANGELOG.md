@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.3 (28 October 2026)
+
+- **YellowScribe code, like the original app:** Export → Yellow Scribe now has a **Get YellowScribe code** button. projectWar hands your list to YellowScribe and shows the code to paste into the Tabletop Simulator mod (it works for about 10 minutes). Because YellowScribe does not accept calls straight from a web page, the list goes through a small relay of this site that keeps and logs nothing; this is the only server-side code of projectWar. The file download stays as an alternative. The privacy and cookie notices (English and Spanish) now say that this one button sends the list to yellowscribe.link, and nothing is sent unless you press it.
+
 ## 1.4.2 (27 October 2026)
 
 - **YellowScribe export:** Export → Yellow Scribe downloads your list as a `.rosz` roster file built in your browser: the statlines, the weapons of each model, the abilities (with the enhancement and the Warlord mark) and the keywords of every unit. Upload it at yellowscribe.link and paste the code into the Yellowscribe mod in Tabletop Simulator. The structure follows what the open-source YellowScribe parser reads for 11th edition rosters; it has not yet been tried on the live service.

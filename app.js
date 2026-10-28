@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.2';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.3';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -750,10 +750,13 @@ async function openShare(hash) {
   history.replaceState(history.state, '', location.pathname + location.search);
   modal(`Shared list “${esc(l.Name || 'Army')}”`, `<p>${esc(l.Faction)}: ${l.Units.length} unit${l.Units.length === 1 ? '' : 's'}, ${esc(String(l.MaxPoints))} points. Saving it adds a copy to your lists; nothing in your other lists changes.</p>`, 'Save to my lists', async () => { l.LastModified = new Date().toISOString(); S.lists.push(l); saveLists(); closePops(); await openList(l.Id, 'editor') });
 }
-const ysOpts = () => `<div class="expwrap"><div style="flex:1;min-width:280px;max-width:640px"><div class="cap" style="margin:0 0 3px 5px">YellowScribe (Tabletop Simulator)</div><div class="expgrp" style="line-height:1.5">
-  <p style="margin:0 0 8px">Download your list as a <b>.rosz</b> roster file with the statlines, weapons for each model, abilities and keywords of every unit.</p>
-  <ol style="margin:0 0 8px 18px;padding:0"><li>Click <b>Download .rosz</b>.</li><li>Open <b>yellowscribe.link</b> and upload the file there.</li><li>Copy the code it gives you into the Yellowscribe mod in Tabletop Simulator.</li></ol>
-  <p style="margin:0;color:var(--dim)">projectWar sends nothing anywhere: the file is built in your browser, and uploading it to YellowScribe is up to you.</p></div></div></div>`;
+const YSX = { busy: false, code: '', err: '' };
+const ysOpts = () => { const k = S.cur.Id + S.cur.LastModified; if (YSX.key !== k) Object.assign(YSX, { key: k, code: '', err: '', busy: false }); return ysHtml() };
+const ysHtml = () => `<div class="expwrap"><div style="flex:1;min-width:280px;max-width:640px"><div class="cap" style="margin:0 0 3px 5px">YellowScribe (Tabletop Simulator)</div><div class="expgrp" style="line-height:1.5">
+  <p style="margin:0 0 8px">Get a code for your list and paste it into the Yellowscribe mod in Tabletop Simulator, then choose models and click Create Army.</p>
+  ${YSX.code ? `<div class="yscode"><b>${YSX.code}</b><button class="btn" data-a="yscopy">Copy code</button></div><p style="margin:8px 0 0;color:var(--dim)">The code works for about 10 minutes.</p>` : `<button class="btn pri" data-a="ysget" ${YSX.busy ? 'disabled' : ''}>${YSX.busy ? 'Getting the code…' : 'Get YellowScribe code'}</button>`}
+  ${YSX.err ? `<p style="margin:8px 0 0;color:var(--red)">${esc(YSX.err)}</p>` : ''}
+  <p style="margin:10px 0 0;color:var(--dim)">This sends your list to yellowscribe.link, a third-party service, through projectWar's own relay, which keeps nothing. Prefer to upload the file yourself? Use the Download button.</p></div></div></div>`;
 const linkOpts = () => { const l = S.cur, key = l.Id + l.LastModified + JSON.stringify(l.Units).length;
   if (S.link?.key !== key) { if (!S.linkBusy) { S.linkBusy = true; shareLink(l).then(url => { S.link = { key, url }; S.linkBusy = false; if (S.stack.at(-1).page === 'export' && EXP.type === 2) render() }, () => { S.link = { key, url: '' }; S.linkBusy = false }) } return '<div class="empty" style="padding:20px 5px">Building the link…</div>' }
   const u = S.link.url, qr = u.length < 2900 ? qrSvg(u) : '';
@@ -933,6 +936,8 @@ document.addEventListener('click', async e => {
     case 'bklater': bkSave({ snooze: Date.now() + 7 * DAY }); return render();
     case 'etype': return anchorPop(t, ETYPES.map((x, i) => `<button class="btn" style="width:160px;margin:3px 0;justify-content:center" data-a="doetype" data-id="${i}">${x}</button>`).join(''));
     case 'doetype': EXP.type = +id; return render();
+    case 'ysget': { if (YSX.busy) return; Object.assign(YSX, { busy: true, code: '', err: '', key: l.Id + l.LastModified }); render(); try { const r = await fetch('/api/yellowscribe', { method: 'POST', headers: { 'content-type': 'application/xml' }, body: ysRoster(l) }); const j = await r.json().catch(() => ({})); if (r.ok && j.code) YSX.code = j.code; else YSX.err = r.status === 404 ? 'The code service is only available on the published site.' : j.err || 'Could not get a code.' } catch { YSX.err = 'Could not reach the code service. Check your connection, or download the file instead.' } YSX.busy = false; return render() }
+    case 'yscopy': { let ok = true; try { await navigator.clipboard.writeText(YSX.code) } catch { ok = false } t.textContent = ok ? 'Copied' : 'Copy failed'; return setTimeout(() => { t.textContent = 'Copy code' }, 1500) }
     case 'txfmt': TXT.fmt = t.dataset.f; return render();
     case 'txck': TXT[t.dataset.k] = !TXT[t.dataset.k]; return render();
     case 'txcopy': { let ok = true; try { await navigator.clipboard.writeText(listText(l)) } catch { ok = false } t.textContent = ok ? 'Copied' : 'Copy failed'; return setTimeout(() => { t.textContent = 'Copy text' }, 1500) }
