@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.13 (28 October 2026)
+
+- **Weapons, starting wargear and options re-read from Wahapedia for every army.** Range, attacks, skill, strength, AP, damage and keywords of every weapon now match the Wahapedia datasheet (about 1,700 fields corrected); weapons that were renamed, filed as melee instead of ranged (or the reverse) or missing were fixed or added; the starting wargear of about 500 model rows follows the datasheet's loadout text; and well over 100 units had their upgrade options rebuilt from the datasheet's option sentences, with the options Wahapedia no longer offers removed. A change is applied only when the converter can prove it, so a unit it cannot read is left exactly as it was.
+- The T'au drone options (Strike Team, Breacher Team, Ethereal, Cadre Fireblade, Crisis, Broadside, Riptide, Stealth, Pathfinder, Vespid) are kept as plain wargear.
+- What is still unread is listed in the converter repository (`wargear-options-unread.md`, 143 unit rows).
+
 ## 1.4.12 (30 October 2026)
 
 - **Devoted of Ynnead (Aeldari):** the 11 Ynnari datasheets (Yvraine, The Yncarne, The Visarch and the Ynnari units) are only offered, and only accepted in a list, when that detachment is chosen. The detachment also asks for Yvraine and/or The Yncarne and for one of them to be your Warlord: the list shows an error if neither is included or if the Warlord is someone else, and an imported list marks the one it finds. The keyword the detachment gives to Asuryani units is not modelled; no enhancement or rule of the app depends on it.

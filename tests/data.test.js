@@ -122,7 +122,7 @@ test('wargear options resolve to a profile', () => {
   const gap = new Set(known.optionsWithoutProfile || []), bad = [];
   for (const f of factionFiles) for (const u of read(f).Units) {
     const W = u.Weapons.flatMap((g) => g.Weapons.map((w) => lcn(w.Name))), defs = (u.UnitComposition.WargearDefinitions || []).map((x) => lcn(x.Key)), abil = (u.UnitAbilities || []).map((a) => lcn(a.Title.split('(')[0].trim()));
-    const hit = (n) => { n = n.replace(/^\d+ /, ''); return [W, defs, abil].some((P) => P.some((p) => p.includes(n) || n.includes(p))); };
+    const hit = (n) => { n = n.replace(/^\d+ /, '').replace(/\s*\([^)]*\)$/, ''); if (/\bdrones?$/.test(n)) return true; /* T'au drones are units of their own: their profile is not on the carrier's datasheet */ return [W, defs, abil].some((P) => P.some((p) => p.includes(n) || n.includes(p))); };
     for (const m of u.UnitComposition.ModelCompositions) for (const g of m.Wargear || []) for (const o of g.Options || []) for (const a of o.Options || []) {
       if (!lcn(a).split(/ and |, /).map((x) => x.trim()).filter(Boolean).every(hit) && !gap.has(`${u.Name}: ${a}`)) bad.push(`${f}: ${u.Name}: "${a}"`);
     }
@@ -188,4 +188,12 @@ test('composition limits of the Boyz follow the datasheet: 1-2 Nob and 9-18 Boy'
     const m = read('Orks.json').Units.find((u) => u.Name === n).UnitComposition.ModelCompositions;
     assert.deepEqual(m.find((x) => x.ModelName === nob).Limit, { Min: 1, Max: 2 }); assert.deepEqual(m.find((x) => x.ModelName !== nob).Limit, { Min: 9, Max: 18 });
   }
+});
+
+/* an option is an item of wargear, never a sentence or a footnote copied from the datasheet */
+test('options are plain wargear names', () => {
+  const bad = [];
+  for (const f of factionFiles) for (const u of read(f).Units) for (const m of u.UnitComposition.ModelCompositions) for (const g of m.Wargear || []) for (const o of g.Options || []) for (const a of o.Options || [])
+    if (/cannot|\bcan\b|[(\[]/i.test(a)) bad.push(`${f}: ${u.Name}: "${a}"`);
+  assert.equal(bad.length, 0, bad.slice(0, 10).join('\n'));
 });
