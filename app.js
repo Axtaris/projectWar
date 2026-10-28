@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.11';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.12';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -68,7 +68,7 @@ function sanitizeList(raw) {
 
 const getJson = async f => JSON.parse((await (await fetch('data/' + encodeURIComponent(f) + '.json', { cache: 'no-cache' })).text()).replace(/^﻿/, ''));
 /* a unit an Allies entry lets in: one of its Faction keywords, keywords or its name is in Keyword, or its name is in UnitNames, and none of its keywords is in ExcludeKeyword */
-const allyMatch = (a, u) => { const ks = new Set([...(u.FactionKeywords || []), ...(u.Keywords || [])].map(lc)), want = [].concat(a.Keyword || []).map(lc), names = (a.UnitNames || []).map(lc);
+const allyMatch = (a, u) => { const ks = new Set([...(u.FactionKeywords || []), ...(a.FactionOnly ? [] : u.Keywords || [])].map(lc)), want = [].concat(a.Keyword || []).map(lc), names = (a.UnitNames || []).map(lc);
   return (names.includes(lc(u.Name)) || want.some(w => ks.has(w) || lc(u.Name) === w)) && !(a.ExcludeKeyword || []).some(x => ks.has(lc(x))) };
 async function loadAllies(l) {
   const d = S.fd[fdKey(l)], al = alliesOf(l), k2 = allyKey(l, al), units = d.all.map(u => { const a = al.find(x => allyMatch(x, u)); return a ? { ...u, Ally: a.Faction } : u });   // units of the file itself that the rule covers (Harlequins in the Drukhari file) count as allies too
@@ -89,6 +89,8 @@ async function loadFaction(l) {
 const fdKey = l => l.Faction + (l.IsLegendsEnabled ? '+L' : '');
 /* detachments can open the army to units of another faction: {Faction (data file), Keyword (the Faction keyword that picks those units), MaxPoints, NoWarlord} */
 const alliesOf = l => { const b = S.fd[fdKey(l)]; return b ? (l.Detachments || []).flatMap(n => b.Dettachments.find(d => d.Name === n)?.Allies || []) : [] };
+const gatesOf = l => { const b = S.fd[fdKey(l)]; return b ? b.Dettachments.flatMap(x => (x.Allies || []).filter(a => a.Gated).map(a => ({ a, det: x.Name }))) : [] };
+const lockedBy = (l, d) => gatesOf(l).find(g => allyMatch(g.a, d) && !(l.Detachments || []).includes(g.det));
 const allyKey = (l, a = alliesOf(l)) => fdKey(l) + (a.length ? '|' + a.map(x => x.Faction).join(',') : '');
 const fdOf = l => S.fd[allyKey(l)] || S.fd[fdKey(l)];
 
@@ -171,6 +173,8 @@ const isLeader = d => (d?.LeaderInfo?.UnitNames || []).length > 0;
 function errors(l) {
   const e = [], t = total(l), bs = BS(l.MaxPoints), fd = fdOf(l);
   if (l.Units.length && !l.Units.some(u => u.IsWarlord)) e.push('Your army list requires a warlord.');
+  l.Units.forEach(u => { const d = unitOf(l, u), g = d && lockedBy(l, d); if (g) e.push(`${tc(u.Id)} can only be taken with the detachment ${tc(g.det)}.`) });
+  alliesOf(l).forEach(a => { if (a.WarlordFrom) { const w = l.Units.filter(u => a.WarlordFrom.includes(u.Id)), nm = a.WarlordFrom.map(tc).join(' or '); if (!w.length) e.push(`You must include ${nm}.`); else if (!w.some(u => u.IsWarlord)) e.push(`One of ${nm} must be your Warlord.`) } });
   alliesOf(l).forEach(a => { const au = l.Units.filter(u => unitOf(l, u)?.Ally === a.Faction), pts = au.reduce((n, u) => n + unitCost(l, u), 0), cap = a.MaxPoints ?? a.MaxPointsBySize?.[BS(l.MaxPoints).PointsTotal]; if (cap != null && pts > cap) e.push(`${a.Faction} allied units cost ${pts} points; this detachment allows ${cap}.`); if (a.NoWarlord && au.some(u => u.IsWarlord)) e.push(`${a.Faction} allied units cannot be your Warlord.`) });
   if (t > l.MaxPoints) e.push(`Your army list exceeds the points limit by ${t - l.MaxPoints}.`);
   if (dpUsed(l) > bs.DetachmentPoints) e.push(`Detachments use ${dpUsed(l)} DP, but only ${bs.DetachmentPoints} are available.`);
@@ -432,7 +436,7 @@ const dpUsed2 = (l, fd) => l.Detachments.reduce((a, n) => a + (fd.Dettachments.f
 function rosterHtml(l) {
   const fd = fdOf(l), q = lc(S.roster), groups = {};
   const rem = l.MaxPoints - total(l);
-  fd.all.filter(d => (!q || lc(d.Name).includes(q) || d.Keywords.some(k => lc(k).includes(q))) && (!S.remFilter || Math.min(...pointsOf(l, d).map(p => p.Cost), 1e9) <= rem)).forEach(d => (groups[catOf(d)] ??= []).push(d));
+  fd.all.filter(d => !lockedBy(l, d) && (!q || lc(d.Name).includes(q) || d.Keywords.some(k => lc(k).includes(q))) && (!S.remFilter || Math.min(...pointsOf(l, d).map(p => p.Cost), 1e9) <= rem)).forEach(d => (groups[catOf(d)] ??= []).push(d));
   return CATS.map(c => { const g = (groups[c] || []).sort((a, b) => a.Name.localeCompare(b.Name)); if (!g.length && !q) return exp('r' + c, c, '', false); if (!g.length) return '';
     return exp('r' + c, c, g.map(d => { const PP = pointsOf(l, d), mn = PP.length ? Math.min(...PP.map(p => p.Cost)) : 0, multi = PP.length > 1 || (PP[0]?.ModelCount || 1) > 1;
       return `<div class="ucard"><button class="t" style="text-align:left;flex:1" data-a="rsel" data-id="${esc(d.Name)}">${tc(d.Name)}<br><span class="badge">${mn} points${multi ? '' : ''}</span></button><button class="ibtn" data-a="addunit" data-id="${esc(d.Name)}">${ic('plus', 36)}</button></div>` }).join('')) }).join('');
@@ -1132,6 +1136,7 @@ async function importExternal(text, o = {}) {
   made.forEach(([u, e]) => { if (e.host) { const host = made.find(([, x]) => x === e.host); if (host && host[0] !== u) u.AttachedToInstanceId = host[0].InstanceId } else if (e.attach) { const host = made.find(([x]) => nrn(x.Id) === nrn(e.attach) || nrs(x.Id) === nrs(e.attach)); if (host && host[0] !== u) u.AttachedToInstanceId = host[0].InstanceId } });
   l.Units = made.map(([u]) => u);
   if (!l.Units.some(u => u.IsWarlord)) { const must = l.Units.filter(u => flagsOf(unitOf(l, u)) & 2); if (must.length === 1) must[0].IsWarlord = true }   // a datasheet that must be the Warlord (Morvenn Vahl) is not always marked in the export
+  if (!l.Units.some(u => u.IsWarlord)) alliesOf(l).forEach(a => { const w = a.WarlordFrom && l.Units.filter(u => a.WarlordFrom.includes(u.Id)); if (w?.length === 1 && !l.Units.some(u => u.IsWarlord)) w[0].IsWarlord = true });
   if (!l.Units.some(u => u.IsWarlord)) notes.push('No Warlord was marked: pick one in the editor.');
   if (l.Units.some(u => { const d = unitOf(l, u); return ledNames(l, u).size && !u.AttachedToInstanceId }) && !made.some(([u]) => u.AttachedToInstanceId)) notes.push('Leaders are not attached to their units: do it in the editor (the text does not say which unit they lead).');
   { const d = made.filter(([u, e]) => e.pts && unitCost(l, u) !== e.pts).map(([u, e]) => `${tc(u.Id)}: ${e.pts} in the text, ${unitCost(l, u)} here`); if (d.length) notes.push('Points that differ by unit: ' + d.join('; ') + '.') }

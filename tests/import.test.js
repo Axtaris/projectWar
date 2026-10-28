@@ -286,3 +286,19 @@ test('detachments with allies: the allied units come in, count against the cap o
   const dr = await mk('Drukhari', 'REAPER’S WAGER'); assert.ok(api.fdOf(dr).all.filter((u) => u.Ally === 'Aeldari').length >= 5);   // the Harlequins of the Drukhari file count too
   const ik = await mk('Imperial Knights', 'QUESTOR FORGEPACT'); assert.equal(api.fdOf(ik).all.filter((u) => u.Ally).length, 5);
 });
+
+test('Devoted of Ynnead: Ynnari units need the detachment, and Yvraine or The Yncarne must be included and be the Warlord', async () => {
+  fresh(); const base = api.newDraft('Aeldari'); base.MaxPoints = 2000; await api.loadFaction(base); api.S.cur = base;
+  const txt = d => `Aeldari\n${d}\nStrike Force (2,000 Points)\n\nYvraine (115 Points)\n\nYnnari Wyches (80 Points)`;
+  let l = (await api.importExternal(txt(''))).list; api.S.cur = l;
+  assert.ok(api.errors(l).some((e) => /can only be taken with the detachment Devoted Of Ynnead/i.test(e)));
+  l = (await api.importExternal(txt('Devoted of Ynnead'))).list; api.S.cur = l;
+  assert.ok(!api.errors(l).some((e) => /can only be taken/.test(e))); assert.ok(l.Units.find((u) => u.Id === 'YVRAINE').IsWarlord);   // the Warlord the detachment asks for is marked
+  assert.ok(!api.errors(l).some((e) => /must be your Warlord|You must include/.test(e)), api.errors(l).join('; '));
+  l.Units.find((u) => u.Id === 'YVRAINE').IsWarlord = false; l.Units.find((u) => u.Id === 'YNNARI WYCHES').IsWarlord = true;
+  assert.ok(api.errors(l).some((e) => /One of Yvraine or The Yncarne must be your Warlord/.test(e)));
+  l.Units = l.Units.filter((u) => u.Id !== 'YVRAINE'); assert.ok(api.errors(l).some((e) => /You must include Yvraine or The Yncarne/.test(e)));
+  assert.ok(api.fdOf(l).all.some((u) => u.Name === 'YNNARI WYCHES'));
+  const none = api.newDraft('Aeldari'); await api.loadFaction(none); const fd = api.fdOf(none);   // without the detachment the picker hides the 11 Ynnari units but keeps War Walkers (an Asuryani unit with a stray Ynnari keyword)
+  assert.equal(fd.all.filter((u) => api.lockedBy(none, u)).length, 11); assert.ok(!api.lockedBy(none, fd.byName.get('WAR WALKERS')));
+});

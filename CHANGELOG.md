@@ -1,11 +1,15 @@
 # Changelog
 
+## 1.4.12 (30 October 2026)
+
+- **Devoted of Ynnead (Aeldari):** the 11 Ynnari datasheets (Yvraine, The Yncarne, The Visarch and the Ynnari units) are only offered, and only accepted in a list, when that detachment is chosen. The detachment also asks for Yvraine and/or The Yncarne and for one of them to be your Warlord: the list shows an error if neither is included or if the Warlord is someone else, and an imported list marks the one it finds. The keyword the detachment gives to Asuryani units is not modelled; no enhancement or rule of the app depends on it.
+
 ## 1.4.11 (30 October 2026)
 
 - **Wolf Guard Headtakers priced right:** the Munitorum Field Manual, Wahapedia and New Recruit all give four prices: 3 Headtakers 85, 3 Headtakers + 3 Hunting Wolves 115, 6 Headtakers 170, 6 + 6 Wolves 230 (95, 125, 180 and 240 from the third unit). The price follows the number of Headtakers and every Hunting Wolf adds 10, which fits all eight prices. Before, three Headtakers with three Wolves cost 170. Units can now say which model type sets the price (`PointsModel`) and which models add a fixed cost (`ModelCosts`).
 - **Models written in an imported text keep their counts** when the datasheet allows them ("6x Wolf Guard Headtakers" stays six Headtakers instead of three plus three Wolves).
 - **Allied units for more detachments:** besides Deathwatch Support, these now bring their allies into the unit picker and into imported lists, within the points cap of the battle size (500 / 1,000 / 1,500 for Incursion / Strike Force / Onslaught, or 500 flat), and none of them can be your Warlord where the rule says so: Brood Brothers Auxilia (Genestealer Cults with Astra Militarum, except Aircraft, Commissars, Epic Heroes, Militarum Tempestus, Ogryns, Ratlings, Enginseers and Ministorum Priests), Tallyband Summoners (Death Guard with Nurgle Daemons), Carnival of Excess (Emperor's Children with Slaanesh Daemons), Changehost of Deceit (Thousand Sons with Tzeentch Daemons), Khorne Daemonkin (World Eaters with Khorne Daemons), Reaper's Wager (Drukhari Harlequins), Iconoclast Fiefdom (Chaos Knights with the Damned of the Chaos Space Marines) and Questor Forgepact (Imperial Knights with a Tech-Priest Dominus or Manipulus and Skitarii Marshal, Rangers and Vanguard).
-- **Still to do:** Devoted of Ynnead (Aeldari): the Ynnari units already sit in the Aeldari list, so they would have to be hidden until the detachment is chosen, and the rule that Yvraine or the Yncarne must be your Warlord needs its own check.
+- Devoted of Ynnead followed in 1.4.12.
 
 ## 1.4.10 (30 October 2026)
 
