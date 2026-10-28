@@ -325,3 +325,24 @@ test('Miniaturised Nebuloscope gives IGNORES COVER to the ranged weapons of the 
   assert.ok(kws(pl).length && kws(pl).every((x) => /IGNORES COVER/i.test(x)), 'bearer: ' + kws(pl));
   const solo = mk(3, 'IMMORTALS', 0); assert.ok(kws(solo).every((x) => !/IGNORES COVER/i.test(x)), 'a unit without the enhancement is untouched');
 });
+
+/* Enhancements whose text is a plain, unconditional effect must carry it as data (stat, weapon and ability adjustments), also for a unit the bearer leads. */
+const enhList = async (faction, enh, unit, bodyguard) => {
+  const l = api.newDraft(faction); await api.loadFaction(l); const fd = api.fdOf(l); const dt = fd.Dettachments.find((d) => (d.Enhancements || []).some((e) => e.Name === enh)); assert.ok(dt, enh + ' exists');
+  l.MaxPoints = 2000; l.Detachments = [dt.Name]; const mk = (id, name, att) => { const d = fd.byName.get(name); return { InstanceId: id, AttachedToInstanceId: att, Id: name, EnhancementId: null, Upgrades: [], UnitCompositionRef: api.composition(d, d.Points[0].ModelCount), Notes: { CustomName: '', Text: '' }, IsWarlord: false } };
+  const b = bodyguard ? mk(1, bodyguard, 0) : null, u = mk(2, unit, b ? 1 : 0); u.EnhancementId = enh; if (b) l.Units.push(b); l.Units.push(u); return { l, fd, u, b };
+};
+test('The Flesh is Weak gives +1 Toughness and Feel No Pain 5+ to the bearer', async () => {
+  const { l, fd, u } = await enhList('Ultramarines', 'The Flesh is Weak', 'APOTHECARY');
+  const a = api.adjList(l, u, fd.byName.get(u.Id)); assert.ok(a.stat.some((x) => x.Target === 'Toughness' && x.Value === '1'));
+  assert.ok(a.ds.some((x) => x.Target === 'CoreAbilities' && x.Values.includes('Feel No Pain 5+')));
+});
+test('Nether-realm Casket gives Stealth to the bearer and to the unit it leads', async () => {
+  const { l, fd, u, b } = await enhList('Necrons', 'Nether-realm Casket', 'OVERLORD', 'IMMORTALS');
+  const has = (x) => x.ds.some((y) => y.Target === 'CoreAbilities' && y.Values.includes('Stealth'));
+  assert.ok(has(api.adjList(l, u, fd.byName.get(u.Id))), 'bearer'); assert.ok(has(api.adjList(l, b, fd.byName.get(b.Id))), 'bodyguard');
+});
+test('Memento Moritoi: +1 A, S and D to the melee attacks of its bearer', async () => {
+  const { l, fd, u } = await enhList('Adeptus Custodes', 'Memento Moritoi (one per army) (Upgrade)', 'CONTEMPTOR-ACHILLUS DREADNOUGHT');
+  const a = api.adjList(l, u, fd.byName.get(u.Id)).weap; assert.equal(a.filter((x) => x.WeaponScope === 'Melee').map((x) => x.Target).sort().join(), 'Attacks,Damage,Strength');
+});

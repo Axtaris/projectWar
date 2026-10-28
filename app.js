@@ -522,7 +522,7 @@ function adjList(l, u, d) {
   if (en) { o.stat.push(...(en.StatAdjustments || []).filter(self)); o.weap.push(...(en.WeaponStatAdjustments || []).filter(self)); o.ds.push(...(en.DatasheetAdjustments || []).filter(self)) }
   effFor(l, d).forEach(e => { o.stat.push(...(e.StatAdjustments || [])); o.weap.push(...(e.WeaponStatAdjustments || [])); o.ds.push(...(e.DatasheetAdjustments || [])) });
   l.Units.filter(x => x.AttachedToInstanceId === u.InstanceId).forEach(x => {
-    const e2 = enhOf(l, x); (e2?.StatAdjustments || []).filter(a => a.Scope === 'AttachedUnit').forEach(a => o.stat.push(a)); (e2?.WeaponStatAdjustments || []).filter(a => a.Scope === 'AttachedUnit').forEach(a => o.weap.push(a));
+    const e2 = enhOf(l, x); (e2?.StatAdjustments || []).filter(a => a.Scope === 'AttachedUnit').forEach(a => o.stat.push(a)); (e2?.WeaponStatAdjustments || []).filter(a => a.Scope === 'AttachedUnit').forEach(a => o.weap.push(a)); (e2?.DatasheetAdjustments || []).filter(a => a.Scope === 'AttachedUnit').forEach(a => o.ds.push(a));
     (unitOf(l, x)?.LeaderInfo?.Abilities || []).forEach(a => (a.StatAdjustments || []).filter(t => t.Scope === 'AttachedUnit').forEach(t => o.stat.push(t)));
   });
   defsOf(d).filter(x => u.UnitCompositionRef.some(r => r.Wargear.some(w => lc(w) === lc(x.Key)))).forEach(x => { o.weap.push(...(x.WeaponAdjustments || [])); o.ds.push(...(x.DatasheetAdjustments || [])) });
