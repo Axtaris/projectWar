@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.3';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.4';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -826,7 +826,11 @@ function ysRoster(l) {
   const unit = u => {
     const d = unitOf(l, u), en = enhOf(l, u), rows = u.UnitCompositionRef, one = models(u) === 1, sl = d.StatLines;
     const stat = (name, i) => { const x = sl[Math.min(i, sl.length - 1)] || {}; return prof(name, 'Unit', [['M', x.Movement], ['T', x.Toughness], ['SV', x.Save], ['W', x.Wounds], ['LD', x.Leadership], ['OC', x.OC]]) };
-    const weapons = r => visibleWeapons(d, { ...u, UnitCompositionRef: [r] }, true, true).flatMap(g => g.Weapons.map(w => prof(w.Name, g.IsMelee ? 'Melee Weapons' : 'Ranged Weapons', [['Range', g.IsMelee ? 'Melee' : w.Range], ['A', w.Attacks], [g.IsMelee ? 'WS' : 'BS', w.ToHit], ['S', w.Strength], ['AP', w.AP], ['D', w.Damage], ['Keywords', w.Keywords || '-']]))).join('');
+    /* the weapons of one model row: exact names (a profile may add " – supercharge"), or what its wargear grants; the loose filter only when nothing matches */
+    const pick = r => { const items = r.Wargear.flatMap(x => lc(x).split(/ and |, /)).map(x => x.replace(/^\d+ /, '').trim()), granted = defsOf(d).filter(x => r.Wargear.some(w => lc(w) === lc(x.Key))).flatMap(x => (x.GrantsWeapons || []).map(lc)), all = [...items, ...granted];
+      const ok = w => all.some(i => lc(w.Name) === i || lc(w.Name).startsWith(i + ' –') || lc(w.Name).startsWith(i + ' -')) || w.NeverFilter, g = d.Weapons.map(x => ({ ...x, Weapons: x.Weapons.filter(ok) })).filter(x => x.Weapons.length);
+      return g.length ? g : visibleWeapons(d, { ...u, UnitCompositionRef: [r] }, true, true) };
+    const weapons = r => pick(r).flatMap(g => g.Weapons.map(w => prof(w.Name, g.IsMelee ? 'Melee Weapons' : 'Ranged Weapons', [['Range', g.IsMelee ? 'Melee' : w.Range], ['A', w.Attacks], [g.IsMelee ? 'WS' : 'BS', w.ToHit], ['S', w.Strength], ['AP', w.AP], ['D', w.Damage], ['Keywords', w.Keywords || '-']]))).join('');
     const abil = [...d.UnitAbilities.map(a => [a.Title, a.Text]), ...(en ? [['Enhancement: ' + tc0(en.Name), en.Description || '']] : []), ...(u.IsWarlord ? [['Warlord', 'This model is your Warlord.']] : [])].map(([t, x]) => prof(t, 'Abilities', [['Description', x]])).join('');
     const model = (r, i) => `<selection id="${uid()}" name="${xe(tc0(r.ModelName))}" number="${r.ModelCount}" type="model"><profiles>${stat(tc0(r.ModelName), i)}${weapons(r)}</profiles></selection>`;
     const cats = [...(d.FactionKeywords || []).map(k => 'Faction: ' + tc0(k)), ...d.Keywords.map(tc0)].map(k => `<category id="${uid()}" name="${xe(k)}"/>`).join('');

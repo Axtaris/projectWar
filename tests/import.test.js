@@ -189,3 +189,11 @@ test('YellowScribe export: a zip with one roster whose structure is what its par
   const leman = sels.find(s => s.attrs.name === 'Leman Russ Battle Tank'); assert.ok(leman);
   assert.ok(kids(leman, 'profiles')[0].children.some(p => p.attrs.name === 'Leman Russ battle cannon' && p.attrs.typeName === 'Ranged Weapons'));
 });
+
+test('YellowScribe export: each model gets its own weapons, profiles with a suffix ("– supercharge") included', async () => {
+  fresh(); const l = (await api.importExternal(require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', 'astra-militarum-text.txt'), 'utf8'))).list; api.S.cur = l;
+  const root = api.parseXml(api.ysRoster(l)), kids = (n, t) => n.children.filter(c => c.tag === t), sels = kids(kids(kids(kids(root, 'forces')[0], 'force')[0], 'selections')[0], 'selection');
+  const kas = sels.find(s => s.attrs.name === 'Kasrkin'), models = kids(kids(kas, 'selections')[0], 'selection'), w = m => kids(m, 'profiles')[0].children.filter(p => /Weapons$/.test(p.attrs.typeName)).map(p => p.attrs.name);
+  assert.ok(w(models[1]).includes('Hot-shot lasgun')); assert.ok(!w(models[1]).includes('Meltagun'));
+  assert.ok(w(models[2]).includes('Plasma gun – supercharge') && w(models[2]).includes('Meltagun'));
+});

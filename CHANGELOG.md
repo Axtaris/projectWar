@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.4 (28 October 2026)
+
+- **YellowScribe weapons:** the weapons written for each model are now matched by exact name (a profile such as "Plasma gun – supercharge" counts as the plasma gun), so a model no longer receives weapons that only share part of a name. Tried against the live service: it accepted an 18-unit Astra Militarum list and returned a code.
+
 ## 1.4.3 (28 October 2026)
 
 - **YellowScribe code, like the original app:** Export → Yellow Scribe now has a **Get YellowScribe code** button. projectWar hands your list to YellowScribe and shows the code to paste into the Tabletop Simulator mod (it works for about 10 minutes). Because YellowScribe does not accept calls straight from a web page, the list goes through a small relay of this site that keeps and logs nothing; this is the only server-side code of projectWar. The file download stays as an alternative. The privacy and cookie notices (English and Spanish) now say that this one button sends the list to yellowscribe.link, and nothing is sent unless you press it.
