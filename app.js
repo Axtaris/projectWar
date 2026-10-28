@@ -8,7 +8,7 @@ const tc = s => tc0(s).replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': 
 /* accent colours: name, colour on dark, colour for text on light */
 const ACC = [['Orange', '#FF5A1F', '#D9480F'], ['Blue', '#3B8EF0', '#1D4ED8'], ['Green', '#2FBF6B', '#15803D'], ['Purple', '#A96BF5', '#7E22CE'], ['Red', '#F0524F', '#B91C1C'], ['Teal', '#1FBFAE', '#0F766E']];
 const BASE = '#FF5A1F', REPO = 'https://github.com/Axtaris/projectWar', DONATE = 'https://www.paypal.com/paypalme/projectwarco';   /* an outbound link to PayPal, opened in a new tab: no script, widget or tracking of ours is involved */
-const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.10';
+const DATASET = 'Warhammer 40k 11th', VERSION = '1.4.11';
 
 /* ---------- icons (Material) ---------- */
 const P = {
@@ -67,9 +67,12 @@ function sanitizeList(raw) {
 }
 
 const getJson = async f => JSON.parse((await (await fetch('data/' + encodeURIComponent(f) + '.json', { cache: 'no-cache' })).text()).replace(/^﻿/, ''));
+/* a unit an Allies entry lets in: one of its Faction keywords, keywords or its name is in Keyword, or its name is in UnitNames, and none of its keywords is in ExcludeKeyword */
+const allyMatch = (a, u) => { const ks = new Set([...(u.FactionKeywords || []), ...(u.Keywords || [])].map(lc)), want = [].concat(a.Keyword || []).map(lc), names = (a.UnitNames || []).map(lc);
+  return (names.includes(lc(u.Name)) || want.some(w => ks.has(w) || lc(u.Name) === w)) && !(a.ExcludeKeyword || []).some(x => ks.has(lc(x))) };
 async function loadAllies(l) {
-  const d = S.fd[fdKey(l)], al = alliesOf(l), k2 = allyKey(l, al), units = d.all;
-  const extra = []; for (const a of al) { try { const o = await getJson(a.Faction); o.Units.forEach(u => { if (!d.byName.has(u.Name) && (u.FactionKeywords || []).some(k => lc(k) === lc(a.Keyword)) && !extra.some(x => x.Name === u.Name)) extra.push({ ...u, Ally: a.Faction }) }) } catch { } }
+  const d = S.fd[fdKey(l)], al = alliesOf(l), k2 = allyKey(l, al), units = d.all.map(u => { const a = al.find(x => allyMatch(x, u)); return a ? { ...u, Ally: a.Faction } : u });   // units of the file itself that the rule covers (Harlequins in the Drukhari file) count as allies too
+  const extra = []; for (const a of al) { try { const o = await getJson(a.Faction); o.Units.forEach(u => { if (!d.byName.has(u.Name) && allyMatch(a, u) && !extra.some(x => x.Name === u.Name)) extra.push({ ...u, Ally: a.Faction }) }) } catch { } }
   const m = { ...d, all: [...units, ...extra] }; m.byName = new Map(m.all.map(u => [u.Name, u])); m.alt = altBodies(m.all);
   return S.fd[k2] = m;
 }
@@ -128,8 +131,10 @@ const models = u => u.UnitCompositionRef.reduce((a, c) => a + c.ModelCount, 0);
 const affects = (e, d) => { const k = kws(d); return (e.AffectedUnits || []).some(n => lc(n) === lc(d.Name)) || ((e.AffectedUnitsByKeyword || []).length > 0 && (e.AffectedUnitsByKeyword || []).every(x => k.has(lc(x))) && !(e.AffectedUnitsExcludeKeyword || []).some(x => k.has(lc(x)))) };
 const effFor = (l, d) => l ? dets(l).flatMap(x => (x.Effects || []).filter(e => affects(e, d))) : [];
 const pointsOf = (l, d) => { const ov = effFor(l, d).flatMap(e => e.PointsOverride || []); return ov.length ? ov : d.Points };
+const countOf = (u, name) => u.UnitCompositionRef.filter(r => lc(r.ModelName) === lc(name)).reduce((a, r) => a + r.ModelCount, 0);
+const modelCost = (d, u) => (d?.ModelCosts || []).reduce((a, m) => a + m.Cost * countOf(u, m.ModelName), 0);
 function baseCost(l, u) {
-  const d = unitOf(l, u), n = models(u), P = d && pointsOf(l, d); if (!d || !P.length) return 0;
+  const d = unitOf(l, u), n = d?.PointsModel ? countOf(u, d.PointsModel) : models(u), P = d && pointsOf(l, d); if (!d || !P.length) return 0;
   const copies = l.Units.filter(x => x.Id === u.Id).indexOf(u) + 1, byN = P.filter(p => p.ModelCount === n);
   const ps = byN.length ? byN : P.filter(p => p.ModelCount >= n), pool = ps.length ? ps : P;
   // Points[].UnitCount: the Nth copy of the unit in the list is priced at tier N (copies 1-2 stay at their price when a 3rd one costs more)
@@ -137,7 +142,7 @@ function baseCost(l, u) {
 }
 const enhOf = (l, u) => u.EnhancementId && enhs(l).find(e => e.Name === u.EnhancementId);
 const free = e => /FreeEnhancementPointCost/.test(e?.Features || '');
-const unitPts = (l, u) => baseCost(l, u) + wgCost(unitOf(l, u), u); /* cards and group headers leave the enhancement on its own chip */
+const unitPts = (l, u) => baseCost(l, u) + wgCost(unitOf(l, u), u) + modelCost(unitOf(l, u), u); /* cards and group headers leave the enhancement on its own chip */
 const unitCost = (l, u) => unitPts(l, u) + (enhOf(l, u) && !free(enhOf(l, u)) ? enhOf(l, u).Cost || 0 : 0);
 const total = l => l.Units.reduce((a, u) => a + unitCost(l, u), 0);
 const nk = k => lc(k).replace(/^\|\s*[^:]*:\s*/, '');
@@ -166,7 +171,7 @@ const isLeader = d => (d?.LeaderInfo?.UnitNames || []).length > 0;
 function errors(l) {
   const e = [], t = total(l), bs = BS(l.MaxPoints), fd = fdOf(l);
   if (l.Units.length && !l.Units.some(u => u.IsWarlord)) e.push('Your army list requires a warlord.');
-  alliesOf(l).forEach(a => { const au = l.Units.filter(u => unitOf(l, u)?.Ally === a.Faction), pts = au.reduce((n, u) => n + unitCost(l, u), 0); if (pts > a.MaxPoints) e.push(`${a.Faction} allied units cost ${pts} points; this detachment allows ${a.MaxPoints}.`); if (a.NoWarlord && au.some(u => u.IsWarlord)) e.push(`${a.Faction} allied units cannot be your Warlord.`) });
+  alliesOf(l).forEach(a => { const au = l.Units.filter(u => unitOf(l, u)?.Ally === a.Faction), pts = au.reduce((n, u) => n + unitCost(l, u), 0), cap = a.MaxPoints ?? a.MaxPointsBySize?.[BS(l.MaxPoints).PointsTotal]; if (cap != null && pts > cap) e.push(`${a.Faction} allied units cost ${pts} points; this detachment allows ${cap}.`); if (a.NoWarlord && au.some(u => u.IsWarlord)) e.push(`${a.Faction} allied units cannot be your Warlord.`) });
   if (t > l.MaxPoints) e.push(`Your army list exceeds the points limit by ${t - l.MaxPoints}.`);
   if (dpUsed(l) > bs.DetachmentPoints) e.push(`Detachments use ${dpUsed(l)} DP, but only ${bs.DetachmentPoints} are available.`);
   const isUp = e => /Upgrade/.test(e?.Features || '');   // 11th edition: up to three of the same Upgrade; the copies after the first do not count towards the enhancement limit (their points are still paid)
@@ -206,7 +211,7 @@ function composition(d, n) {
 }
 /* model limits: some datasheets give only Max (Min = 0) or none (exactly 1) */
 const limOf = m => m.Limit ? { Min: m.Limit.Min ?? 0, Max: m.Limit.Max ?? m.Limit.Min ?? 1 } : { Min: 1, Max: 1 };
-const rng = d => { const p = d.Points.map(x => x.ModelCount); return p.length ? [Math.min(...p), Math.max(...p)] : [0, 0] };
+const rng = d => { if (d.PointsModel) { const m = d.UnitComposition.ModelCompositions.map(limOf); return [m.reduce((a, x) => a + x.Min, 0), m.reduce((a, x) => a + x.Max, 0)] } const p = d.Points.map(x => x.ModelCount); return p.length ? [Math.min(...p), Math.max(...p)] : [0, 0] };
 /* wargear options -> counts. Loadouts are stored as UnitCompositionRef entries (one per distinct loadout). */
 function optList(d) {
   const out = []; d.UnitComposition.ModelCompositions.forEach((m, mi) => (m.Wargear?.[0]?.Options || []).forEach((o, oi) => out.push({ mi, oi, m, o })));
@@ -1111,10 +1116,12 @@ async function importExternal(text, o = {}) {
   if (alliesOf(l).length) { await loadFaction(l); fd = fdOf(l); r = readUnits(lines, fd) }   // a detachment that brings allied units: read the list again with them
   let id = 0; const made = [];
   r.units.forEach(e => {
-    const d = e.d, sizes = d.Points.map(p => p.ModelCount), min = Math.min(...sizes), max = Math.max(...sizes), seen = [...e.models.values()].reduce((a, b) => a + b, 0);
+    const d = e.d, [min, max] = rng(d), seen = [...e.models.values()].reduce((a, b) => a + b, 0);
     let n = seen ? Math.max(min, Math.min(max, seen)) : min;
     const u = { InstanceId: ++id, AttachedToInstanceId: 0, Id: d.Name, EnhancementId: null, Upgrades: [], UnitCompositionRef: composition(d, n), Notes: { CustomName: '', Text: '' }, IsWarlord: e.warlord, AttachedUnitName: null, AttchedUnitNameType: 0 };
     if (!e.enh) { const en = enhs(l).find(x => e.weapons.has(nrn(x.Name.replace(/\s*\((?:upgrade|aura)\)$/i, '')))); if (en) { e.enh = en.Name; e.weapons.delete(nrn(en.Name.replace(/\s*\((?:upgrade|aura)\)$/i, ''))) } }
+    { const rows = d.UnitComposition.ModelCompositions, want = rows.map(m => e.models.get(m.ModelName) ?? limOf(m).Min), sum = want.reduce((a, x) => a + x, 0);   // "1x Boss Nob + 18x Boyz" and "6x Wolf Guard Headtakers" stay as written when the datasheet allows them
+      if (e.models.size && sum >= min && sum <= max && rows.every((m, i) => want[i] >= limOf(m).Min && want[i] <= limOf(m).Max)) u.UnitCompositionRef = rows.map((m, i) => ({ ModelCount: want[i], ModelName: m.ModelName, Wargear: [...(m.Wargear?.[0]?.InitalWargear || [])] })) }
     const counts = optCounts(u, d);
     optList(d).forEach(g => g.o.Options.forEach(a => { const parts = a.split(/ and |, /).map(nrn), c = Math.min(...parts.map(p => e.weapons.get(p) || e.weapons.get(nrs(p)) || 0)); if (c > 0) counts[altKey(g, a)] = Math.min(c, optMax(g, n, n), n) }));
     try { rebuildLoadouts(u, d, counts) } catch { }

@@ -61,7 +61,7 @@ Done in 1.1: 1.1, 1.3, 1.5, 1.6. **Carried over to 1.2:** 1.2, 1.4, 1.7, 1.8, 1.
 | # | Feature | Why | Approach |
 |---|---|---|---|
 | 5.1 | ⬜ Legends and Adeptus Titanicus for 11th edition | Their files are out of date | Extend the converter to those catalogues |
-| 5.2 | 🔎 Allied units | The data describes allies, the app does not use it | Check the 11th edition ally rules, then add an allies picker with its own restrictions |
+| 5.2 | 🟨 Allied units | Detachments that open the army to another faction | Done in 1.4.11 for Deathwatch Support, Brood Brothers Auxilia, Tallyband Summoners, Carnival of Excess, Changehost of Deceit, Khorne Daemonkin, Reaper's Wager, Iconoclast Fiefdom and Questor Forgepact; Devoted of Ynnead (Ynnari) is still to do |
 | 5.3 | 🔎 Previous edition data sets | Some people still play older editions | Out of scope for now; the app would need a data set selector and a second set of files |
 
 ## Out of scope

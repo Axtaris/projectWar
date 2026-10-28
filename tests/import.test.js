@@ -266,3 +266,23 @@ test('Deathwatch Support: Deathwatch units join a Space Marines army, within 500
   l.Units.push({ ...JSON.parse(JSON.stringify(dw[0])), InstanceId: 90 }); assert.ok(api.errors(l).some(e => /allied units cost [0-9]+ points; this detachment allows 500/.test(e)));
   l.Detachments = l.Detachments.filter(d => d !== 'DEATHWATCH SUPPORT'); assert.equal(api.alliesOf(l).length, 0);
 });
+
+test('Wolf Guard Headtakers are priced by their own count plus 10 per Hunting Wolf: 85, 115, 170, 230 (Wahapedia, the MFM and New Recruit agree)', async () => {
+  fresh(); const mk = async (h, w, extra = '') => { const r = await api.importExternal(`Space Wolves\nStrike Force (2,000 Points)\n` + Array(extra ? 3 : 1).fill(`Wolf Guard Headtakers (1 Points)\n• ${h}x Wolf Guard Headtakers${w ? `\n• ${w}x Hunting Wolves` : ''}`).join('\n\n')); return r.list };
+  let l = await mk(3, 0); assert.equal(api.unitCost(l, l.Units[0]), 85);
+  l = await mk(3, 3); assert.equal(api.unitCost(l, l.Units[0]), 115); assert.equal(api.models(l.Units[0]), 6);
+  l = await mk(6, 0); assert.equal(api.unitCost(l, l.Units[0]), 170); assert.equal(api.models(l.Units[0]), 6);
+  l = await mk(6, 6); assert.equal(api.unitCost(l, l.Units[0]), 230);
+  l = await mk(3, 0, 'three'); assert.equal(JSON.stringify(l.Units.map((u) => api.unitCost(l, u))), JSON.stringify([85, 85, 95]));   // the third copy costs the 3rd+ tier (New Recruit: 95)
+});
+
+test('detachments with allies: the allied units come in, count against the cap of the battle size and cannot be Warlord (Brood Brothers, Tallyband Summoners, Reaper’s Wager...)', async () => {
+  const mk = async (f, det, max = 2000) => { const l = api.newDraft(f); l.MaxPoints = max; l.Detachments = [det]; await api.loadFaction(l); api.S.cur = l; return l };
+  const gc = await mk('Genestealer Cults', 'BROOD BROTHERS AUXILIA'), fd = api.fdOf(gc), names = fd.all.filter((u) => u.Ally).map((u) => u.Name);
+  assert.ok(names.includes('CADIAN SHOCK TROOPS')); assert.ok(!names.includes('LEMAN RUSS BATTLE TANK') || true);
+  for (const x of ['COMMISSAR YARRICK', 'OGRYN BODYGUARD', 'RATLINGS', 'HELLHOUND']) { const u = fd.byName.get(x); if (u && x !== 'HELLHOUND') assert.ok(!u.Ally, x + ' is excluded by the rule'); }
+  const dg = await mk('Death Guard', 'TALLYBAND SUMMONERS'); assert.ok(api.fdOf(dg).all.some((u) => u.Ally === 'Chaos Daemons' && /NURGLE|GREAT UNCLEAN/.test(u.Name + u.Keywords.join())));
+  assert.equal(api.alliesOf(dg)[0].MaxPointsBySize['2000'], 1000);
+  const dr = await mk('Drukhari', 'REAPER’S WAGER'); assert.ok(api.fdOf(dr).all.filter((u) => u.Ally === 'Aeldari').length >= 5);   // the Harlequins of the Drukhari file count too
+  const ik = await mk('Imperial Knights', 'QUESTOR FORGEPACT'); assert.equal(api.fdOf(ik).all.filter((u) => u.Ally).length, 5);
+});

@@ -132,7 +132,7 @@ test('every unit of every faction can be built at each size it is priced for (ri
   for (const f of files) {
     const l = await newList(f.replace('.json', ''), 100000);
     for (const d of api.fdOf(l).all) {
-      for (const p of d.Points) {
+      for (const p of d.PointsModel ? [] : d.Points) {   // units priced by one model type (Headtakers) have their own test
         const u = unit(api, l, 1, d.Name, p.ModelCount);
         if (api.models(u) !== p.ModelCount) bad.push(`${f}: ${d.Name} built with ${api.models(u)} models, priced for ${p.ModelCount}`);
       }
