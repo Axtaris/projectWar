@@ -182,7 +182,7 @@ function errors(l) {
   const n = l.Units.filter((u, i) => u.EnhancementId && !(isUp(enhOf(l, u)) && l.Units.findIndex(x => x.EnhancementId === u.EnhancementId) < i)).length; if (n > bs.EnhancementLimit) e.push(`Too many enhancements (${n}/${bs.EnhancementLimit}).`);
   const seen = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; if (u.EnhancementId) { seen[u.EnhancementId] = (seen[u.EnhancementId] || 0) + 1; const up = isUp(enhOf(l, u)); if (seen[u.EnhancementId] === (up ? 4 : 2)) e.push(`${tc(u.EnhancementId)} is used more than ${up ? 'three times' : 'once'}.`); const en = enhOf(l, u); if (!en || !eligible(en, d, kwsU(l, u, d))) e.push(`${tc(u.Id)} cannot take ${tc(u.EnhancementId)}.`) } });
   const cnt = {}; l.Units.forEach(u => { const d = unitOf(l, u); if (d) cnt[u.Id] = (cnt[u.Id] || 0) + 1 });
-  Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) || /cannot include more than one of this model/i.test(dsText(d)) ? 1 : battleline(l, d) ? bs.UnitLimit + 3 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
+  Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) || /cannot include more than one of this model/i.test(dsText(d)) ? 1 : battleline(l, d) ? bs.UnitLimit * 2 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
   l.Units.forEach(u => { const m = /army cannot contain both (.+?) and (.+?)\./i.exec(dsText(unitOf(l, u))); if (m && l.Units.some(x => lc(x.Id) === lc(m[1]).trim()) && l.Units.some(x => lc(x.Id) === lc(m[2]).trim()) && lc(u.Id) === lc(m[1]).trim()) e.push(`Your army cannot contain both ${tc(m[1])} and ${tc(m[2])}.`) });
   l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; d.UnitComposition.ModelCompositions.forEach(m => { const lim = limOf(m), c = u.UnitCompositionRef.filter(x => lc(x.ModelName) === lc(m.ModelName)).reduce((a, x) => a + x.ModelCount, 0); if (c > lim.Max || c < lim.Min) e.push(`${tc(u.Id)} has ${c} ${tc(m.ModelName)}; the datasheet allows ${lim.Min === lim.Max ? lim.Min : lim.Min + ' to ' + lim.Max}.`) }) });
   /* an option entry is one choice per model ("one of the following") and its limit ("up to N", "for every X models") is shared by all its alternatives */
@@ -556,6 +556,11 @@ function adjList(l, u, d) {
   defsOf(d).filter(x => u.UnitCompositionRef.some(r => r.Wargear.some(w => lc(w) === lc(x.Key)))).forEach(x => { o.weap.push(...(x.WeaponAdjustments || [])); o.ds.push(...(x.DatasheetAdjustments || [])) });
   return o;
 }
+/* glossary tooltips: a weapon ability, core ability or keyword with a rule in the core rules explains itself when hovered, focused or tapped */
+const glMap = () => (glMap.c ||= new Map((S.info?.Glossary || []).map(e => [lc(e.Name), e])));
+const glFind = t => { let k = lc(String(t)).replace(/[’‘]/g, "'").replace(/[\[\]]/g, '').replace(/\s*:.*$/, '').replace(/\s*\(.*$/, '').trim(); if (k.startsWith('anti-')) k = 'anti'; k = k.replace(/(\s+(?:\d+\+?|\d*d\d+(?:\+\d+)?|\d+"|x))+$/, '').trim(); return glMap().get(k) };
+const glSpan = t => { const e = glFind(t); return e ? '<span class="gl" tabindex="0" role="button" data-gl="' + esc(lc(e.Name)) + '" data-gt="' + esc(t) + '">' + esc(t) + '</span>' : esc(t) };
+const glList = (list, sep = ', ') => list.map(glSpan).join(sep);
 /* a text shows once: the abilities already printed in the special ability section (The Silent King's Triarch abilities) and the info bands that repeat an ability are left out of the other lists */
 const dupT = t => lc(t).replace(/[’‘]/g, "'").replace(/\s*\((?:aura|upgrade)\)\s*$/, '').replace(/[:.\s]+$/, '').replace(/\s+/g, ' '), dupX = t => lc(t).replace(/[’‘]/g, "'").replace(/\s+/g, ' ').trim();
 const sameText = (a, b) => { const x = dupX(a), y = dupX(b); return x.length > 30 && y.length > 30 && (x === y || y.includes(x) || x.includes(y)) };
@@ -650,7 +655,7 @@ function unitSheet(d, l, u, o) {
       ${wgOpen ? `<div class="b">${opts.map(g => g.o.Options.map(a => `<div class="stp" style="width:max-content;min-width:205px;margin:0 0 6px"><button data-a="opt" data-k="${esc(altKey(g, a))}" data-v="-1">${ic('minus', 28)}</button><div class="v">${oc[altKey(g, a)] || 0} x ${esc(optLabel(d, a))}</div><button data-a="opt" data-k="${esc(altKey(g, a))}" data-v="1">${ic('plus', 28)}</button></div>`).join('')).join('')}</div>` : ''}`}</div>`
       : box(u.UnitCompositionRef.map(eq))}</div>`
     : (ro && u ? `<div class="sect">Unit Composition and Wargear Options</div>${n > 1 || opts.length ? `<div class="compbox">${box(u.UnitCompositionRef.map(eq))}</div>` : ''}` : pcomp);
-  const wh = g => `<div class="wh"><span>${esc(g.Name)}</span><span>Range</span><span>A</span><span>${g.IsMelee ? 'WS' : 'BS'}</span><span>S</span><span>AP</span><span>D</span></div>` + g.Weapons.map(w => `<div class="wr"><span>${w._n > 1 ? `<i class="wcnt">${w._n}</i>` : ''}${esc(w.Name)}</span>${['Range', 'Attacks', 'ToHit', 'Strength', 'AP', 'Damage'].map(k => `<span>${w._m?.[k] ? `<i class="md">${esc(nv(w[k]))}</i>` : esc(nv(w[k]))}</span>`).join('')}${w.Keywords ? `<span class="kw">[${esc(w.Keywords)}]</span>` : ''}</div>`).join('');
+  const wh = g => `<div class="wh"><span>${esc(g.Name)}</span><span>Range</span><span>A</span><span>${g.IsMelee ? 'WS' : 'BS'}</span><span>S</span><span>AP</span><span>D</span></div>` + g.Weapons.map(w => `<div class="wr"><span>${w._n > 1 ? `<i class="wcnt">${w._n}</i>` : ''}${esc(w.Name)}</span>${['Range', 'Attacks', 'ToHit', 'Strength', 'AP', 'Damage'].map(k => `<span>${w._m?.[k] ? `<i class="md">${esc(nv(w[k]))}</i>` : esc(nv(w[k]))}</span>`).join('')}${w.Keywords ? `<span class="kw">[${glList(String(w.Keywords).split(/,\s*(?![^(]*\))/).filter(Boolean))}]</span>` : ''}</div>`).join('');
   const dsAdj = adjList(l, u, d).ds; let kwList = [...d.Keywords], coreList = [...d.CoreAbilities];
   dsAdj.forEach(a => { const vals = a.Values || []; if (a.Target === 'Keywords') { if (a.Type === 'Subtract') kwList = kwList.filter(k => !vals.some(v => lc(v) === lc(k))); else vals.forEach(v => { if (!kwList.some(k => lc(k) === lc(v))) kwList.push(v) }) } else if (a.Target === 'CoreAbilities' && a.Type !== 'Subtract') vals.forEach(v => { if (!coreList.includes(v)) coreList.push(v) }) });
   const eff = effFor(l, d), abT = t => esc(tc(t)).replace('(Aura)', '(aura)');
@@ -679,10 +684,10 @@ function unitSheet(d, l, u, o) {
    ${inv ? `<div class="inv ${invMod ? 'mod' : ''}"><b>${esc(inv)}</b><span>INVULNERABLE SAVE</span>${invInfo ? `<small class="invi">${esc(invInfo)}</small>` : ''}</div>` : ''}
    <div class="base">${S.set.ShowUnitImages ? ic('camera', 18) : ''}${ring}</div></div>`;
   const warl = u && (kwsU(l, u, d).has('character') || flagsOf(d) & 8) && !(flagsOf(d) & 1) && (!ro || u.IsWarlord) ? `<div class="sect w">Warlord</div>${ro ? (u.IsWarlord ? `<div class="sbody"><p>This unit is your Warlord.</p></div>` : '') : `<div class="warl"><button class="in" style="background:${u.IsWarlord ? 'var(--dk)' : '#000'}" data-a="warlord">${u.IsWarlord ? '★ Warlord' : 'Select Warlord'}</button></div>`}` : '';
-  const abil = (ab || sp || infoList.length || coreList.length || d.Faction) ? `<div class="sect">Abilities</div><div class="sbody">${coreList.length ? `<div class="corebox">CORE: ${esc(coreList.join(', '))}</div>` : ''}${d.Faction ? `<p><b class="t">FACTION: ${esc(d.Faction)}</b></p>` : ''}${ab}</div>` : '';
+  const abil = (ab || sp || infoList.length || coreList.length || d.Faction) ? `<div class="sect">Abilities</div><div class="sbody">${coreList.length ? `<div class="corebox">CORE: ${glList(coreList)}</div>` : ''}${d.Faction ? `<p><b class="t">FACTION: ${esc(d.Faction)}</b></p>` : ''}${ab}</div>` : '';
   const attx = `${att}${sp}${infos}${att2.length ? `<div class="sect">Attached leaders</div><div class="sbody"><p>${att2.map(x => tc(x.Id)).join(', ')}</p></div>` : ''}`;
   const notes = u && !ro ? `<div class="sect w">Notes</div><div class="fld2"><input class="in sm" id="u-notes" placeholder="Enter unit notes" value="${esc(u.Notes?.Text)}"></div><div class="sect w">Custom unit name</div><div class="fld2"><input class="in sm" id="u-cname" placeholder="Enter custom unit name" value="${esc(u.Notes?.CustomName)}"></div>` : (u?.Notes?.Text ? `<div class="sect w">Notes</div><div class="sbody"><p>${esc(u.Notes.Text)}</p></div>` : '');
-  const kwL = `<div class="kwline">KEYWORDS: ${esc(kwList.join(', '))}</div>`, kwR = `<div class="kwline alt">FACTION KEYWORDS: ${esc(d.FactionKeywords.join(', '))}</div>`;
+  const kwL = `<div class="kwline">KEYWORDS: ${glList(kwList)}</div>`, kwR = `<div class="kwline alt">FACTION KEYWORDS: ${esc(d.FactionKeywords.join(', '))}</div>`;
   const pts = (o.points !== false && d.Points.length) ? `<div class="kwline alt" style="font-weight:400">Points: ${pointsOf(l, d).map(p => `${p.ModelCount} model${p.ModelCount > 1 ? 's' : ''}${p.UnitCount > 1 ? ' (x' + p.UnitCount + ')' : ''} = ${p.Cost ?? '-'}`).join(' · ')}</div>` : '';
   if (o.split) return { hdr, left: warl + rows + wpn.map(wh).join('') + notes, right: comp + abil + attOpts + attx, kwL, kwR: kwR.replace('kwline alt', 'kwline') };
   return hdr + warl + rows + comp + wpn.map(wh).join('') + abil + attOpts + attx + notes + kwL + kwR + pts;
@@ -1037,6 +1042,18 @@ document.addEventListener('input', e => {
   else if (t.id === 'nl-name') { syncDraft(); $('[data-a=create]')?.classList.toggle('off', !here().draft.Name.trim()) }
 });
 document.addEventListener('change', e => { const t = e.target; if (t.id === 'army-name') commit(); if (t.id === 'u-notes' || t.id === 'u-cname' || t.id === 'u-att') commit(); if (t.id === 'nl-pts') { syncDraft(); render() } });
+{ let tip, on;
+  const hide = () => { if (tip) tip.hidden = true; on = null }, show = el => {
+    const e = glMap().get(el.dataset.gl); if (!e) return; if (!tip) { tip = document.createElement('div'); tip.id = 'gltip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip) }
+    const mk = (tag, txt, cls) => { const n = document.createElement(tag); n.textContent = txt; if (cls) n.className = cls; return n }; tip.replaceChildren(mk('b', el.dataset.gt || e.Name), mk('span', e.Section ? 'Core rules ' + e.Section : '', 'gs'), mk('p', e.Text)); tip.hidden = false; on = el;
+    const r = el.getBoundingClientRect(), w = Math.min(340, innerWidth - 16); tip.style.width = w + 'px'; const h = tip.offsetHeight;
+    tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + 'px'; tip.style.top = (r.bottom + h + 12 < innerHeight ? r.bottom + 6 : Math.max(8, r.top - h - 6)) + 'px' };
+  document.addEventListener('pointerover', e => { const el = e.target.closest?.('.gl'); if (el && e.pointerType === 'mouse') show(el) });
+  document.addEventListener('pointerout', e => { if (e.target.closest?.('.gl') && e.pointerType === 'mouse') hide() });
+  document.addEventListener('focusin', e => { const el = e.target.closest?.('.gl'); if (el) show(el) });
+  document.addEventListener('focusout', e => { if (e.target.closest?.('.gl')) hide() });
+  document.addEventListener('click', e => { const el = e.target.closest?.('.gl'); if (el) { on === el ? hide() : show(el); e.stopPropagation() } else if (tip && !tip.hidden) hide() }, true);
+  document.addEventListener('scroll', hide, true); document.addEventListener('keydown', e => { if (e.key === 'Escape') hide() }) }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePops(); if (e.key === 'Enter' && e.target.id === 'army-name') e.target.blur() });
 /* the "…" button sits inside a tile button: keep tile click from firing */
 function pickFile() { const i = document.createElement('input'); i.type = 'file'; i.accept = '.json,.txt,.ros,.rosz'; i.onchange = async () => { const f = i.files[0]; if (!f || f.size > 5e6) return; let txt; try { txt = /\.rosz$/i.test(f.name) ? await unzipRos(await f.arrayBuffer()) : await f.text() } catch { return importReport({ error: 'I could not open this file.' }) } if (importList(txt)) return render(); const r = await importExternal(txt); if (r?.list) { render(); importReport(r) } else importReport(r || { error: 'This file does not look like a list I can read.' }) }; i.click() }

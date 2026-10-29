@@ -444,3 +444,27 @@ test('options: one alternative per model, shared limits, errors when a saved lis
   assert.equal(ku.UnitCompositionRef.filter((r) => r.Wargear.some((w) => /meltagun/i.test(w)) && r.Wargear.some((w) => /plasma gun/i.test(w))).length, 0, 'no trooper with both');
   assert.equal(ku.UnitCompositionRef.filter((r) => r.Wargear.some((w) => /meltagun/i.test(w))).reduce((s, r) => s + r.ModelCount, 0), 2);
 });
+
+/* 11th edition core rules 25.03: BATTLELINE and DEDICATED TRANSPORT units have double the unit limit (Incursion 2 -> 4, Strike Force 3 -> 6). */
+test('battleline and dedicated transport unit limit is double the battle size limit', async () => {
+  const limit = async (max, unit) => { const l = api.newDraft('Necrons'); await api.loadFaction(l); l.MaxPoints = max; l.Detachments = []; const d = api.fdOf(l).byName.get(unit);
+    for (let i = 1; i <= 9; i++) { l.Units.push({ InstanceId: i, AttachedToInstanceId: 0, Id: unit, EnhancementId: null, Upgrades: [], UnitCompositionRef: api.composition(d, d.Points[0].ModelCount), Notes: { CustomName: '', Text: '' }, IsWarlord: false }); if (api.errors(l).some((x) => /may only be included/.test(x))) return i - 1 } return 9 };
+  assert.equal(await limit(1000, 'IMMORTALS'), 4); assert.equal(await limit(2000, 'IMMORTALS'), 6); assert.equal(await limit(1000, 'LOKHUST DESTROYERS'), 2); assert.equal(await limit(2000, 'LOKHUST DESTROYERS'), 3);
+});
+
+/* Tooltips: weapon abilities, core abilities and the keywords with a rule in the core rules explain themselves (glossary taken from section 24 of the 11th edition core rules). */
+test('glossary: tokens with numbers and keywords resolve to their rule; the glossary has the core abilities', async () => {
+  const name = (t) => api.glFind(t)?.Name;
+  assert.equal(name('LETHAL HITS'), 'LETHAL HITS'); assert.equal(name('SUSTAINED HITS 1'), 'SUSTAINED HITS'); assert.equal(name('ANTI-VEHICLE 4+'), 'ANTI'); assert.equal(name('RAPID FIRE 2'), 'RAPID FIRE');
+  assert.equal(name('Feel No Pain 5+'), 'FEEL NO PAIN'); assert.equal(name('Deadly Demise D6+3 (Szarekh model only)'), 'DEADLY DEMISE'); assert.equal(name('Deadly Demise 2D6'), 'DEADLY DEMISE'); assert.equal(name('Scouts 6"'), 'SCOUTS');
+  assert.equal(name('LETHAL HITS: VEHICLE'), 'LETHAL HITS'); assert.equal(name('Battleline'), 'BATTLELINE'); assert.equal(api.glFind('INFANTRY'), undefined);
+  assert.match(api.glFind('IGNORES COVER').Text, /cannot have the benefit of cover/);
+  assert.match(api.glSpan('IGNORES COVER'), /class="gl"/); assert.equal(api.glSpan('INFANTRY'), 'INFANTRY');
+});
+test('every weapon ability and core ability of the datasheets has its tooltip, except the army-specific ones', async () => {
+  const un = new Set();
+  for (const fac of api.S.info.Factions.map((f) => f.Name)) { const l = api.newDraft(fac); try { await api.loadFaction(l) } catch { continue }
+    for (const d of api.fdOf(l).Units) for (const t of [...d.Weapons.flatMap((g) => g.Weapons.flatMap((w) => String(w.Keywords || '').split(/,\s*(?![^(]*\))/).filter(Boolean))), ...(d.CoreAbilities || [])]) if (!api.glFind(t)) un.add(t) }
+  const core = [...un].filter((t) => /^(anti|assault|blast|cleave|devastating|extra attacks|heavy|hazardous|ignores cover|indirect|lance|lethal|melta|one shot|pistol|precision|psychic$|rapid fire|sustained|torrent|twin-linked|deep strike|feel no pain|fights first|infiltrators|lone operative|scouts|stealth|hover|firing deck|deadly demise|leader|support)/i.test(t));
+  assert.equal(core.join(), '', 'core rules without a tooltip');
+});
