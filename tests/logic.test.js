@@ -390,3 +390,14 @@ test('leader enhancement scopes reach the right units of an attached unit', asyn
   assert.equal(reach('Unit'), 'pl,imm,ov');
   assert.equal(reach('AttachedUnit', { RequiredAttachedUnitKeywords: ['Nonexistent Keyword'] }), '');
 });
+
+/* A datasheet with several stat lines (Sergeant + squad) shows the modifiers on every line; the bearer's own "Model" changes only reach the first line. */
+test('modified stat lines of a unit with several stat lines', async () => {
+  const { l, fd, u } = await enhList('Ultramarines', 'The Flesh is Weak', 'INTERCESSOR SQUAD'); const d = fd.byName.get(u.Id), en = fd.Dettachments.flatMap((x) => x.Enhancements || []).find((e) => e.Name === 'The Flesh is Weak');
+  assert.ok(d.StatLines.length > 1, 'two stat lines');
+  en.DatasheetAdjustments = []; en.WeaponStatAdjustments = [];
+  en.StatAdjustments = [{ Target: 'Toughness', Type: 'Add', Value: '1', Scope: 'Model' }, { Target: 'OC', Type: 'Add', Value: '1', Scope: 'Unit' }];
+  const v = api.statVariants(d, l, u), t = (g) => g.st.T + '/' + g.st.OC;
+  assert.equal(v.length, d.StatLines.length); assert.equal(t(v[0]), (+d.StatLines[0].Toughness + 1) + '/' + (+d.StatLines[0].OC + 1)); assert.equal(t(v[1]), d.StatLines[1].Toughness + '/' + (+d.StatLines[1].OC + 1));
+  assert.equal(v.map((g) => g.model).join(), d.StatLines.map((s) => s.StatName).join());
+});

@@ -530,7 +530,7 @@ function ledNames(l, u) {
 function adjList(l, u, d) {
   const o = { stat: [], weap: [], ds: [] }; if (!S.set.EnableModifiedStatlines || !u || !l) return o;
   const en = enhOf(l, u), self = a => !['AttachedUnit', 'BodyguardUnitOnly', 'ModelWhileLeading', 'LeaderUnitsOnly'].includes(a.Scope);
-  if (en) { o.stat.push(...(en.StatAdjustments || []).filter(self)); o.weap.push(...(en.WeaponStatAdjustments || []).filter(self)); o.ds.push(...(en.DatasheetAdjustments || []).filter(self)) }
+  if (en) { o.stat.push(...(en.StatAdjustments || []).filter(self).map(a => a.Scope === 'Model' ? { ...a, _first: true } : a)); o.weap.push(...(en.WeaponStatAdjustments || []).filter(self)); o.ds.push(...(en.DatasheetAdjustments || []).filter(self)) }
   effFor(l, d).forEach(e => { o.stat.push(...(e.StatAdjustments || [])); o.weap.push(...(e.WeaponStatAdjustments || [])); o.ds.push(...(e.DatasheetAdjustments || [])) });
   /* an attached unit (bodyguard + leaders): what a leader's enhancement or ability gives out depends on the scope, as in the original:
      AttachedUnit = every unit of the group, ModelWhileLeading = the leader only, BodyguardUnitOnly / LeaderUnitsOnly = that kind of unit, Unit = every unit but the leader (the leader has it as its own).
@@ -588,17 +588,22 @@ function modWeapons(d, l, u, groups) {
 }
 /* one stat block per distinct set of equipped stat-changing wargear, after detachment/enhancement/leader adjustments */
 function statVariants(d, l, u) {
-  const sl = d.StatLines; if (!S.set.EnableModifiedStatlines || !u || sl.length !== 1) return null;
+  const sl = d.StatLines; if (!S.set.EnableModifiedStatlines || !u || !sl.length) return null;
   const uadj = adjList(l, u, d).stat, defs = defsOf(d).filter(x => (x.StatAdjustments || []).length); if (!uadj.length && !defs.length) return null;
-  const b = sl[0], refs = u.UnitCompositionRef, equipped = r => defs.filter(x => r.Wargear.some(w => lc(w) === lc(x.Key)));
+  const refs = u.UnitCompositionRef.filter(r => r.ModelCount > 0), equipped = r => defs.filter(x => r.Wargear.some(w => lc(w) === lc(x.Key)));
+  /* a datasheet with several stat lines (Sergeant + squad): every line gets the unit-wide changes, the bearer's own "Model" changes only the first one (as in the original), wargear changes the line of the model that carries it */
+  const idxOf = r => { const n = lc(r.ModelName), i = sl.findIndex(s => s.StatName && lc(s.StatName) === n); return i >= 0 ? i : sl.length === 1 ? 0 : sl.findIndex(s => s.StatName && (n.includes(lc(s.StatName)) || lc(s.StatName).includes(n))) };
   const wide = refs.flatMap(equipped).flatMap(x => (x.StatAdjustments || []).filter(a => a.Scope === 'Unit').map(a => ({ a, x }))), groups = new Map();
-  refs.forEach(r => {
-    const st = { M: b.Movement, T: b.Toughness, SV: b.Save, W: b.Wounds, LD: b.Leadership, OC: b.OC, INV: b.InvulSave?.Save }, mod = new Set(), info = [], names = [];
-    const apply = (a, x) => { const k = STK[a.Target || 'Movement'] || 'M'; st[k] = statAdj(k, st[k], a); mod.add(k); if (a.Info) info.push(a.Info); if (x && !names.includes(x.Key)) names.push(x.Key) };
-    uadj.forEach(a => apply(a, null)); wide.forEach(({ a, x }) => apply(a, x)); equipped(r).forEach(x => (x.StatAdjustments || []).filter(a => a.Scope !== 'Unit').forEach(a => apply(a, x)));
-    const key = JSON.stringify([st, names]), g = groups.get(key) || { st, mod, info, names, model: r.ModelName }; groups.set(key, g);
+  sl.forEach((b, i) => {
+    const rows = refs.filter(r => idxOf(r) === i), run = rows.length ? rows : [null];
+    run.forEach(r => {
+      const st = { M: b.Movement, T: b.Toughness, SV: b.Save, W: b.Wounds, LD: b.Leadership, OC: b.OC, INV: b.InvulSave?.Save }, mod = new Set(), info = [], names = [];
+      const apply = (a, x) => { const k = STK[a.Target || 'Movement'] || 'M'; st[k] = statAdj(k, st[k], a); mod.add(k); if (a.Info) info.push(a.Info); if (x && !names.includes(x.Key)) names.push(x.Key) };
+      uadj.filter(a => !a._first || i === 0).forEach(a => apply(a, null)); wide.forEach(({ a, x }) => apply(a, x)); if (r) equipped(r).forEach(x => (x.StatAdjustments || []).filter(a => a.Scope !== 'Unit').forEach(a => apply(a, x)));
+      const key = JSON.stringify([i, st, names]), g = groups.get(key) || { st, mod, info, names, model: sl.length > 1 ? b.StatName || r?.ModelName || '' : r?.ModelName || '', multi: sl.length > 1 }; groups.set(key, g);
+    });
   });
-  const out = [...groups.values()]; return out.length === 1 && !out[0].mod.size ? null : out;
+  const out = [...groups.values()]; return !out.some(g => g.mod.size) && (out.length === 1 || sl.length > 1) ? null : out;
 }
 /* generated names for an attached unit, ("Destroyer Collective", "Speedy Lokhust Cult") */
 const NOUNS = ['Collective', 'Cult', 'Department', 'Lads', 'Pack', 'Society', 'Line', 'Horde', 'Patrol', 'Clique', 'Brigade', 'Crew'], ADJS = ['Speedy', 'Hungry', 'Grim', 'Loyal', 'Eternal', 'Silent', 'Angry', 'Mighty'];
@@ -653,7 +658,7 @@ function unitSheet(d, l, u, o) {
   const vis = g => ['M', 'T', 'SV', 'W', 'LD', 'OC'].some(k => g.mod.has(k)), anyVis = sv?.some(vis);
   const blk = (st, mod, cap) => `<div>${cap}<div style="display:flex;gap:10px">${[['M', st.M], ['T', st.T], ['SV', st.SV], ['W', st.W], ['LD', st.LD], ['OC', st.OC]].map(([k, v]) => `<div class="st"><small>${k}</small><b class="${mod?.has(k) ? 'mod' : ''}">${esc(v)}</b></div>`).join('')}</div></div>`;
   const sizeTxt = bi.Size ? ` [${esc(bi.Size)}mm]` : '';
-  const statsHtml = sv ? sv.map(g => blk(g.st, g.mod, `<div class="scap">${esc((sv.length > 1 ? (g.names.length && vis(g) ? `${g.model} WITH ${g.names.join(' AND ')}` : anyVis ? 'OTHER MODELS' : g.model) : g.model).toUpperCase())}${sizeTxt}</div>`)).join('')
+  const statsHtml = sv ? sv.map(g => blk(g.st, g.mod, `<div class="scap">${esc((sv.length > 1 ? (g.names.length && vis(g) ? `${g.model} WITH ${g.names.join(' AND ')}` : anyVis && !g.multi ? 'OTHER MODELS' : g.model) : g.model).toUpperCase())}${sizeTxt}</div>`)).join('')
     : sl.map(s => blk({ M: s.Movement, T: s.Toughness, SV: s.Save, W: s.Wounds, LD: s.Leadership, OC: s.OC }, null, sl.length > 1 || s.StatName ? `<div class="scap">${esc((s.StatName || '').toUpperCase())}${s.BaseInfo?.Size ? ` [${esc(s.BaseInfo.Size)}mm]` : ''}</div>` : '')).join('');
   const gi = sv?.find(g => g.st.INV), invMod = gi?.mod.has('INV'), invInfo = gi?.info.join('; ');
   if (gi) inv = gi.st.INV;
