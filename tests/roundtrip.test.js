@@ -23,6 +23,7 @@ test('every army: a unit with any one option taken keeps its wargear through tex
         if (cs) counts[api.altKey(cs[0], cs[1])] = Math.min(api.optMax(cs[0], max, max), max);
         try { api.rebuildLoadouts(u, d, counts) } catch { continue }
         l.Units.push(u); cases++;
+        const broken = api.errors(l).filter((x) => /can take only one|take .* the datasheet allows/.test(x)); if (broken.length) { bad.push(`${fac} | ${d.Name} | ${cs ? cs[1] : 'base'} | breaks its own option rules: ${broken[0]}`); continue }
         api.S.lists = []; const r = await api.importExternal(api.listText(l, 'GW', { ...api.TXT, fmt: 'GW' }), { faction: fac });
         if (!r.list || !r.list.Units[0]) { bad.push(`${fac} | ${d.Name} | not imported`); continue }
         const a = bag(u), b = bag(r.list.Units[0]), diff = [...new Set([...a.keys(), ...b.keys()])].filter((k) => (a.get(k) || 0) !== (b.get(k) || 0));

@@ -195,7 +195,8 @@ test('YellowScribe export: each model gets its own weapons, profiles with a suff
   const root = api.parseXml(api.ysRoster(l)), kids = (n, t) => n.children.filter(c => c.tag === t), sels = kids(kids(kids(kids(root, 'forces')[0], 'force')[0], 'selections')[0], 'selection');
   const kas = sels.find(s => s.attrs.name === 'Kasrkin'), models = kids(kids(kas, 'selections')[0], 'selection'), w = m => kids(m, 'profiles')[0].children.filter(p => /Weapons$/.test(p.attrs.typeName)).map(p => p.attrs.name);
   assert.ok(w(models[1]).includes('Hot-shot lasgun')); assert.ok(!w(models[1]).includes('Meltagun'));
-  assert.ok(w(models[2]).includes('Plasma gun – supercharge') && w(models[2]).includes('Meltagun'));
+  /* one special weapon per trooper: a model never carries a meltagun and a plasma gun (they replace the same lasgun) */
+  const all = models.map(w); assert.ok(all.some(x => x.includes('Plasma gun – supercharge')) && all.some(x => x.includes('Meltagun'))); assert.ok(!all.some(x => x.includes('Plasma gun – supercharge') && x.includes('Meltagun')));
 });
 
 const fixture = n => require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', n), 'utf8');

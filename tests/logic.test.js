@@ -426,3 +426,21 @@ test('every faction: no repeated texts, weapons or keywords on any datasheet', a
     } }
   assert.equal(bad.length, 0, bad.slice(0, 10).join('\n'));
 });
+
+/* Option entries are "one of the following" per model and their limit is shared by the alternatives (Lokhust Lord: nanoscarab amulet OR resurrection orb; Kasrkin: up to 4 special weapons in all). */
+test('options: one alternative per model, shared limits, errors when a saved list breaks them', async () => {
+  const l = api.newDraft('Necrons'); await api.loadFaction(l); const fd = api.fdOf(l), d = fd.byName.get('LOKHUST LORD'); l.MaxPoints = 2000; l.Detachments = [];
+  const u = { InstanceId: 1, AttachedToInstanceId: 0, Id: d.Name, EnhancementId: null, Upgrades: [], UnitCompositionRef: api.composition(d, 1), Notes: { CustomName: '', Text: '' }, IsWarlord: true }; l.Units.push(u);
+  const g = api.optList(d).find((x) => x.o.Options.includes('resurrection orb')), A = api.altKey(g, 'nanoscarab amulet'), B = api.altKey(g, 'resurrection orb');
+  api.rebuildLoadouts(u, d, { [A]: 1, [B]: 1 });   // one model, both alternatives asked for: only one is placed
+  const gear = u.UnitCompositionRef[0].Wargear.map((x) => x.toLowerCase()); assert.equal(gear.filter((x) => x === 'nanoscarab amulet' || x === 'resurrection orb').length, 1);
+  assert.equal(api.errors(l).filter((x) => /can take only one/.test(x)).length, 0);
+  u.UnitCompositionRef[0].Wargear.push('nanoscarab amulet', 'resurrection orb');   // a saved list that breaks the rule
+  assert.ok(api.errors(l).some((x) => /can take only one of/.test(x)), api.errors(l).join('; '));
+  // a unit of several models: the alternatives of one entry go to different models
+  const k = fd, kd = (await (async () => { const l2 = api.newDraft('Astra Militarum'); await api.loadFaction(l2); return api.fdOf(l2) })()).byName.get('KASRKIN');
+  const ku = { InstanceId: 2, AttachedToInstanceId: 0, Id: 'KASRKIN', EnhancementId: null, Upgrades: [], UnitCompositionRef: api.composition(kd, 10), Notes: { CustomName: '', Text: '' }, IsWarlord: false };
+  const kg = api.optList(kd).find((x) => x.o.Options.includes('Meltagun')); api.rebuildLoadouts(ku, kd, { [api.altKey(kg, 'Meltagun')]: 2, [api.altKey(kg, 'plasma gun')]: 2 });
+  assert.equal(ku.UnitCompositionRef.filter((r) => r.Wargear.some((w) => /meltagun/i.test(w)) && r.Wargear.some((w) => /plasma gun/i.test(w))).length, 0, 'no trooper with both');
+  assert.equal(ku.UnitCompositionRef.filter((r) => r.Wargear.some((w) => /meltagun/i.test(w))).reduce((s, r) => s + r.ModelCount, 0), 2);
+});

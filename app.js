@@ -185,6 +185,12 @@ function errors(l) {
   Object.entries(cnt).forEach(([k, c]) => { const d = fd.byName.get(k), lim = isEpic(d) || /cannot include more than one of this model/i.test(dsText(d)) ? 1 : battleline(l, d) ? bs.UnitLimit + 3 : bs.UnitLimit; if (c > lim) e.push(`${tc(k)} may only be included ${lim} time${lim > 1 ? 's' : ''}.`) });
   l.Units.forEach(u => { const m = /army cannot contain both (.+?) and (.+?)\./i.exec(dsText(unitOf(l, u))); if (m && l.Units.some(x => lc(x.Id) === lc(m[1]).trim()) && l.Units.some(x => lc(x.Id) === lc(m[2]).trim()) && lc(u.Id) === lc(m[1]).trim()) e.push(`Your army cannot contain both ${tc(m[1])} and ${tc(m[2])}.`) });
   l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; d.UnitComposition.ModelCompositions.forEach(m => { const lim = limOf(m), c = u.UnitCompositionRef.filter(x => lc(x.ModelName) === lc(m.ModelName)).reduce((a, x) => a + x.ModelCount, 0); if (c > lim.Max || c < lim.Min) e.push(`${tc(u.Id)} has ${c} ${tc(m.ModelName)}; the datasheet allows ${lim.Min === lim.Max ? lim.Min : lim.Min + ' to ' + lim.Max}.`) }) });
+  /* an option entry is one choice per model ("one of the following") and its limit ("up to N", "for every X models") is shared by all its alternatives */
+  l.Units.forEach(u => { const d = unitOf(l, u); if (!d) return; optList(d).forEach((g, gi, all) => { if (g.o.RequiredDettachment || all.some((h, hi) => hi !== gi && h.mi === g.mi && h.o.Options.some(x => g.o.Options.includes(x)))) return;   // entries that share an alternative cannot be told apart by the wargear alone
+    const start = (g.m.Wargear?.[0]?.InitalWargear || []).map(lc), extra = (r, a) => r.Wargear.some(w => lc(w) === lc(a)) && !start.includes(lc(a)), rowsOf = u.UnitCompositionRef.filter(r => lc(r.ModelName) === lc(g.m.ModelName));
+    rowsOf.forEach(r => { const have = g.o.Options.filter(a => extra(r, a)); if (have.length > 1) e.push(`${tc(u.Id)}: a ${tc(g.m.ModelName)} can take only one of ${have.map(tc).join(', ')}.`) });
+    const n = rowsOf.reduce((s, r) => s + r.ModelCount, 0), used = rowsOf.reduce((s, r) => s + (g.o.Options.some(a => extra(r, a)) ? r.ModelCount : 0), 0), cap = Math.min(optMax(g, n, models(u)), n);
+    if (used > cap) e.push(`${tc(u.Id)}: ${used} ${tc(g.m.ModelName)} take ${g.o.Options.map(tc).join(' / ')}; the datasheet allows ${cap}.`) }) });
   /* leaders may go alone; only datasheets that say "must join" (Loyal Protector, Regimental Attaché) need a bodyguard */
   l.Units.forEach(u => { const d = unitOf(l, u); if ((d?.UnitAbilities?.some(x => /\bmust join\b/i.test(x.Text)) || d?.LeaderInfo?.LeaderType === 'Support') && !u.AttachedToInstanceId) e.push(`${tc(u.Id)} must be attached to a bodyguard unit.`) });
   /* units that join another unit (Loyal Protector, Support Weapon platforms, Servitors...) say "a unit cannot have more than one X joined to it": one per ability name */
@@ -228,16 +234,18 @@ function optCounts(u, d) {
   })); return c;
 }
 function rebuildLoadouts(u, d, counts) {
-  // model j gets every alternative whose count exceeds j, so several options can combine on the same model
+  /* An option entry is one choice per model ("one of the following"): its alternatives go to different models, taken from the last models, and an entry that replaces an item only goes
+     to a model that still has it (two entries cannot replace the same weapon of one model). Different entries combine on the same model. */
   const mcs = d.UnitComposition.ModelCompositions, groups = optList(d), out = [];
   const tot = {}; u.UnitCompositionRef.forEach(r => tot[r.ModelName] = (tot[r.ModelName] || 0) + r.ModelCount);
   mcs.forEach((m, mi) => {
-    const n = tot[m.ModelName] ?? 0, base = m.Wargear?.[0]?.InitalWargear || [], seen = new Map();
-    for (let j = 0; j < n; j++) {
-      let w = [...base];
-      groups.filter(g => g.mi === mi).forEach(g => g.o.Options.forEach(a => { if ((counts[altKey(g, a)] || 0) > n - 1 - j) { w = w.filter(x => !(g.o.Replaces || []).some(r => lc(r) === lc(x))); w.push(a) } }));
-      const key = w.join('|'); if (seen.has(key)) seen.get(key).ModelCount++; else { const e = { ModelCount: 1, ModelName: m.ModelName, Wargear: w }; seen.set(key, e); out.push(e) }
-    }
+    const n = tot[m.ModelName] ?? 0, base = m.Wargear?.[0]?.InitalWargear || [], seen = new Map(), ws = Array.from({ length: n }, () => [...base]);
+    groups.filter(g => g.mi === mi).forEach(g => {
+      const rep = g.o.Replaces || [], taken = new Set(), has = k => rep.every(r => ws[k].some(x => lc(x) === lc(r))), anyHas = ws.some((_, k) => has(k));
+      g.o.Options.forEach(a => { let c = counts[altKey(g, a)] || 0;
+        for (let k = n - 1; k >= 0 && c > 0; k--) { if (taken.has(k) || (anyHas && !has(k))) continue; taken.add(k); c--; rep.forEach(r => { const p = ws[k].findIndex(x => lc(x) === lc(r)); if (p >= 0) ws[k].splice(p, 1) }); ws[k].push(a) } });
+    });
+    ws.forEach(w => { const key = w.join('|'); if (seen.has(key)) seen.get(key).ModelCount++; else { const e = { ModelCount: 1, ModelName: m.ModelName, Wargear: w }; seen.set(key, e); out.push(e) } });
   });
   u.UnitCompositionRef = out;
 }
