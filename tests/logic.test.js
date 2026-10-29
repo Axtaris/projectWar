@@ -346,3 +346,47 @@ test('Memento Moritoi: +1 A, S and D to the melee attacks of its bearer', async 
   const { l, fd, u } = await enhList('Adeptus Custodes', 'Memento Moritoi (one per army) (Upgrade)', 'CONTEMPTOR-ACHILLUS DREADNOUGHT');
   const a = api.adjList(l, u, fd.byName.get(u.Id)).weap; assert.equal(a.filter((x) => x.WeaponScope === 'Melee').map((x) => x.Target).sort().join(), 'Attacks,Damage,Strength');
 });
+
+/* Stat arithmetic follows the original: +1 Leadership / Save is better (the number goes down), floors apply, Subtract and Double exist, an invulnerable save never gets worse. */
+test('stat adjustments: roll stats improve downwards, floors, Subtract, Double and invulnerable saves', () => {
+  assert.equal(api.statAdj('LD', '6+', { Type: 'Add', Value: '1' }), '5+');
+  assert.equal(api.statAdj('LD', '1+', { Type: 'Add', Value: '1' }), '1+');
+  assert.equal(api.statAdj('SV', '3+', { Type: 'Add', Value: '2' }), '2+');
+  assert.equal(api.statAdj('SV', '3+', { Type: 'Subtract', Value: '1' }), '4+');
+  assert.equal(api.statAdj('T', '4', { Type: 'Add', Value: '1' }), '5');
+  assert.equal(api.statAdj('T', '2', { Type: 'Subtract', Value: '5' }), '1');
+  assert.equal(api.statAdj('M', '6"', { Type: 'Add', Value: '2"' }), '8"');
+  assert.equal(api.statAdj('W', '3', { Type: 'Double', Value: '0' }), '6');
+  assert.equal(api.statAdj('OC', '2', { Type: 'Add', Value: '1' }), '3');
+  assert.equal(api.statAdj('SV', '3+', { Value: '2+' }), '2+');
+  assert.equal(api.statAdj('INV', '4+', { Value: '5+' }), '4+');
+  assert.equal(api.statAdj('INV', '5+', { Value: '4+' }), '4+');
+  assert.equal(api.statAdj('INV', undefined, { Value: '5+' }), '5+');
+});
+
+/* Weapon adjustment filters: every name part / every keyword listed must match (the original's rule), not just one. */
+test('weapon adjustment filters need ALL listed name parts and keywords', async () => {
+  const run = async (filter) => {
+    const { l, fd, u } = await enhList('Necrons', 'Miniaturised Nebuloscope', 'IMMORTALS');
+    const dt = fd.Dettachments.find((d) => (d.Enhancements || []).some((e) => e.Name === 'Miniaturised Nebuloscope')); const e = dt.Enhancements.find((x) => x.Name === 'Miniaturised Nebuloscope');
+    e.WeaponStatAdjustments = [Object.assign({ Value: 'MARKER', Type: 'Add', Target: 'Keywords', WeaponScope: 'Ranged' }, filter)];
+    return api.modWeapons(fd.byName.get(u.Id), l, u, fd.byName.get(u.Id).Weapons).flatMap((g) => g.Weapons).filter((w) => /MARKER/.test(w.Keywords || '')).map((w) => w.Name).join();
+  };
+  assert.match(await run({ ContainsNameFilter: ['tesla', 'carbine'] }), /Tesla carbine/i);
+  assert.equal(await run({ ContainsNameFilter: ['tesla', 'zzz'] }), '');
+  assert.equal(await run({ IncludedKeywords: ['ASSAULT', 'NOPE'] }), '');
+});
+
+/* Who receives what a leader's enhancement gives, by scope (the original's rules): AttachedUnit = the whole attached unit, ModelWhileLeading = the leader, BodyguardUnitOnly = the bodyguard, Unit = the others. */
+test('leader enhancement scopes reach the right units of an attached unit', async () => {
+  const { l, fd, u: pl, b: imm } = await enhList('Necrons', 'Miniaturised Nebuloscope', 'PLASMANCER', 'IMMORTALS');
+  const ov = { InstanceId: 3, AttachedToInstanceId: 1, Id: 'OVERLORD', EnhancementId: null, Upgrades: [], UnitCompositionRef: api.composition(fd.byName.get('OVERLORD'), 1), Notes: { CustomName: '', Text: '' }, IsWarlord: false }; l.Units.push(ov);
+  const en = fd.Dettachments.flatMap((d) => d.Enhancements || []).find((e) => e.Name === 'Miniaturised Nebuloscope');
+  const reach = (scope, extra = {}) => { Object.assign(en, extra); en.StatAdjustments = [{ Target: 'OC', Type: 'Add', Value: '1', Scope: scope }]; en.WeaponStatAdjustments = []; en.DatasheetAdjustments = [];
+    return [['pl', pl], ['imm', imm], ['ov', ov]].filter(([, x]) => api.adjList(l, x, fd.byName.get(x.Id)).stat.length).map(([k]) => k).join(); };
+  assert.equal(reach('AttachedUnit'), 'pl,imm,ov');
+  assert.equal(reach('ModelWhileLeading'), 'pl');
+  assert.equal(reach('BodyguardUnitOnly'), 'imm');
+  assert.equal(reach('Unit'), 'pl,imm,ov');
+  assert.equal(reach('AttachedUnit', { RequiredAttachedUnitKeywords: ['Nonexistent Keyword'] }), '');
+});

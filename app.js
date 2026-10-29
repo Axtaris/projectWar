@@ -504,6 +504,17 @@ PAGES.editor = () => {
 
 /* ---- unit page ---- */
 const addNum = (cur, v) => { const m = String(cur).match(/^(\D*)(\d+)(\D*)$/); return m ? m[1] + (+m[2] + parseInt(v, 10)) + m[3] : v };
+/* the original's arithmetic: Save and Leadership are 'roll' stats (+1 makes them better, so the number goes down), every stat has a floor, Subtract and Double exist, and an invulnerable save only replaces a worse one */
+const STAT_MIN = { M: 1, T: 1, SV: 2, W: 1, LD: 1, OC: 0 }, STAT_INV = { SV: 1, LD: 1 };
+const statAdj = (k, cur, a) => {
+  const type = a.Type || 'Set', val = String(a.Value);
+  if (k === 'INV') { const c = parseInt(cur, 10), n = parseInt(val, 10); return cur && !isNaN(c) && !isNaN(n) && c < n ? cur : val }
+  if (type === 'Set' || cur == null) return val;
+  const m = String(cur).match(/^(\D*)(\d+)(\D*)$/), q = val.match(/^(\D*)(\d+)(\D*)$/); if (!m || !q) return cur;
+  const v = +m[2], n = +q[2]; if (type === 'Double') return m[1] + v * 2 + m[3];
+  const up = STAT_INV[k] ? type === 'Subtract' : type === 'Add', r = up ? v + n : Math.max(STAT_MIN[k] ?? 0, v - n);
+  return (m[1] || q[1]) + r + (m[3] || q[3]);
+};
 const STK = { Movement: 'M', Toughness: 'T', Save: 'SV', Wounds: 'W', Leadership: 'LD', OC: 'OC', InvulSave: 'INV' };
 /* names (upper case) a unit can lead: its leader list, AttachedUnitInfo rules, and LedUnitNames added by its enhancement or equipped wargear */
 function ledNames(l, u) {
@@ -518,12 +529,21 @@ function ledNames(l, u) {
 /* adjustments that reach a unit; they only apply while "Enable Modified Stats" is on */
 function adjList(l, u, d) {
   const o = { stat: [], weap: [], ds: [] }; if (!S.set.EnableModifiedStatlines || !u || !l) return o;
-  const en = enhOf(l, u), self = a => !['AttachedUnit', 'BodyguardUnitOnly', 'ModelWhileLeading'].includes(a.Scope);
+  const en = enhOf(l, u), self = a => !['AttachedUnit', 'BodyguardUnitOnly', 'ModelWhileLeading', 'LeaderUnitsOnly'].includes(a.Scope);
   if (en) { o.stat.push(...(en.StatAdjustments || []).filter(self)); o.weap.push(...(en.WeaponStatAdjustments || []).filter(self)); o.ds.push(...(en.DatasheetAdjustments || []).filter(self)) }
   effFor(l, d).forEach(e => { o.stat.push(...(e.StatAdjustments || [])); o.weap.push(...(e.WeaponStatAdjustments || [])); o.ds.push(...(e.DatasheetAdjustments || [])) });
-  l.Units.filter(x => x.AttachedToInstanceId === u.InstanceId).forEach(x => {
-    const e2 = enhOf(l, x); (e2?.StatAdjustments || []).filter(a => a.Scope === 'AttachedUnit').forEach(a => o.stat.push(a)); (e2?.WeaponStatAdjustments || []).filter(a => a.Scope === 'AttachedUnit').forEach(a => o.weap.push(a)); (e2?.DatasheetAdjustments || []).filter(a => a.Scope === 'AttachedUnit').forEach(a => o.ds.push(a));
-    (unitOf(l, x)?.LeaderInfo?.Abilities || []).forEach(a => (a.StatAdjustments || []).filter(t => t.Scope === 'AttachedUnit').forEach(t => o.stat.push(t)));
+  /* an attached unit (bodyguard + leaders): what a leader's enhancement or ability gives out depends on the scope, as in the original:
+     AttachedUnit = every unit of the group, ModelWhileLeading = the leader only, BodyguardUnitOnly / LeaderUnitsOnly = that kind of unit, Unit = every unit but the leader (the leader has it as its own).
+     A leader's enhancement that needs other keywords in the group (RequiredAttachedUnitKeywords) only works when they are there. */
+  const root = u.AttachedToInstanceId ? l.Units.find(x => x.InstanceId === u.AttachedToInstanceId) : u, group = root ? [root, ...l.Units.filter(x => x.AttachedToInstanceId === root.InstanceId)] : [u];
+  const sameAdj = (arr, a) => arr.some(b => JSON.stringify({ ...b, Scope: 0 }) === JSON.stringify({ ...a, Scope: 0 })), canLead = x => { const li = unitOf(l, x)?.LeaderInfo; return !!(li && ((li.UnitNames || []).length || (li.AttachableByKeyword || []).length)) };
+  if (group.length > 1) group.forEach(L => {
+    const ld = unitOf(l, L), e2 = enhOf(l, L), others = new Set(group.filter(x => x !== L).flatMap(x => [...kwsU(l, x, unitOf(l, x))])), mine = kwsU(l, u, d);
+    const srcs = []; if (e2 && !(e2.RequiredAttachedUnitKeywords || []).some(k => !others.has(lc(k)) && !others.has(nk(k)))) srcs.push(e2);
+    (ld?.LeaderInfo?.Abilities || []).forEach(a => { if (!(a.RequiredUnitKeywords || []).some(k => !mine.has(lc(k)) && !mine.has(nk(k)))) srcs.push(a) });
+    const ok = a => ({ AttachedUnit: true, ModelWhileLeading: L === u, BodyguardUnitOnly: !canLead(u), LeaderUnitsOnly: canLead(u), Unit: L !== u })[a.Scope];
+    srcs.forEach(sx => { const take = (arr, to, nameFilter) => (arr || []).forEach(a => { if (!ok(a) || (L === u && sameAdj(to, a)) || (nameFilter && (a.NameFilter || []).length && !a.NameFilter.some(n => lc(n) === lc(u.Id)))) return; to.push(a) });
+      take(sx.StatAdjustments, o.stat, true); take(sx.WeaponStatAdjustments, o.weap); take(sx.DatasheetAdjustments, o.ds) });
   });
   defsOf(d).filter(x => u.UnitCompositionRef.some(r => r.Wargear.some(w => lc(w) === lc(x.Key)))).forEach(x => { o.weap.push(...(x.WeaponAdjustments || [])); o.ds.push(...(x.DatasheetAdjustments || [])) });
   return o;
@@ -552,8 +572,8 @@ function modWeapons(d, l, u, groups) {
       pool.forEach(nw => {
         const wk = String(nw.Keywords || '').split(',').map(x => x.trim().toUpperCase()).filter(Boolean), wn = nm(nw.Name);
         if (named.length && !named.some(f => wn === f || wn.startsWith(f + ' ') || wn.startsWith(f + ' –'))) return;
-        if (part.length && !part.some(f => wn.includes(f))) return;
-        if ((a.IncludedKeywords || []).length && !a.IncludedKeywords.some(k => wk.includes(String(k).toUpperCase()))) return;
+        if (part.length && !part.every(f => wn.includes(f))) return;
+        if ((a.IncludedKeywords || []).length && !a.IncludedKeywords.every(k => wk.includes(String(k).toUpperCase()))) return;
         if ((a.ExcludedKeywords || []).some(k => wk.includes(String(k).toUpperCase()))) return;
         let t = nw;
         if (a.CreateRenamedCopy) { if (added.some(x => nm(x.Name) === nm(a.CreateRenamedCopy)) || nw._copy) return; t = { ...nw, Name: a.CreateRenamedCopy, _m: {}, _copy: true }; added.push(t) }
@@ -574,7 +594,7 @@ function statVariants(d, l, u) {
   const wide = refs.flatMap(equipped).flatMap(x => (x.StatAdjustments || []).filter(a => a.Scope === 'Unit').map(a => ({ a, x }))), groups = new Map();
   refs.forEach(r => {
     const st = { M: b.Movement, T: b.Toughness, SV: b.Save, W: b.Wounds, LD: b.Leadership, OC: b.OC, INV: b.InvulSave?.Save }, mod = new Set(), info = [], names = [];
-    const apply = (a, x) => { const k = STK[a.Target || 'Movement'] || 'M'; st[k] = a.Type === 'Add' ? addNum(st[k], a.Value) : a.Value; mod.add(k); if (a.Info) info.push(a.Info); if (x && !names.includes(x.Key)) names.push(x.Key) };
+    const apply = (a, x) => { const k = STK[a.Target || 'Movement'] || 'M'; st[k] = statAdj(k, st[k], a); mod.add(k); if (a.Info) info.push(a.Info); if (x && !names.includes(x.Key)) names.push(x.Key) };
     uadj.forEach(a => apply(a, null)); wide.forEach(({ a, x }) => apply(a, x)); equipped(r).forEach(x => (x.StatAdjustments || []).filter(a => a.Scope !== 'Unit').forEach(a => apply(a, x)));
     const key = JSON.stringify([st, names]), g = groups.get(key) || { st, mod, info, names, model: r.ModelName }; groups.set(key, g);
   });
