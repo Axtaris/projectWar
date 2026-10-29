@@ -1131,6 +1131,8 @@ async function importExternal(text, o = {}) {
   else if (t[0] === '<') { try { const x = parseXml(t); src = x && rosterJsonToText(xmlToRoster(x)) } catch { return null } if (!src) return null }
   const lines = src.split(/\r?\n/).map(x => x.replace(/\*\*|__/g, '').replace(/^\s*\+{2,}\s*/, '').replace(/\s*\+{2,}\s*$/, '').trimEnd());
   const body = nrn(src);
+  /* lists exported in Spanish (the other app in its Spanish version) name units, weapons and rules with the official translations, which this app does not have: say so instead of a vague error */
+  if (!o.faction && /\b\d[\d.,]*\s*puntos\b/i.test(src) && /(l[ií]nea de batalla|otras hojas de datos|se[ñn]or de la guerra|fuerza de choque|personaje|unidades aliadas)/i.test(src)) return { error: 'This list is written in Spanish. projectWar reads lists in English only for now: export it again in English from the other app (Settings, Language) and import that text.' };
   const names = o.faction ? [o.faction] : S.info.Factions.map(f => f.Name).filter(n => body.includes(nrn(n))).sort((a, b) => b.length - a.length);
   if (!names.length) return { error: 'I could not tell which army this list is for. Make sure it includes the army name (for example “Necrons” or “Space Wolves”).' };
   let best = null;

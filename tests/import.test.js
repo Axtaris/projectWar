@@ -315,3 +315,9 @@ test('what a model starts with is never charged as an extra', async () => {
   l.Units.push({ InstanceId: 1, AttachedToInstanceId: 0, Id: d.Name, EnhancementId: null, Upgrades: [], UnitCompositionRef: api.composition(d, 3), Notes: { CustomName: '', Text: '' }, IsWarlord: false });
   assert.equal(api.unitPts(l, l.Units[0]), 100);
 });
+
+/* A list exported in Spanish names everything with translations this app does not have: it must say so, not claim that no unit matched. */
+test('a list written in Spanish gets a clear message', async () => {
+  fresh(); const r = await api.importExternal(require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', 'spacemarines-spacewolves-es.txt'), 'utf8'));
+  assert.match(r.error, /written in Spanish/);
+});
