@@ -468,3 +468,17 @@ test('every weapon ability and core ability of the datasheets has its tooltip, e
   const core = [...un].filter((t) => /^(anti|assault|blast|cleave|devastating|extra attacks|heavy|hazardous|ignores cover|indirect|lance|lethal|melta|one shot|pistol|precision|psychic$|rapid fire|sustained|torrent|twin-linked|deep strike|feel no pain|fights first|infiltrators|lone operative|scouts|stealth|hover|firing deck|deadly demise|leader|support)/i.test(t));
   assert.equal(core.join(), '', 'core rules without a tooltip');
 });
+
+/* Errata and FAQs of the official faction pack (Necrons first): attached to the datasheets, detachments and army rules they name, hidden until opened. */
+test('Necrons faction pack errata: on the datasheets, detachments and army rules they name, hidden by default', async () => {
+  const l = api.newDraft('Necrons'); await api.loadFaction(l); const fd = api.fdOf(l), u = (n) => fd.byName.get(n);
+  assert.ok(fd.ErrataSource.Version && fd.ErrataSource.Date, 'pack version and date');
+  assert.match(u('LOKHUST LORD').Errata.find((e) => /Resurrection Orb/.test(e.Title)).Text, /D6 wounds/);
+  assert.ok(u('MONOLITH').Errata.length >= 2 && u('MONOLITH').FAQ.length >= 1); assert.equal(u('IMMORTALS').Errata, undefined);
+  assert.ok(fd.Errata.some((e) => e.Scope === 'army' && /Reanimation Protocols/.test(e.Title)));
+  assert.ok(fd.Dettachments.find((d) => d.Name === 'CANOPTEK COURT').Errata.some((e) => /Reactive Subroutines/.test(e.Title)));
+  assert.ok(!/[\x00-\x08]/.test(JSON.stringify(fd.Units.map((x) => x.Errata))), 'no control characters from the PDF');
+  const sheet = api.unitSheet(u('MONOLITH'), l, null, {}), html = typeof sheet === 'string' ? sheet : JSON.stringify(sheet);
+  assert.match(html, /<details class="errata"><summary>Errata and FAQ \(\d+\)/); assert.ok(!/<details class="errata" open/.test(html));
+  const plain = api.unitSheet(u('IMMORTALS'), l, null, {}); assert.ok(!/class="errata"/.test(typeof plain === 'string' ? plain : JSON.stringify(plain)));
+});

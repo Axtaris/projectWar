@@ -609,3 +609,9 @@ h2.mid{margin:0;font:600 32px/1.05 var(--cond);text-transform:uppercase;letter-s
 #gltip b{display:block;font-size:14px}
 #gltip .gs{display:block;font-size:11px;color:var(--dim);margin-bottom:4px}
 #gltip p{margin:0}
+
+/* errata */
+.errata{margin:8px 10px;border:1px solid var(--ln);background:var(--p1);font-size:13px}
+.errata summary{cursor:pointer;padding:7px 10px;font-weight:700;letter-spacing:.04em}
+.errata p{margin:0;padding:6px 10px;border-top:1px solid var(--ln);line-height:1.45}
+.errata small{display:block;padding:6px 10px;border-top:1px solid var(--ln)}
