@@ -549,8 +549,10 @@ function adjList(l, u, d) {
   return o;
 }
 /* a text shows once: the abilities already printed in the special ability section (The Silent King's Triarch abilities) and the info bands that repeat an ability are left out of the other lists */
-const uniqueAbilities = d => { const sp = new Set((d.SpecialAbility?.Sections || []).map(x => lc(x.Title))); return (d.UnitAbilities || []).filter(a => !sp.has(lc(a.Title))) };
-const uniqueInfos = d => { const ab = new Set((d.UnitAbilities || []).map(a => lc(a.Title))); return (d.Infos || []).filter(i => !ab.has(lc(i.Title))) };
+const dupT = t => lc(t).replace(/[’‘]/g, "'").replace(/\s*\((?:aura|upgrade)\)\s*$/, '').replace(/[:.\s]+$/, '').replace(/\s+/g, ' '), dupX = t => lc(t).replace(/[’‘]/g, "'").replace(/\s+/g, ' ').trim();
+const sameText = (a, b) => { const x = dupX(a), y = dupX(b); return x.length > 30 && y.length > 30 && (x === y || y.includes(x) || x.includes(y)) };
+const uniqueAbilities = d => { const sp = d.SpecialAbility?.Sections || [], st = new Set(sp.map(x => dupT(x.Title))); return (d.UnitAbilities || []).filter(a => !st.has(dupT(a.Title)) && !sp.some(x => sameText(a.Text, x.Text))) };
+const uniqueInfos = d => { const ab = [...uniqueAbilities(d), ...(d.SpecialAbility?.Sections || [])], at = new Set(ab.map(a => dupT(a.Title))); return (d.Infos || []).filter(i => !at.has(dupT(i.Title)) && !ab.some(a => sameText(i.Text, a.Text))) };
 const addW = (f, cur, v) => {
   const c = String(cur).trim(), n = parseInt(v, 10);
   if (f === 'AP') return isNaN(+c) ? c : String(+c - n);                       // +1 AP = one step better (more negative)
@@ -1034,7 +1036,11 @@ function pickFile() { const i = document.createElement('input'); i.type = 'file'
    The text is matched against the datasheets of the army it names. Points are not trusted (ours apply); what cannot be matched is reported, never guessed. */
 const nrn = s => String(s).toLowerCase().replace(/[’‘`´]/g, "'").replace(/&/g, ' and ').replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
 const nrs = s => nrn(s).replace(/ies$/, 'y').replace(/(?<=[a-z]{2})z$/, '').replace(/(?<=[a-z])s$/, '');   /* plural-insensitive key */
-const addWeaponKey = (u, name, n) => { for (const k of new Set([nrn(name), nrs(name)])) u.weapons.set(k, (u.weapons.get(k) || 0) + n) };   // "Twin Killsaws" in the text is the option "twin killsaw"
+const addWeaponKey = (u, name, n) => {   /* a weapon of the text: "2 heavy flamers" is two, "Thunder Hammer & Storm Shield" counts for both parts, "2 lascannons and 2 twin heavy bolters" for each with its own number */
+  const put = (k, c) => u.weapons.set(k, (u.weapons.get(k) || 0) + c), bits = nrn(name).split(/ and /).map(x => x.trim()).filter(Boolean);
+  const one = (b, c) => { const m = /^(\d+)\s+(?!x\b)(.+)$/.exec(b), nm = m ? m[2] : b, cc = m ? c * +m[1] : c; for (const k of new Set([nm, nrs(nm)])) put(k, cc) };
+  if (bits.length > 1) { put(nrn(name), n); bits.forEach(b => one(b, n)) } else one(bits[0] || nrn(name), n)
+};
 const HEAD_RX = /^(?:[•·▪●○◦*+–-]\s*)?(?:(\d+)\s*[x×]\s+)?(.+?)\s*[(\[]\s*(\d{1,5})\s*(?:pts?|points?)?\s*[)\]]\s*(?::\s*(.*))?$/i;
 const HEAD2 = /^(?![•·▪●○◦*+–-])(.+?)\s+(\d{1,5})\s*(?:pts?|points?)$/i;   // "Warboss 100 points" (no brackets), as other sites print it
 const headOf = line => HEAD_RX.exec(line) || ((m2 => m2 && [line, undefined, m2[1], m2[2], undefined])(HEAD2.exec(line)));
@@ -1131,6 +1137,30 @@ function readUnits(lines, fd) {
   units.forEach(u => { if (u.grp && (u.role === 'leader' || u.role === 'support')) u.host = units.find(x => x.grp === u.grp && x.role === 'bodyguard') });   // the unit written in the same group as "Bodyguard" is the one they join
   return { units, loose };
 }
+/* Which options explain the weapons an imported text counts? The same weapon can sit in several options (a single replacement, a pair, a "take up to three" list), so the options are
+   chosen together: start from the starting wargear, try the options a few times each and keep the choice whose weapons are closest to what the text says. */
+function solveOptions(d, u, textWeapons, counts0) {
+  const mcs = d.UnitComposition.ModelCompositions, tot = u.UnitCompositionRef.reduce((s, r) => s + r.ModelCount, 0);
+  const rows = mcs.map(m => u.UnitCompositionRef.filter(r => lc(r.ModelName) === lc(m.ModelName)).reduce((s, r) => s + r.ModelCount, 0));
+  const item = x => { const m = /^(\d+) (.+)$/.exec(String(x).trim()); return { k: nrs(m ? m[2] : x), mult: m ? +m[1] : 1 } }, parts = a => String(a).split(/ and |, /).map(item);
+  const start = new Map(); mcs.forEach((m, mi) => (m.Wargear?.[0]?.InitalWargear || []).forEach(w => parts(w).forEach(p => start.set(p.k, (start.get(p.k) || 0) + p.mult * rows[mi]))));
+  const want = new Map(); for (const [k, c] of textWeapons) want.set(nrs(k), Math.max(want.get(nrs(k)) || 0, c));
+  const vars = optList(d).flatMap(g => g.o.Options.map(a => ({ key: altKey(g, a), g, parts: parts(a), rep: (g.o.Replaces || []).flatMap(parts), max: Math.min(optMax(g, rows[g.mi] || tot, tot), rows[g.mi] || 0) }))).filter(v => v.max > 0 && !v.g.o.RequiredDettachment);
+  const run = x => { const bag = new Map(start); vars.forEach((v, i) => { const c = x[i]; if (!c) return; v.rep.forEach(p => bag.set(p.k, Math.max(0, (bag.get(p.k) || 0) - p.mult * c))); v.parts.forEach(p => bag.set(p.k, (bag.get(p.k) || 0) + p.mult * c)) }); return bag };
+  const score = x => { const bag = run(x); let s = 0; for (const [k, c] of want) if (start.has(k) || vars.some(v => v.parts.some(p => p.k === k))) s += Math.abs((bag.get(k) || 0) - c); for (const [k, c] of bag) if (!want.has(k)) s += Math.abs(c - (start.get(k) || 0)) * 0.25; return s + x.reduce((a, c) => a + c, 0) * 0.001 };
+  const from = x0 => { const x = x0.slice(); let best = score(x);
+    for (let it = 0; it < 80; it++) { let mv = null, bs = best;
+      for (let i = 0; i < vars.length; i++) for (const dl of [1, -1]) { const c = x[i] + dl; if (c < 0 || c > vars[i].max) continue; x[i] = c; const s = score(x); x[i] = c - dl; if (s < bs - 1e-9) { bs = s; mv = [[i, dl]] } }
+      if (!mv) for (let i = 0; i < vars.length; i++) for (let j = i + 1; j < vars.length; j++) for (const [di, dj] of [[1, 1], [1, -1], [-1, 1]]) { const ci = x[i] + di, cj = x[j] + dj; if (ci < 0 || cj < 0 || ci > vars[i].max || cj > vars[j].max) continue; x[i] = ci; x[j] = cj; const s = score(x); x[i] = ci - di; x[j] = cj - dj; if (s < bs - 1e-9) { bs = s; mv = [[i, di], [j, dj]] } }
+      if (!mv) break; mv.forEach(([i, dl]) => x[i] += dl); best = bs }
+    return { x, s: best } };
+  if (!vars.length) return null;
+  /* a text that names each weapon once for a whole squad (no "6x") says nothing about how many: leave the choice to the plain matching */
+  if (tot > 1 && [...want].filter(([k]) => start.has(k) || vars.some(v => v.parts.some(p => p.k === k))).every(([, c]) => c === 1)) return null;
+  const old = vars.map(v => Math.min(counts0[v.key] || 0, v.max)), a = from(old), b = from(vars.map(() => 0)), win = a.s <= b.s ? a : b, base = score(old);
+  if (win.s >= base - 1e-9) return null;   // the choice already made is as good
+  const out = {}; vars.forEach((v, i) => { if (win.x[i]) out[v.key] = win.x[i] }); return out;
+}
 async function importExternal(text, o = {}) {
   text = String(text || '').replace(/^﻿/, ''); if (!text.trim() || text.length > 2e5) return null;
   let src = text; const t = text.trim();
@@ -1176,6 +1206,9 @@ async function importExternal(text, o = {}) {
       });
       all.filter(x => !pairs.includes(x)).forEach(({ g, a, parts }) => { const c = Math.min(...parts.map(p => Math.max(0, T(p.k) - (used.get(nrs(p.k)) || 0)))); if (c > 0) counts[altKey(g, a)] = Math.min(c, optMax(g, n, n), n) });
     }
+    { const sol = solveOptions(d, u, e.weapons, counts);   // when both readings fit the weapons, the one that costs what the text says wins
+      if (sol) { const pr = c => { const t = JSON.parse(JSON.stringify(u)); try { rebuildLoadouts(t, d, c) } catch { return null } return unitPts(l, t) }, next = { ...counts }; optList(d).forEach(g => g.o.Options.forEach(a => { if (!g.o.RequiredDettachment) next[altKey(g, a)] = sol[altKey(g, a)] || 0 }));
+        if (!(e.pts && pr(counts) === e.pts && pr(next) !== e.pts)) Object.assign(counts, next) } }
     try { rebuildLoadouts(u, d, counts) } catch { }
     /* nothing the text says may be dropped silently: a weapon the text counts that the unit does not end up with is reported */
     { const have = new Map(); u.UnitCompositionRef.forEach(r => r.Wargear.forEach(w => w.split(/ and |, /).forEach(x => { const m = /^(\d+) (.+)$/.exec(x.trim()), k = nrs(m ? m[2] : x); have.set(k, (have.get(k) || 0) + (m ? +m[1] : 1) * r.ModelCount) })));

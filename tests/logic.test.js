@@ -412,3 +412,17 @@ test('datasheet texts are not repeated', async () => {
   const bad = []; for (const u of api.fdOf(l).Units) { const t = [...api.uniqueAbilities(u).map((a) => a.Title), ...(u.SpecialAbility?.Sections || []).map((s) => s.Title)].map((x) => x.toLowerCase()); if (new Set(t).size !== t.length) bad.push(u.Name) }
   assert.equal(bad.join(), '');
 });
+
+/* Sweep of every army: no datasheet prints the same ability, special section, info band, weapon or keyword twice. */
+test('every faction: no repeated texts, weapons or keywords on any datasheet', async () => {
+  const norm = (s) => String(s || '').toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, ' ').replace(/\s*\((?:aura|upgrade)\)\s*$/, '').replace(/[:.\s]+$/, '').trim(), bad = [];
+  for (const fac of api.S.info.Factions.map((f) => f.Name)) { const l = api.newDraft(fac); try { await api.loadFaction(l) } catch { continue }
+    for (const d of api.fdOf(l).Units) {
+      const items = [...api.uniqueAbilities(d), ...(d.SpecialAbility?.Sections || []), ...api.uniqueInfos(d)], titles = items.map((a) => norm(a.Title)), texts = items.map((a) => norm(a.Text)).filter((x) => x.length > 30);
+      if (new Set(titles).size !== titles.length) bad.push(`${fac}: ${d.Name}: repeated title`);
+      if (new Set(texts).size !== texts.length) bad.push(`${fac}: ${d.Name}: repeated text`);
+      const wk = d.Weapons.flatMap((g) => g.Weapons.map((w) => (g.IsMelee ? 'm' : 'r') + norm(w.Name))); if (new Set(wk).size !== wk.length) bad.push(`${fac}: ${d.Name}: repeated weapon`);
+      const kw = d.Keywords.map(norm); if (new Set(kw).size !== kw.length) bad.push(`${fac}: ${d.Name}: repeated keyword`);
+    } }
+  assert.equal(bad.length, 0, bad.slice(0, 10).join('\n'));
+});
