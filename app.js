@@ -548,6 +548,9 @@ function adjList(l, u, d) {
   defsOf(d).filter(x => u.UnitCompositionRef.some(r => r.Wargear.some(w => lc(w) === lc(x.Key)))).forEach(x => { o.weap.push(...(x.WeaponAdjustments || [])); o.ds.push(...(x.DatasheetAdjustments || [])) });
   return o;
 }
+/* a text shows once: the abilities already printed in the special ability section (The Silent King's Triarch abilities) and the info bands that repeat an ability are left out of the other lists */
+const uniqueAbilities = d => { const sp = new Set((d.SpecialAbility?.Sections || []).map(x => lc(x.Title))); return (d.UnitAbilities || []).filter(a => !sp.has(lc(a.Title))) };
+const uniqueInfos = d => { const ab = new Set((d.UnitAbilities || []).map(a => lc(a.Title))); return (d.Infos || []).filter(i => !ab.has(lc(i.Title))) };
 const addW = (f, cur, v) => {
   const c = String(cur).trim(), n = parseInt(v, 10);
   if (f === 'AP') return isNaN(+c) ? c : String(+c - n);                       // +1 AP = one step better (more negative)
@@ -645,9 +648,9 @@ function unitSheet(d, l, u, o) {
   defsOf(d).forEach(x => (x.GrantsAbilities || []).forEach(t => { const k = normT(t); grant.set(k, [...(grant.get(k) || []), lc(x.Key)]) }));
   /* viewer + "ability filtering": abilities granted by wargear only show when that wargear is equipped (edit mode lists all) */
   const showAb = a => !(viewer && S.set.FilterAbilities && u && grant.has(normT(a.Title)) && !grant.get(normT(a.Title)).some(k => eqKeys.has(k)));
-  const ab = [...d.UnitAbilities, ...eff.flatMap(e => e.AddedAbilities || [])].filter(showAb).map(a => `<p><b class="t">${abT(a.Title)}</b>${esc(a.Text)}</p>`).join('');
+  const ab = [...uniqueAbilities(d), ...eff.flatMap(e => e.AddedAbilities || [])].filter(showAb).map(a => `<p><b class="t">${abT(a.Title)}</b>${esc(a.Text)}</p>`).join('');
   const sp = d.SpecialAbility ? `<div class="sect">${esc(d.SpecialAbility.Name)}</div><div class="sbody">${(d.SpecialAbility.Sections || []).map(x => `<p><b class="t">${esc(x.Title)}</b>${esc(x.Text)}</p>`).join('')}</div>` : '';
-  const infoList = [...(d.Infos || []), ...eff.flatMap(e => e.AddedInfoSections || [])], infos = infoList.map(a => `<div class="iband">${tc(a.Title)}</div><div class="itext">${esc(a.Text)}</div>`).join('');
+  const infoList = [...uniqueInfos(d), ...eff.flatMap(e => e.AddedInfoSections || [])], infos = infoList.map(a => `<div class="iband">${tc(a.Title)}</div><div class="itext">${esc(a.Text)}</div>`).join('');
   const leadTxt = `<p>This model can be attached to the following units:</p>${(d.LeaderInfo?.UnitNames || []).map(n => `<div class="bl">${esc(tc(n))}</div>`).join('')}`;
   const leadHdr = d.LeaderInfo?.LeaderType ? `Leader: ${esc(d.LeaderInfo.LeaderType)}` : 'Leader';
   const att = isLeader(d) ? `<div class="sect">${leadHdr}</div><div class="sbody">${leadTxt}</div>` : '';
@@ -866,7 +869,7 @@ function printHtml(l) {
     ${en ? `<div class="en"><b>Enhancement: ${tc(en.Name)}</b> (+${en.Cost ?? 0} pts)${D && en.Description ? ' — ' + esc(en.Description) : ''}</div>` : ''}${u.IsWarlord ? '<div class="en"><b>Warlord</b></div>' : ''}
     ${EXP.Statlines ? d.StatLines.map(s => `<table class="st"><tr><th>M</th><th>T</th><th>SV</th><th>W</th><th>LD</th><th>OC</th></tr><tr><td>${esc(s.Movement)}</td><td>${esc(s.Toughness)}</td><td>${esc(s.Save)}</td><td>${esc(s.Wounds)}</td><td>${esc(s.Leadership)}</td><td>${esc(s.OC)}</td></tr></table>`).join('') : ''}
     ${EXP.Weapons ? visibleWeapons(d, EXP['Filter weapons'] ? u : null, true).map(g => `<table><tr><th class="l">${esc(g.Name)}</th><th>Rng</th><th>A</th><th>${g.IsMelee ? 'WS' : 'BS'}</th><th>S</th><th>AP</th><th>D</th></tr>${g.Weapons.map(w => `<tr><td class="l">${esc(w.Name)}${w.Keywords ? ` <i>[${esc(w.Keywords)}]</i>` : ''}</td><td>${esc(w.Range)}</td><td>${esc(w.Attacks)}</td><td>${esc(w.ToHit)}</td><td>${esc(w.Strength)}</td><td>${esc(w.AP)}</td><td>${esc(w.Damage)}</td></tr>`).join('')}</table>`).join('') : ''}
-    ${EXP.Abilities ? (core ? `<p class="ab"><b>Core:</b> ${esc(core)}</p>` : '') + d.UnitAbilities.map(a => `<p class="ab"><b>${esc(a.Title)}:</b> ${esc(a.Text)}</p>`).join('') : ''}${EXP.Keywords ? `<p class="kw">${esc(d.Keywords.join(', '))}</p>` : ''}${EXP.Notes && u.Notes?.Text ? `<p class="ab"><b>Notes:</b> ${esc(u.Notes.Text)}</p>` : ''}</div>` };
+    ${EXP.Abilities ? (core ? `<p class="ab"><b>Core:</b> ${esc(core)}</p>` : '') + [...uniqueAbilities(d), ...(d.SpecialAbility?.Sections || [])].map(a => `<p class="ab"><b>${esc(a.Title)}:</b> ${esc(a.Text)}</p>`).join('') : ''}${EXP.Keywords ? `<p class="kw">${esc(d.Keywords.join(', '))}</p>` : ''}${EXP.Notes && u.Notes?.Text ? `<p class="ab"><b>Notes:</b> ${esc(u.Notes.Text)}</p>` : ''}</div>` };
   const sec = (t, h) => h ? `<h3>${t}</h3>${h}` : '';
   return `<div class="ph"><h1>${esc(l.Name || 'Army')}</h1><div>${esc(l.Faction)} · ${l.Detachments.map(tc).join(' + ')}${disp ? ' · ' + tc(disp) : ''}</div><div><b>${total(l)}</b> / ${l.MaxPoints} pts · ${l.Units.length} units</div></div>` +
     (EXP['Army rules'] ? sec('Army rules', (fd.ArmyRules || []).map(r => `<p class="ab"><b>${esc(r.Title)}</b> ${esc(r.Text)}</p>`).join('') + dets(l).map(d => `<p class="ab"><b>${esc(d.Rule.Title)}</b> ${esc(d.Rule.Text)}</p>`).join('')) : '') +
@@ -881,13 +884,17 @@ function ysRoster(l) {
   const fd = fdOf(l), ch = (n, v) => `<characteristic name="${n}">${xe(v)}</characteristic>`, prof = (name, type, cs) => `<profile name="${xe(name)}" typeName="${type}"><characteristics>${cs.map(([n, v]) => ch(n, v)).join('')}</characteristics></profile>`;
   const unit = u => {
     const d = unitOf(l, u), en = enhOf(l, u), rows = u.UnitCompositionRef, one = models(u) === 1, sl = d.StatLines;
-    const stat = (name, i) => { const x = sl[Math.min(i, sl.length - 1)] || {}; return prof(name, 'Unit', [['M', x.Movement], ['T', x.Toughness], ['SV', x.Save], ['W', x.Wounds], ['LD', x.Leadership], ['OC', x.OC]]) };
+    /* the card must show what the unit really has in the list: stat lines changed by enhancements, detachments and wargear, the invulnerable save, core abilities, every ability section */
+    const sv = statVariants(d, l, u), invBase = sl.find(s => s.InvulSave)?.InvulSave?.Save;
+    const stat = (name, i) => { const x = sl[Math.min(i, sl.length - 1)] || {}, g = sv && (sv.find(y => lc(y.model) === lc(name)) || sv[Math.min(i, sv.length - 1)]), s = g ? g.st : { M: x.Movement, T: x.Toughness, SV: x.Save, W: x.Wounds, LD: x.Leadership, OC: x.OC }; return prof(name, 'Unit', [['M', s.M], ['T', s.T], ['SV', s.SV], ['W', s.W], ['LD', s.LD], ['OC', s.OC]]) };
     /* the weapons of one model row: exact names (a profile may add " – supercharge"), or what its wargear grants; the loose filter only when nothing matches */
     const pick = r => { const items = r.Wargear.flatMap(x => lc(x).split(/ and |, /)).map(x => x.replace(/^\d+ /, '').trim()), granted = defsOf(d).filter(x => r.Wargear.some(w => lc(w) === lc(x.Key))).flatMap(x => (x.GrantsWeapons || []).map(lc)), all = [...items, ...granted];
       const ok = w => all.some(i => lc(w.Name) === i || lc(w.Name).startsWith(i + ' –') || lc(w.Name).startsWith(i + ' -')) || w.NeverFilter, g = d.Weapons.map(x => ({ ...x, Weapons: x.Weapons.filter(ok) })).filter(x => x.Weapons.length);
       return g.length ? g : visibleWeapons(d, { ...u, UnitCompositionRef: [r] }, true, true) };
-    const weapons = r => pick(r).flatMap(g => g.Weapons.map(w => prof(w.Name, g.IsMelee ? 'Melee Weapons' : 'Ranged Weapons', [['Range', g.IsMelee ? 'Melee' : w.Range], ['A', w.Attacks], [g.IsMelee ? 'WS' : 'BS', w.ToHit], ['S', w.Strength], ['AP', w.AP], ['D', w.Damage], ['Keywords', w.Keywords || '-']]))).join('');
-    const abil = [...d.UnitAbilities.map(a => [a.Title, a.Text]), ...(en ? [['Enhancement: ' + tc0(en.Name), en.Description || '']] : []), ...(u.IsWarlord ? [['Warlord', 'This model is your Warlord.']] : [])].map(([t, x]) => prof(t, 'Abilities', [['Description', x]])).join('');
+    const weapons = r => modWeapons(d, l, u, pick(r)).flatMap(g => g.Weapons.map(w => prof(w.Name, g.IsMelee ? 'Melee Weapons' : 'Ranged Weapons', [['Range', g.IsMelee ? 'Melee' : w.Range], ['A', w.Attacks], [g.IsMelee ? 'WS' : 'BS', w.ToHit], ['S', w.Strength], ['AP', w.AP], ['D', w.Damage], ['Keywords', w.Keywords || '-']]))).join('');
+    const core = [...d.CoreAbilities]; adjList(l, u, d).ds.forEach(a => { if (a.Target === 'CoreAbilities' && a.Type !== 'Subtract') (a.Values || []).forEach(v => { if (!core.includes(v)) core.push(v) }) });
+    const inv = sv?.find(g => g.st.INV)?.st.INV || invBase, eff = effFor(l, d);
+    const abil = [...core.map(c => [c, c]), ...(d.Faction ? [['Faction: ' + d.Faction, d.Faction]] : []), ...(inv ? [['Invulnerable Save', inv]] : []), ...uniqueAbilities(d).map(a => [a.Title, a.Text]), ...(d.SpecialAbility?.Sections || []).map(s => [d.SpecialAbility.Name + ': ' + s.Title, s.Text]), ...uniqueInfos(d).map(i => [i.Title, i.Text]), ...eff.flatMap(e => e.AddedAbilities || []).map(a => [a.Title, a.Text]), ...(en ? [['Enhancement: ' + tc0(en.Name), en.Description || '']] : []), ...(u.IsWarlord ? [['Warlord', 'This model is your Warlord.']] : [])].map(([t, x]) => prof(t, 'Abilities', [['Description', x]])).join('');
     const model = (r, i) => `<selection id="${uid()}" name="${xe(tc0(r.ModelName))}" number="${r.ModelCount}" type="model"><profiles>${stat(tc0(r.ModelName), i)}${weapons(r)}</profiles></selection>`;
     const cats = [...(d.FactionKeywords || []).map(k => 'Faction: ' + tc0(k)), ...d.Keywords.map(tc0)].map(k => `<category id="${uid()}" name="${xe(k)}"/>`).join('');
     const head = `<selection id="${uid()}" name="${xe(tc0(u.Id))}" number="1" type="${one ? 'model' : 'unit'}"`;
@@ -1156,8 +1163,26 @@ async function importExternal(text, o = {}) {
     { const rows = d.UnitComposition.ModelCompositions, want = rows.map(m => e.models.get(m.ModelName) ?? limOf(m).Min), sum = want.reduce((a, x) => a + x, 0);   // "1x Boss Nob + 18x Boyz" and "6x Wolf Guard Headtakers" stay as written when the datasheet allows them
       if (e.models.size && sum >= min && sum <= max && rows.every((m, i) => want[i] >= limOf(m).Min && want[i] <= limOf(m).Max)) u.UnitCompositionRef = rows.map((m, i) => ({ ModelCount: want[i], ModelName: m.ModelName, Wargear: [...(m.Wargear?.[0]?.InitalWargear || [])] })) }
     const counts = optCounts(u, d);
-    optList(d).forEach(g => g.o.Options.forEach(a => { const parts = a.split(/ and |, /).map(nrn), c = Math.min(...parts.map(p => e.weapons.get(p) || e.weapons.get(nrs(p)) || 0)); if (c > 0) counts[altKey(g, a)] = Math.min(c, optMax(g, n, n), n) }));
+    /* the text counts weapons ("2x Meltagun", "4x Lascannon"); options are written as pairs ("2 meltaguns", "2 lascannons and 2 twin heavy bolters"). A pair is taken once per
+       two weapons the text has beyond the ones the model starts with, the biggest combinations first; a single option then only gets what the pairs left ("3x Heavy flamer" = one replacement + one pair) */
+    {
+      const T = p => e.weapons.get(p) || e.weapons.get(nrs(p)) || 0, split = a => a.split(/ and |, /).map(x => { const m = /^(\d+) (.+)$/.exec(x.trim()); return { k: nrn(m ? m[2] : x), mult: m ? +m[1] : 1 } });
+      const start = k => d.UnitComposition.ModelCompositions.reduce((s, m) => s + ((m.Wargear?.[0]?.InitalWargear || []).reduce((a, x) => { const mm = /^(\d+) (.+)$/.exec(x.trim()), nm = nrn(mm ? mm[2] : x); return a + (nm === k || nrs(nm) === nrs(k) ? (mm ? +mm[1] : 1) : 0) }, 0)), 0);
+      const used = new Map(), all = optList(d).flatMap(g => g.o.Options.map(a => ({ g, a, parts: split(a) })));
+      const pairs = all.filter(x => x.parts.some(p => p.mult > 1)).sort((x, y) => y.parts.length - x.parts.length);
+      pairs.forEach(({ g, a, parts }) => {
+        const c = Math.min(...parts.map(p => Math.floor(Math.max(0, T(p.k) - start(p.k) - (used.get(nrs(p.k)) || 0)) / p.mult))), t = Math.min(c, optMax(g, n, n), n);
+        if (t > 0) { counts[altKey(g, a)] = t; parts.forEach(p => used.set(nrs(p.k), (used.get(nrs(p.k)) || 0) + t * p.mult)) }
+      });
+      all.filter(x => !pairs.includes(x)).forEach(({ g, a, parts }) => { const c = Math.min(...parts.map(p => Math.max(0, T(p.k) - (used.get(nrs(p.k)) || 0)))); if (c > 0) counts[altKey(g, a)] = Math.min(c, optMax(g, n, n), n) });
+    }
     try { rebuildLoadouts(u, d, counts) } catch { }
+    /* nothing the text says may be dropped silently: a weapon the text counts that the unit does not end up with is reported */
+    { const have = new Map(); u.UnitCompositionRef.forEach(r => r.Wargear.forEach(w => w.split(/ and |, /).forEach(x => { const m = /^(\d+) (.+)$/.exec(x.trim()), k = nrs(m ? m[2] : x); have.set(k, (have.get(k) || 0) + (m ? +m[1] : 1) * r.ModelCount) })));
+      const want = new Map(); for (const [k, c] of e.weapons) want.set(nrs(k), Math.max(want.get(nrs(k)) || 0, c));
+      const skip = new Set([nrs(d.Name), ...d.UnitComposition.ModelCompositions.map(m => nrs(m.ModelName)), ...d.UnitAbilities.map(x => nrs(x.Title)), ...(d.Infos || []).map(x => nrs(x.Title))]);
+      const miss = [...want].filter(([k, c]) => (have.get(k) || 0) < c && !(e.enh && nrs(e.enh) === k) && !skip.has(k) && !/^created with|^exported with/.test(k)).map(([k, c]) => `${c} ${k}`);
+      if (miss.length) notes.push(`${tc(d.Name)}: the text has weapons or equipment this datasheet does not offer or that could not be placed: ${miss.join(', ')}.`) }
     if (e.enh) { let en = enhs(l).find(x => nrn(x.Name.replace(/\s*\((?:upgrade|aura)\)$/i, '')) === nrn(e.enh.replace(/\s*\((?:upgrade|aura)\)$/i, ''))); if (!en) { const g = nrn(e.enh); en = enhs(l).find(x => g.startsWith(nrn(x.Name.replace(/\s*\((?:upgrade|aura)\)$/i, '')) + ' ')) }
     if (en) u.EnhancementId = en.Name; else notes.push(`The enhancement “${e.enh}” of ${tc(d.Name)} is not offered by the detachments found.`) }
     made.push([u, e]);

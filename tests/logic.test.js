@@ -401,3 +401,14 @@ test('modified stat lines of a unit with several stat lines', async () => {
   assert.equal(v.length, d.StatLines.length); assert.equal(t(v[0]), (+d.StatLines[0].Toughness + 1) + '/' + (+d.StatLines[0].OC + 1)); assert.equal(t(v[1]), d.StatLines[1].Toughness + '/' + (+d.StatLines[1].OC + 1));
   assert.equal(v.map((g) => g.model).join(), d.StatLines.map((s) => s.StatName).join());
 });
+
+/* Nothing is printed twice on a datasheet: The Silent King's Triarch abilities live in their own section only, and the info bands do not repeat the abilities. */
+test('datasheet texts are not repeated', async () => {
+  const l = api.newDraft('Necrons'); await api.loadFaction(l); const d = api.fdOf(l).byName.get('THE SILENT KING');
+  const ab = api.uniqueAbilities(d).map((a) => a.Title.toLowerCase()), sp = d.SpecialAbility.Sections.map((s) => s.Title.toLowerCase());
+  assert.ok(sp.length >= 3); assert.ok(sp.every((t) => !ab.includes(t)), 'Triarch abilities only in their section'); assert.ok(ab.includes('triarchal menhirs'));
+  const info = api.uniqueInfos(d).map((i) => i.Title.toLowerCase()); assert.ok(!info.includes('triarchal menhirs') && !info.includes('supreme commander')); assert.ok(info.some((t) => /^damaged/.test(t)));
+  // every datasheet: no repeated ability title inside the printed lists
+  const bad = []; for (const u of api.fdOf(l).Units) { const t = [...api.uniqueAbilities(u).map((a) => a.Title), ...(u.SpecialAbility?.Sections || []).map((s) => s.Title)].map((x) => x.toLowerCase()); if (new Set(t).size !== t.length) bad.push(u.Name) }
+  assert.equal(bad.join(), '');
+});

@@ -321,3 +321,29 @@ test('a list written in Spanish gets a clear message', async () => {
   fresh(); const r = await api.importExternal(require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', 'spacemarines-spacewolves-es.txt'), 'utf8'));
   assert.match(r.error, /written in Spanish/);
 });
+
+/* "2x Meltagun", "4x Lascannon", "3x Heavy flamer": the text counts weapons, the datasheet writes its options as pairs. Every weapon the text counts must end up on the unit. */
+test('Guard list with counted weapons imports the whole configuration', async () => {
+  fresh(); const r = await api.importExternal(require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', 'guard-beeg-tonks.txt'), 'utf8'));
+  assert.equal(api.total(r.list), 1990);
+  const gear = (name, i = 0) => r.list.Units.filter((u) => u.Id === name)[i].UnitCompositionRef.flatMap((m) => m.Wargear).join(' | ').toLowerCase();
+  assert.match(gear('ROGAL DORN COMMANDER'), /2 meltaguns/); assert.match(gear('ROGAL DORN COMMANDER'), /2 multi-meltas/);
+  assert.match(gear('BANESWORD'), /2 lascannons and 2 twin heavy bolters/); assert.match(gear('BANESWORD'), /2 twin heavy bolters/);
+  assert.match(gear('LEMAN RUSS VANQUISHER'), /heavy flamer \| 2 heavy flamers|heavy flamer.*2 heavy flamers/);
+  assert.match(gear('LEMAN RUSS ERADICATOR'), /2 heavy bolters/);
+  assert.equal((r.notes || []).filter((x) => /could not be placed/.test(x)).length, 0);
+});
+
+/* The card exported for Tabletop Simulator (YellowScribe roster) must carry everything the unit has in the list: weapons changed by an enhancement, core abilities, every ability once. */
+test('YellowScribe roster carries modified weapons, core abilities and all ability sections once', async () => {
+  fresh(); const r = await api.importExternal(require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', 'necrons-w22.txt'), 'utf8')); const l = r.list;
+  assert.equal(api.total(l), 2000);
+  const xml = api.ysRoster(l), sel = (name) => { const i = xml.indexOf(`name="${name}" number="1" type="`); assert.ok(i >= 0, name); const j = xml.indexOf('</selection></selections>', i); return xml.slice(i, j > 0 ? j : i + 60000) };
+  const imm = xml.slice(xml.indexOf('name="Immortals"'), xml.indexOf('name="Lokhust Lord"') > 0 ? xml.indexOf('name="Lokhust Lord"') : undefined);
+  assert.match(imm, /name="Tesla carbine"[\s\S]*?IGNORES COVER/i, 'Nebuloscope reaches the bodyguard weapons');
+  const ctan = xml.slice(xml.indexOf("name=\"C'tan Shard of The Void Dragon\"") >= 0 ? xml.indexOf("name=\"C'tan Shard of The Void Dragon\"") : xml.indexOf('Void Dragon'));
+  assert.match(ctan, /name="Deep Strike"/); assert.match(ctan, /name="Necrodermis"/); assert.match(ctan, /name="Feel No Pain 5\+"/);
+  const sk = xml.slice(xml.indexOf('name="The Silent King"'));
+  assert.equal((sk.match(/Phaeron of the Stars \(Aura\)/g) || []).length, 1, 'Triarch ability printed once');
+  assert.equal((sk.match(/name="Relentless March \(Aura\)/g) || []).length + (sk.match(/: Relentless March \(Aura\)/g) || []).length, 1);
+});
