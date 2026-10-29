@@ -692,10 +692,10 @@ function unitSheet(d, l, u, o) {
   const attx = `${att}${sp}${infos}${att2.length ? `<div class="sect">Attached leaders</div><div class="sbody"><p>${att2.map(x => tc(x.Id)).join(', ')}</p></div>` : ''}`;
   const notes = u && !ro ? `<div class="sect w">Notes</div><div class="fld2"><input class="in sm" id="u-notes" placeholder="Enter unit notes" value="${esc(u.Notes?.Text)}"></div><div class="sect w">Custom unit name</div><div class="fld2"><input class="in sm" id="u-cname" placeholder="Enter custom unit name" value="${esc(u.Notes?.CustomName)}"></div>` : (u?.Notes?.Text ? `<div class="sect w">Notes</div><div class="sbody"><p>${esc(u.Notes.Text)}</p></div>` : '');
   const errH = errBlock(d.Errata, d.FAQ, l ? fdOf(l) : S.fd[Object.keys(S.fd).find(k => S.fd[k].byName?.get(d.Name) === d)]);
-  const kwL = `${errH}<div class="kwline">KEYWORDS: ${glList(kwList)}</div>`, kwR = `<div class="kwline alt">FACTION KEYWORDS: ${esc(d.FactionKeywords.join(', '))}</div>`;
+  const kwL = `<div class="kwline">KEYWORDS: ${glList(kwList)}</div>`, kwR = `<div class="kwline alt">FACTION KEYWORDS: ${esc(d.FactionKeywords.join(', '))}</div>`;
   const pts = (o.points !== false && d.Points.length) ? `<div class="kwline alt" style="font-weight:400">Points: ${pointsOf(l, d).map(p => `${p.ModelCount} model${p.ModelCount > 1 ? 's' : ''}${p.UnitCount > 1 ? ' (x' + p.UnitCount + ')' : ''} = ${p.Cost ?? '-'}`).join(' · ')}</div>` : '';
-  if (o.split) return { hdr, left: warl + rows + wpn.map(wh).join('') + notes, right: comp + abil + attOpts + attx, kwL, kwR: kwR.replace('kwline alt', 'kwline') };
-  return hdr + warl + rows + comp + wpn.map(wh).join('') + abil + attOpts + attx + notes + kwL + kwR + pts;
+  if (o.split) return { hdr, left: warl + rows + wpn.map(wh).join('') + notes + errH, right: comp + abil + attOpts + attx, kwL, kwR: kwR.replace('kwline alt', 'kwline') };
+  return hdr + warl + rows + comp + wpn.map(wh).join('') + abil + attOpts + attx + notes + errH + kwL + kwR + pts;
 }
 
 PAGES.unit = r => {

@@ -19,6 +19,7 @@
 - **Tooltips on keywords:** hovering (or tapping, or focusing with the keyboard) a weapon ability, a core ability or a keyword that has a rule shows what it does, with the text of the 11th edition core rules (Lethal Hits, Sustained Hits, Anti, Rapid Fire, Feel No Pain, Deep Strike, Scouts, Deadly Demise, Battleline, Epic Hero...). Army-specific abilities and plain keywords such as Infantry have no rule text in the core rules and show no tooltip.
 - **Battleline limit fixed:** Battleline and Dedicated Transport units have double the unit limit of the battle size (core rules 25.03): 4 in Incursion, 6 in Strike Force; before it was the limit plus three.
 - **Errata and FAQ (Necrons first):** the official faction pack (Warhammer Community PDF, version 1.2 of 26/08/2026) is read for its Rules Updates: 35 changes are attached to the datasheets they name, 10 to detachments (stratagems, enhancements, rules), 1 to the Reanimation Protocols army rule, and 8 FAQ answers to the units they talk about (5 more stay general). On a datasheet, a detachment and the army rules they show as a closed "Errata and FAQ" section that opens with a click. The other armies follow once the reader is checked against their packs.
+- **Footer fix:** the errata section no longer sits in the keyword footer, so the faction keywords line stays level with the keywords line.
 - What is still unread is listed in the converter repository (`wargear-options-unread.md`, 143 unit rows).
 
 ## 1.4.12 (30 October 2026)

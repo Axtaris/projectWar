@@ -482,3 +482,10 @@ test('Necrons faction pack errata: on the datasheets, detachments and army rules
   assert.match(html, /<details class="errata"><summary>Errata and FAQ \(\d+\)/); assert.ok(!/<details class="errata" open/.test(html));
   const plain = api.unitSheet(u('IMMORTALS'), l, null, {}); assert.ok(!/class="errata"/.test(typeof plain === 'string' ? plain : JSON.stringify(plain)));
 });
+
+/* The errata section scrolls with the sheet; it must never sit inside the keyword footer, or the footer of the two columns stops lining up. */
+test('errata section is not part of the keyword footer', async () => {
+  const l = api.newDraft('Necrons'); await api.loadFaction(l); const d = api.fdOf(l).byName.get('MONOLITH');
+  const sp = api.unitSheet(d, l, null, { split: true }); assert.ok(sp && typeof sp === 'object', 'split sheet');
+  assert.ok(!/errata/.test(sp.kwL) && !/errata/.test(sp.kwR), 'footer without errata'); assert.match(sp.left, /class="errata"/);
+});
