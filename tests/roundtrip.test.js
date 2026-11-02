@@ -44,7 +44,7 @@ test('every army: the Tabletop Simulator roster lists each core ability once and
       const l = api.newDraft(fac); await api.loadFaction(l); l.MaxPoints = 5000; l.Detachments = [];
       l.Units.push({ InstanceId: 1, AttachedToInstanceId: 0, Id: d.Name, EnhancementId: null, Upgrades: [], UnitCompositionRef: api.composition(d, Math.max(1, ...d.Points.map((p) => p.ModelCount))), Notes: { CustomName: '', Text: '' }, IsWarlord: false });
       let xml; try { xml = api.ysRoster(l) } catch (e) { bad.push(`${fac} | ${d.Name} | ${e.message}`); continue }
-      const names = [...xml.matchAll(/<profile name="([^"]*)" typeName="Abilities"/g)].map((m) => m[1]);
+      const unitLevel = (/type="unit" from="entry"><profiles>([\s\S]*?)<\/profiles><selections>/.exec(xml) || [])[1] || '', names = [...unitLevel.matchAll(/<profile id="[^"]*" name="([^"]*)" hidden="false" typeId="ability" typeName="Abilities"/g)].map((m) => m[1]);
       for (const c of d.CoreAbilities || []) if (!names.includes(xe(c))) bad.push(`${fac} | ${d.Name} | core ${c} missing`);
       if (new Set(names).size !== names.length) bad.push(`${fac} | ${d.Name} | an ability twice`);
       if (d.Weapons.some((g) => g.Weapons.length) && !/typeName="(Ranged|Melee) Weapons"/.test(xml)) bad.push(`${fac} | ${d.Name} | no weapons`);

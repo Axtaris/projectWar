@@ -177,23 +177,23 @@ test('YellowScribe export: a zip with one roster whose structure is what its par
   const xml = api.ysRoster(l), zip = api.zipOne('roster.ros', xml);
   assert.equal(await api.unzipRos(zip.buffer), xml);
   const data = Buffer.from(xml); assert.equal(Buffer.from(zip.buffer).readUInt32LE(14), require('node:zlib').crc32(data));   // stored CRC32 is right
-  const root = api.parseXml(xml); assert.equal(root.attrs.gameSystemId, 'sys-352e-adc2-7639-d610');
-  const kids = (n, t) => n.children.filter(c => c.tag === t), sels = kids(kids(kids(kids(root, 'forces')[0], 'force')[0], 'selections')[0], 'selection');
+  const root = api.parseXml(xml); assert.equal(root.attrs.gameSystemId, 'sys-352e-adc2-7639-d6a9');
+  const kids = (n, t) => n.children.filter(c => c.tag === t), sels = kids(kids(kids(kids(root, 'forces')[0], 'force')[0], 'selections')[0], 'selection'), wprofs = m => kids(kids(m, 'selections')[0] || { children: [] }, 'selection').flatMap(x => kids(kids(x, 'profiles')[0] || { children: [] }, 'profile')).filter(p => /Weapons$/.test(p.attrs.typeName));
   assert.equal(sels.length, 18);
   sels.forEach(s => {
     assert.ok(['unit', 'model'].includes(s.attrs.type)); assert.ok(kids(s, 'categories')[0].children.some(c => /^Faction: /.test(c.attrs.name)));
     const profs = n => (kids(n, 'profiles')[0]?.children || []);
     const models = s.attrs.type === 'model' ? [s] : kids(kids(s, 'selections')[0], 'selection');
-    models.forEach(m => { assert.ok(profs(m).some(p => p.attrs.typeName === 'Unit')); profs(m).filter(p => /Weapons$/.test(p.attrs.typeName)).forEach(w => assert.ok(['Range', 'A', 'S', 'AP', 'D', 'Keywords'].every(c => kids(kids(w, 'characteristics')[0], 'characteristic').some(x => x.attrs.name === c)))) });
+    models.forEach(m => { assert.ok(profs(m).some(p => p.attrs.typeName === 'Unit')); wprofs(m).forEach(w => assert.ok(['Range', 'A', 'S', 'AP', 'D', 'Keywords'].every(c => kids(kids(w, 'characteristics')[0], 'characteristic').some(x => x.attrs.name === c)))) });
   });
   const leman = sels.find(s => s.attrs.name === 'Leman Russ Battle Tank'); assert.ok(leman);
-  assert.ok(kids(leman, 'profiles')[0].children.some(p => p.attrs.name === 'Leman Russ battle cannon' && p.attrs.typeName === 'Ranged Weapons'));
+  assert.ok(kids(leman, 'selections')[0].children.flatMap(m => wprofs(m)).some(p => p.attrs.name === 'Leman Russ battle cannon' && p.attrs.typeName === 'Ranged Weapons'));
 });
 
 test('YellowScribe export: each model gets its own weapons, profiles with a suffix ("– supercharge") included', async () => {
   fresh(); const l = (await api.importExternal(require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', 'astra-militarum-text.txt'), 'utf8'))).list; api.S.cur = l;
   const root = api.parseXml(api.ysRoster(l)), kids = (n, t) => n.children.filter(c => c.tag === t), sels = kids(kids(kids(kids(root, 'forces')[0], 'force')[0], 'selections')[0], 'selection');
-  const kas = sels.find(s => s.attrs.name === 'Kasrkin'), models = kids(kids(kas, 'selections')[0], 'selection'), w = m => kids(m, 'profiles')[0].children.filter(p => /Weapons$/.test(p.attrs.typeName)).map(p => p.attrs.name);
+  const kas = sels.find(s => s.attrs.name === 'Kasrkin'), models = kids(kids(kas, 'selections')[0], 'selection'), w = m => kids(kids(m, 'selections')[0], 'selection').filter(x => x.attrs.type === 'upgrade' && kids(x, 'profiles')[0]?.children.some(p => /Weapons$/.test(p.attrs.typeName))).map(x => x.attrs.name);
   assert.ok(w(models[1]).includes('Hot-shot lasgun')); assert.ok(!w(models[1]).includes('Meltagun'));
   /* one special weapon per trooper: a model never carries a meltagun and a plasma gun (they replace the same lasgun) */
   const all = models.map(w); assert.ok(all.some(x => x.includes('Plasma gun – supercharge')) && all.some(x => x.includes('Meltagun'))); assert.ok(!all.some(x => x.includes('Plasma gun – supercharge') && x.includes('Meltagun')));
@@ -340,7 +340,7 @@ test('YellowScribe roster carries modified weapons, core abilities and all abili
   fresh(); const r = await api.importExternal(require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', 'necrons-w22.txt'), 'utf8')); const l = r.list;
   assert.equal(api.total(l), 2000);
   const xml = api.ysRoster(l), sel = (name) => { const i = xml.indexOf(`name="${name}" number="1" type="`); assert.ok(i >= 0, name); const j = xml.indexOf('</selection></selections>', i); return xml.slice(i, j > 0 ? j : i + 60000) };
-  const imm = xml.slice(xml.indexOf('name="Immortals"'), xml.indexOf('name="Lokhust Lord"') > 0 ? xml.indexOf('name="Lokhust Lord"') : undefined);
+  const unitXml = name => { const i = xml.indexOf(`name="${name}" entryId`); const k = xml.indexOf('type="unit"', i), j = xml.indexOf('type="unit"', k + 10); return xml.slice(i, j > 0 ? j : undefined) }, imm = unitXml('Immortals');
   assert.match(imm, /name="Tesla carbine"[\s\S]*?IGNORES COVER/i, 'Nebuloscope reaches the bodyguard weapons');
   const ctan = xml.slice(xml.indexOf("name=\"C'tan Shard of The Void Dragon\"") >= 0 ? xml.indexOf("name=\"C'tan Shard of The Void Dragon\"") : xml.indexOf('Void Dragon'));
   assert.match(ctan, /name="Deep Strike"/); assert.match(ctan, /name="Necrodermis"/); assert.match(ctan, /name="Feel No Pain 5\+"/);
