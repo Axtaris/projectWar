@@ -1,4 +1,5 @@
 # projectWar
+> **Donations:** if you find this useful you can support the creator at [paypal.me/projectwarco](https://www.paypal.com/paypalme/projectwarco). Donations are voluntary and unlock nothing. Only the creator may receive donations for this project (see `LICENSE`).
 
 A web-based army list builder for **Warhammer 40,000, 11th edition**. Pick a faction, choose a points limit and detachments, add units, edit their wargear, and read every datasheet and rule while you build. Lists are saved in your browser.
 
