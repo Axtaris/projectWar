@@ -1,0 +1,67 @@
+fisico (1,995 Points)
+
+Tyranids
+Ambush Predators and Vanguard Onslaught (3 Detachment Points)
+Reconnaissance
+Strike Force (2,000 Points)
+
+ATTACHED UNITS
+
+Attached unit 1
+
+Broodlord (80 Points)
+  • Attached as: Leader (Character)
+
+Genestealers (140 Points)
+  • Attached as: Bodyguard
+  • 10x Genestealer
+
+CHARACTERS
+
+Deathleaper (80 Points)
+
+Neurotyrant (140 Points)
+  • Warlord
+  • Enhancements: Neuronode
+
+The Swarmlord (210 Points)
+
+BATTLELINE
+
+Termagants (55 Points)
+  • 10x Termagants
+     ◦ 10x Fleshborer
+
+OTHER DATASHEETS
+
+Biovores (60 Points)
+
+Exocrine (135 Points)
+
+Lictor (60 Points)
+
+Lictor (60 Points)
+
+Lictor (60 Points)
+
+Mawloc (130 Points)
+
+Neurogaunts (45 Points)
+  • 10x Neurogaunt
+
+Neurolictor (100 Points)
+  • Enhancements: Encircling Horrors (Upgrade)
+
+Norn Emissary (250 Points)
+
+Psychophage (110 Points)
+
+Spore Mines (Biovore) (0 Points)
+
+Tyrannofex (190 Points)
+  • 1x Rupture cannon
+
+Zoanthropes (90 Points)
+  • 2x Zoanthrope
+
+Exported with New Recruit v37.6, Data Version: v3

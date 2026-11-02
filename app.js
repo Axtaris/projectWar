@@ -144,7 +144,7 @@ function baseCost(l, u) {
 }
 const enhOf = (l, u) => u.EnhancementId && enhs(l).find(e => e.Name === u.EnhancementId);
 const free = e => /FreeEnhancementPointCost/.test(e?.Features || '');
-const unitPts = (l, u) => baseCost(l, u) + wgCost(unitOf(l, u), u) + modelCost(unitOf(l, u), u); /* cards and group headers leave the enhancement on its own chip */
+const unitPts = (l, u) => u.Free ? 0 : baseCost(l, u) + wgCost(unitOf(l, u), u) + modelCost(unitOf(l, u), u); /* cards and group headers leave the enhancement on its own chip */
 const unitCost = (l, u) => unitPts(l, u) + (enhOf(l, u) && !free(enhOf(l, u)) ? enhOf(l, u).Cost || 0 : 0);
 const total = l => l.Units.reduce((a, u) => a + unitCost(l, u), 0);
 const nk = k => lc(k).replace(/^\|\s*[^:]*:\s*/, '');
@@ -689,7 +689,8 @@ function unitSheet(d, l, u, o) {
    <div class="base">${S.set.ShowUnitImages ? ic('camera', 18) : ''}${ring}</div></div>`;
   const warl = u && (kwsU(l, u, d).has('character') || flagsOf(d) & 8) && !(flagsOf(d) & 1) && (!ro || u.IsWarlord) ? `<div class="sect w">Warlord</div>${ro ? (u.IsWarlord ? `<div class="sbody"><p>This unit is your Warlord.</p></div>` : '') : `<div class="warl"><button class="in" style="background:${u.IsWarlord ? 'var(--dk)' : '#000'}" data-a="warlord">${u.IsWarlord ? '★ Warlord' : 'Select Warlord'}</button></div>`}` : '';
   const abil = (ab || sp || infoList.length || coreList.length || d.Faction) ? `<div class="sect">Abilities</div><div class="sbody">${coreList.length ? `<div class="corebox">CORE: ${glList(coreList)}</div>` : ''}${d.Faction ? `<p><b class="t">FACTION: ${esc(d.Faction)}</b></p>` : ''}${ab}</div>` : '';
-  const attx = `${att}${sp}${infos}${att2.length ? `<div class="sect">Attached leaders</div><div class="sbody"><p>${att2.map(x => tc(x.Id)).join(', ')}</p></div>` : ''}`;
+  const freeBtn = u && l && !ro && d.Name === 'BIOVORES' && d.UnitAbilities.some(a => a.Title === 'Seed Spore Mines') ? `<div class="sect">Seed Spore Mines</div><div class="sbody"><button class="btn" data-a="addfree" data-id="SPORE MINES">Add a Spore Mines unit (free)</button></div>` : '';
+  const attx = `${att}${sp}${freeBtn}${infos}${att2.length ? `<div class="sect">Attached leaders</div><div class="sbody"><p>${att2.map(x => tc(x.Id)).join(', ')}</p></div>` : ''}`;
   const notes = u && !ro ? `<div class="sect w">Notes</div><div class="fld2"><input class="in sm" id="u-notes" placeholder="Enter unit notes" value="${esc(u.Notes?.Text)}"></div><div class="sect w">Custom unit name</div><div class="fld2"><input class="in sm" id="u-cname" placeholder="Enter custom unit name" value="${esc(u.Notes?.CustomName)}"></div>` : (u?.Notes?.Text ? `<div class="sect w">Notes</div><div class="sbody"><p>${esc(u.Notes.Text)}</p></div>` : '');
   const errH = errBlock(d.Errata, d.FAQ, l ? fdOf(l) : S.fd[Object.keys(S.fd).find(k => S.fd[k].byName?.get(d.Name) === d)]);
   const kwL = `<div class="kwline">KEYWORDS: ${glList(kwList)}</div>`, kwR = `<div class="kwline alt">FACTION KEYWORDS: ${esc(d.FactionKeywords.join(', '))}</div>`;
@@ -995,6 +996,7 @@ document.addEventListener('click', async e => {
     case 'rfilter': return anchorPop(t, `<button class="ch rem ${S.remFilter ? 'on' : ''}" data-a="remf">Remaining Points</button>`, 'popup');
     case 'remf': S.remFilter = !S.remFilter; t.classList.toggle('on', S.remFilter); $('#roster').innerHTML = rosterHtml(l); return;
     case 'rsel': { const d = fdOf(l).byName.get(id); if (WIDE() && r.page === 'editor') { S.prev = id; S.sel = null; S.keepScroll = S.newU = true; return render() } return nav('sheet', { d }) }
+    case 'addfree': return mutate(() => { const d = fdOf(l).byName.get(id); if (!d) return; const iid = 1 + Math.max(0, ...l.Units.map(u => u.InstanceId)); l.Units.push({ InstanceId: iid, AttachedToInstanceId: 0, Id: id, EnhancementId: null, Upgrades: [], UnitCompositionRef: composition(d, Math.min(...d.Points.map(p => p.ModelCount))), Notes: { CustomName: '', Text: '' }, IsWarlord: false, AttachedUnitName: null, AttchedUnitNameType: 0, Free: true }) });
     case 'addunit': return mutate(() => { const d = fdOf(l).byName.get(id), n = d.Points.length ? Math.min(...d.Points.map(p => p.ModelCount)) : d.UnitComposition.ModelCompositions.reduce((s, m) => s + limOf(m).Min, 0); const iid = 1 + Math.max(0, ...l.Units.map(u => u.InstanceId)); l.Units.push({ InstanceId: iid, AttachedToInstanceId: 0, Id: id, EnhancementId: null, Upgrades: [], UnitCompositionRef: composition(d, n), Notes: { CustomName: '', Text: '' }, IsWarlord: false, AttachedUnitName: null, AttchedUnitNameType: 0 }) });
     case 'delunit': return mutate(() => { if (S.sel === +id) S.sel = null; l.Units = l.Units.filter(u => u.InstanceId !== +id); l.Units.forEach(u => u.AttachedToInstanceId === +id && (u.AttachedToInstanceId = 0)) });
     case 'openunit': if (WIDE() && r.page === 'viewer') { S.sel = +id; S.keepScroll = S.newU = true; return render() } if (WIDE() && r.page === 'editor') { S.sel = +id; S.prev = null; S.keepScroll = S.newU = true; return render() } return nav('unit', { id: +id, ro: r.page === 'viewer' });
@@ -1248,6 +1250,7 @@ async function importExternal(text, o = {}) {
       if (miss.length) notes.push(`${tc(d.Name)}: the text has weapons or equipment this datasheet does not offer or that could not be placed: ${miss.join(', ')}.`) }
     if (e.enh) { let en = enhs(l).find(x => nrn(x.Name.replace(/\s*\((?:upgrade|aura)\)$/i, '')) === nrn(e.enh.replace(/\s*\((?:upgrade|aura)\)$/i, ''))); if (!en) { const g = nrn(e.enh); en = enhs(l).find(x => g.startsWith(nrn(x.Name.replace(/\s*\((?:upgrade|aura)\)$/i, '')) + ' ')) }
     if (en) u.EnhancementId = en.Name; else notes.push(`The enhancement “${e.enh}” of ${tc(d.Name)} is not offered by the detachments found.`) }
+    if (e.pts === 0 && unitPts(l, u) > 0) { u.Free = true; notes.push(`${tc(d.Name)} is free in the text (added by another unit's ability): it costs 0 points.`) }   // "Spore Mines (Biovore) (0 Points)"
     made.push([u, e]);
   });
   made.forEach(([u, e]) => { if (e.host) { const host = made.find(([, x]) => x === e.host); if (host && host[0] !== u) u.AttachedToInstanceId = host[0].InstanceId } else if (e.attach) { const host = made.find(([x]) => nrn(x.Id) === nrn(e.attach) || nrs(x.Id) === nrs(e.attach)); if (host && host[0] !== u) u.AttachedToInstanceId = host[0].InstanceId } });

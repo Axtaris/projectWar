@@ -348,3 +348,11 @@ test('YellowScribe roster carries modified weapons, core abilities and all abili
   assert.equal((sk.match(/Phaeron of the Stars \(Aura\)/g) || []).length, 1, 'Triarch ability printed once');
   assert.equal((sk.match(/name="Relentless March \(Aura\)/g) || []).length + (sk.match(/: Relentless March \(Aura\)/g) || []).length, 1);
 });
+
+/* Tyranid list from New Recruit: "Spore Mines (Biovore) (0 Points)" are the free Spore Mines a Biovores unit adds with its Seed Spore Mines ability; they cost nothing. */
+test('free Spore Mines from Biovores: 0 points on import, kept through export and import', async () => {
+  fresh(); const r = await api.importExternal(require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', 'tyranids-fisico.txt'), 'utf8')), l = r.list;
+  assert.equal(api.total(l), 1995); const sm = l.Units.find((u) => u.Id === 'SPORE MINES'); assert.ok(sm.Free); assert.equal(api.unitPts(l, sm), 0);
+  assert.equal((r.notes || []).filter((x) => /points but|differ|The list says/.test(x)).length, 0, (r.notes || []).join('; '));
+  api.S.lists = []; const again = (await api.importExternal(api.listText(l, 'GW', { ...api.TXT, fmt: 'GW' }), { faction: 'Tyranids' })).list; assert.equal(api.total(again), 1995);
+});

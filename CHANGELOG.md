@@ -20,6 +20,7 @@
 - **Battleline limit fixed:** Battleline and Dedicated Transport units have double the unit limit of the battle size (core rules 25.03): 4 in Incursion, 6 in Strike Force; before it was the limit plus three.
 - **Errata and FAQ (Necrons first):** the official faction pack (Warhammer Community PDF, version 1.2 of 26/08/2026) is read for its Rules Updates: 35 changes are attached to the datasheets they name, 10 to detachments (stratagems, enhancements, rules), 1 to the Reanimation Protocols army rule, and 8 FAQ answers to the units they talk about (5 more stay general). On a datasheet, a detachment and the army rules they show as a closed "Errata and FAQ" section that opens with a click. The other armies follow once the reader is checked against their packs.
 - **Footer fix:** the errata section no longer sits in the keyword footer, so the faction keywords line stays level with the keywords line.
+- **Free units added by an ability:** a unit that a text prices at 0 points (the Spore Mines a Biovores unit adds with Seed Spore Mines, written "Spore Mines (Biovore) (0 Points)" by New Recruit) is kept as a free unit instead of being charged 55 points; a Tyranid list of 1,995 points no longer comes to 2,050. The Biovores sheet has a button to add that free Spore Mines unit. Other 0-point units from other abilities import the same way, without the button for now.
 - What is still unread is listed in the converter repository (`wargear-options-unread.md`, 143 unit rows).
 
 ## 1.4.12 (30 October 2026)
