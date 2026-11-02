@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.15 (2 November 2026)
+
+- **License changed to PolyForm Noncommercial 1.0.0 (all three repositories):** the code, the data compilation and the converter are free for personal and other non-commercial use; they may not be sold, and no one but the creator may ask for or receive donations or any other payment for them, for copies or for derivatives. Game content owned by Games Workshop and others is not covered. Copies made under the earlier public-domain terms stay as they were. The Terms page says so in English and Spanish.
+
 ## 1.4.14 (2 November 2026)
 
 - **Stratagem cost no longer cut off on phones:** the stratagem cards (army screen, detachment details, core stratagems) keep the CP cost visible on narrow screens; a long stratagem name now wraps instead of pushing the cost out of the card.

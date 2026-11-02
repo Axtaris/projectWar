@@ -80,7 +80,7 @@ projectWar is an unofficial fan project. It is not affiliated with, endorsed by 
 
 ## License
 
-The application code is released into the public domain under the [Unlicense](https://unlicense.org) (see `LICENSE`). Use it for anything.
+Free for personal and other non-commercial use under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0) (see `LICENSE`). You may not sell it, and you may not ask for or receive donations or any other payment for it or for copies or derivatives of it; only the creator may receive donations. Game content owned by Games Workshop and others is not covered.
 
 ## Legal
 

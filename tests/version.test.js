@@ -18,3 +18,12 @@ test('stratagem card keeps its cost visible: the cost never shrinks and the name
   assert.match(css, /\.scard \.cp\{[^}]*flex:none/);
   assert.match(css, /\.scard \.sh b\{min-width:0/);
 });
+
+test('license: non-commercial with the donations clause, and the terms page agrees', () => {
+  const lic = read('LICENSE'), terms = read('legal/terms.html');
+  assert.match(lic, /PolyForm Noncommercial License 1\.0\.0/);
+  assert.match(lic, /Additional Terms: No Donations/);
+  assert.match(lic, /Only the licensor .* may receive donations/s);
+  assert.match(terms, /PolyForm Noncommercial/);
+  assert.doesNotMatch(terms, /Unlicense|dominio público/);
+});
